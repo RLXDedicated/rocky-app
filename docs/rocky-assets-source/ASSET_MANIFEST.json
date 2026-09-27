@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "source": "a_clean_organized_asset_sheet_sprite_sheet_styl.png",
+  "description": "Rocky 2.5D assets extracted from the approved Rocky asset sheet.",
+  "evolutions": {
+    "baby": {
+      "displayName": "Baby Rocky",
+      "moods": {
+        "happy": "rocky/baby/happy.png",
+        "motivated": "rocky/baby/motivated.png",
+        "worried": "rocky/baby/worried.png",
+        "recovery": "rocky/baby/recovery.png"
+      }
+    },
+    "young": {
+      "displayName": "Young Rocky",
+      "moods": {
+        "happy": "rocky/young/happy.png",
+        "motivated": "rocky/young/motivated.png",
+        "worried": "rocky/young/worried.png",
+        "recovery": "rocky/young/recovery.png"
+      }
+    },
+    "advanced": {
+      "displayName": "Advanced Rocky",
+      "moods": {
+        "happy": "rocky/advanced/happy.png",
+        "motivated": "rocky/advanced/motivated.png",
+        "worried": "rocky/advanced/worried.png",
+        "recovery": "rocky/advanced/recovery.png"
+      }
+    },
+    "elite": {
+      "displayName": "Elite Rocky",
+      "moods": {
+        "happy": "rocky/elite/happy.png",
+        "motivated": "rocky/elite/motivated.png",
+        "worried": "rocky/elite/worried.png",
+        "recovery": "rocky/elite/recovery.png"
+      }
+    }
+  },
+  "reactions": {
+    "check-in": "rocky/reactions/check-in.png",
+    "qa-pass": "rocky/reactions/qa-pass.png",
+    "alert": "rocky/reactions/alert.png",
+    "level-up": "rocky/reactions/level-up.png",
+    "evolution": "rocky/reactions/evolution.png",
+    "recovery": "rocky/reactions/recovery.png"
+  }
+}
