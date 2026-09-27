@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.claude/
+*.log
+.env
+.env.*
+backend/node_modules/
+backend/dist/
