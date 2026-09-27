@@ -23,3 +23,27 @@ export function captureIdentityFromUrl(location: Pick<Location, 'search'> = wind
 export function getAgentEmail(): string | null {
   return window.localStorage.getItem(AGENT_EMAIL_KEY)
 }
+
+// The role the backend reported for this agent on the last successful sync
+// (GET /api/agent/me — decided server-side from ROCKY_ADMIN_EMAILS, see
+// backend/src/middleware/pilotIdentity.ts). Only used to decide whether to
+// SHOW QA/admin tooling; every QA/admin action is re-authorized by the
+// backend, so tampering with this value unlocks nothing that matters.
+const AGENT_ROLE_KEY = 'rocky.identity.role'
+
+export type AgentRole = 'AGENT' | 'QA' | 'SUPERVISOR' | 'ADMIN'
+
+export function setAgentRole(role: AgentRole | null): void {
+  if (role) window.localStorage.setItem(AGENT_ROLE_KEY, role)
+  else window.localStorage.removeItem(AGENT_ROLE_KEY)
+}
+
+export function getAgentRole(): AgentRole | null {
+  return window.localStorage.getItem(AGENT_ROLE_KEY) as AgentRole | null
+}
+
+/** True for the pilot's QA coordinators (QA or ADMIN role) — gates QA Tools and the Admin panel. */
+export function isQaStaff(): boolean {
+  const role = getAgentRole()
+  return role === 'QA' || role === 'ADMIN'
+}

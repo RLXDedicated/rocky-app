@@ -13,13 +13,20 @@
 // own "Rocky couldn't save that action" philosophy: a demo an agent is
 // about to be shown must never hard-fail.
 import { apiClient, isRemoteModeEnabled } from './apiClient'
-import { captureIdentityFromUrl } from './identityService'
+import { captureIdentityFromUrl, setAgentRole } from './identityService'
 import { repository } from '../repository/localStorageRepository'
 
 export async function initializeIdentityAndSync(): Promise<void> {
   captureIdentityFromUrl()
 
-  if (!isRemoteModeEnabled()) return
+  if (!isRemoteModeEnabled()) {
+    setAgentRole(null)
+    return
+  }
+
+  // Cleared up front so a stale elevated role never survives a failed sync
+  // or a switch to a different agent's link on the same browser.
+  setAgentRole(null)
 
   try {
     const [agent, gameState, achievements] = await Promise.all([
@@ -32,8 +39,10 @@ export async function initializeIdentityAndSync(): Promise<void> {
     // (see onboardingService.ts) rather than overwriting it with the
     // backend's generic default — naming is a local-only, one-time choice
     // in this prototype (see README) and isn't pushed to the backend yet.
+    const { role, ...remoteAgent } = agent
+    setAgentRole(role)
     const localAgent = repository.getAgent()
-    repository.saveAgent({ ...agent, rockyName: localAgent.rockyName !== 'Rocky' ? localAgent.rockyName : agent.rockyName })
+    repository.saveAgent({ ...remoteAgent, rockyName: localAgent.rockyName !== 'Rocky' ? localAgent.rockyName : remoteAgent.rockyName })
 
     repository.saveGameState(gameState)
     for (const achievement of achievements.unlocked) {

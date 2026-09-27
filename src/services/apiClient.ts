@@ -38,6 +38,19 @@ export interface RemoteAgent {
   id: string
   name: string
   rockyName: string
+  role: import('./identityService').AgentRole
+}
+
+export interface AdminAgentSummary {
+  id: string
+  name: string
+  state: import('../types/domain').GameState
+}
+
+function newIdempotencyKey(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 // Shapes intentionally left as `unknown`-adjacent (import type from the
@@ -52,5 +65,19 @@ export const apiClient = {
     request<import('../engine/gameEngine').CheckInResult>('/api/events/check-in', {
       method: 'POST',
       body: JSON.stringify({}),
+    }),
+  // QA/ADMIN only — the backend returns 403 for anyone else.
+  listAdminAgents: () => request<{ agents: AdminAgentSummary[] }>('/api/admin/agents'),
+  qaPass: (agentId: string, auditDate: string) =>
+    request<unknown>('/api/events/qa-pass', {
+      method: 'POST',
+      headers: { 'Idempotency-Key': newIdempotencyKey() },
+      body: JSON.stringify({ agentId, auditDate }),
+    }),
+  documentationAlert: (agentId: string, auditDate: string) =>
+    request<unknown>('/api/events/documentation-alert', {
+      method: 'POST',
+      headers: { 'Idempotency-Key': newIdempotencyKey() },
+      body: JSON.stringify({ agentId, auditDate }),
     }),
 }

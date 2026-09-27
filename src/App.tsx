@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import styles from './App.module.css'
 import { Achievements } from './components/Achievements'
+import { AdminPanel } from './components/AdminPanel'
 import { DevControls } from './components/DevControls'
 import { Home } from './components/Home'
 import { Leaderboard } from './components/Leaderboard'
@@ -9,20 +10,31 @@ import { QASimulator } from './components/QASimulator'
 import { ReminderHost } from './components/ReminderHost'
 import { TeamLeaderboard } from './components/TeamLeaderboard'
 import { TeamPage } from './components/TeamPage'
+import { isRemoteModeEnabled } from './services/apiClient'
 import { isQaModeEnabled, setQaModeEnabled } from './services/appModeService'
+import { isQaStaff } from './services/identityService'
 import { hasCompletedOnboarding } from './services/onboardingService'
 
-type View = 'home' | 'qa-simulator' | 'achievements' | 'leaderboard' | 'team' | 'team-leaderboard' | 'dev-controls'
+type View = 'home' | 'qa-simulator' | 'admin' | 'achievements' | 'leaderboard' | 'team' | 'team-leaderboard' | 'dev-controls'
 
 // Agent Mode (the everyday experience) vs QA Mode (Phase 8 §23-24): QA
 // Simulator is an internal testing tool, not part of what an agent normally
 // sees, so it's opt-in and clearly labeled rather than sitting in the main
 // nav by default. Developer Controls stay additionally gated to dev builds
 // regardless of this toggle.
+//
+// The toggle itself is only offered to QA staff — agents whose address the
+// backend lists in ROCKY_ADMIN_EMAILS (see identityService.isQaStaff) — or
+// in a dev build. A regular pilot agent never sees QA Tools, even if an old
+// browser still has the toggle switched on in localStorage.
 function App() {
   const [view, setView] = useState<View>('home')
   const [onboarded, setOnboarded] = useState(() => hasCompletedOnboarding())
-  const [qaMode, setQaMode] = useState(() => isQaModeEnabled())
+  const [staff] = useState(() => isQaStaff())
+  const canUseQaTools = staff || import.meta.env.DEV
+  const canUseAdmin = staff && isRemoteModeEnabled()
+  const [qaModeSetting, setQaMode] = useState(() => isQaModeEnabled())
+  const qaMode = qaModeSetting && canUseQaTools
 
   useEffect(() => {
     if (!qaMode && view === 'qa-simulator') setView('home')
@@ -71,6 +83,14 @@ function App() {
         >
           Team Leaderboard
         </button>
+        {canUseAdmin && (
+          <button
+            className={`${styles.navButton} ${styles.navButtonQa} ${view === 'admin' ? styles.navButtonActive : ''}`}
+            onClick={() => setView('admin')}
+          >
+            Admin
+          </button>
+        )}
         {qaMode && (
           <button
             className={`${styles.navButton} ${styles.navButtonQa} ${view === 'qa-simulator' ? styles.navButtonActive : ''}`}
@@ -91,6 +111,7 @@ function App() {
 
       {view === 'home' && <Home />}
       {view === 'qa-simulator' && qaMode && <QASimulator />}
+      {view === 'admin' && canUseAdmin && <AdminPanel />}
       {view === 'achievements' && <Achievements />}
       {view === 'leaderboard' && <Leaderboard />}
       {view === 'team' && <TeamPage />}
@@ -101,9 +122,11 @@ function App() {
 
       {/* Unobtrusive corner toggle — not part of the agent's normal
           attention path, but always reachable for testers. */}
-      <button className={styles.qaModeToggle} onClick={toggleQaMode}>
-        {qaMode ? '✓ QA Tools On' : 'QA Tools'}
-      </button>
+      {canUseQaTools && (
+        <button className={styles.qaModeToggle} onClick={toggleQaMode}>
+          {qaMode ? '✓ QA Tools On' : 'QA Tools'}
+        </button>
+      )}
     </div>
   )
 }
