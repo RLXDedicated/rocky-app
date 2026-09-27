@@ -21,7 +21,7 @@ import { createReminderApplicationService } from './application/reminderApplicat
 import { createLeaderboardApplicationService } from './application/leaderboardApplicationService'
 import { createTeamApplicationService } from './application/teamApplicationService'
 import { createAdminApplicationService } from './application/adminApplicationService'
-import type { Clock } from './domain/rockyEngine'
+import { todayKey, type Clock } from './domain/rockyEngine'
 
 // Reusing teamService/leaderboardService/reminderService UNCHANGED (see
 // ../infrastructure/browserGlobalsShim.ts) requires window.localStorage to
@@ -63,14 +63,14 @@ export function createApp(options: CreateAppOptions = {}): Express {
       reminders: createReminderApplicationService({ persistence, clock: options.clock }),
       leaderboard: createLeaderboardApplicationService({ persistence }),
       team: createTeamApplicationService({ persistence }),
-      admin: createAdminApplicationService({ persistence }),
+      admin: createAdminApplicationService({ persistence, config, clock: options.clock }),
       clock: options.clock,
     }),
   )
   app.use('/api', api)
 
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok' })
+    res.json({ status: 'ok', timezone: config.timezone, today: todayKey(new Date()) })
   })
 
   app.use(notFoundHandler)

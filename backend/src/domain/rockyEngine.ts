@@ -45,6 +45,8 @@ export type {
 // independently produces, using the Game Engine's own, already-tested
 // replay function — never a reimplementation of it.
 export { recalculateStateFromEvents } from '../../../src/engine/gameEngine'
+export { buildCorrectionMap, countCheckIns, countEffectiveAlerts, countEffectiveQaPasses } from '../../../src/engine/gameEngine'
+export { daysBetweenKeys, todayKey } from '../../../src/engine/dateUtils'
 
 export type { Achievement, Agent, GameEvent, GameState, QAOutcome } from '../../../src/types/domain'
 export type { Repository } from '../../../src/repository/repository'

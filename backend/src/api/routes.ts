@@ -13,6 +13,7 @@ import type { LeaderboardApplicationService } from '../application/leaderboardAp
 import type { TeamApplicationService } from '../application/teamApplicationService'
 import type { AdminApplicationService } from '../application/adminApplicationService'
 import type { AgentResponse } from '../types/dto'
+import { ApiError } from './errors'
 import { systemClock, type Clock } from '../domain/rockyEngine'
 
 export interface ApiServices {
@@ -95,8 +96,39 @@ export function createApiRouter(services: ApiServices): Router {
   // Admin roster — QA (or ADMIN) only. Read-only: every state change still
   // goes through the event routes above.
   // ---------------------------------------------------------------------
-  router.get('/admin/agents', requireRole('QA', 'ADMIN'), (_req: Request, res: Response) => {
+  const adminOnly = requireRole('QA', 'ADMIN')
+
+  router.get('/admin/overview', adminOnly, (_req: Request, res: Response) => {
+    res.json(services.admin.getOverview())
+  })
+
+  router.get('/admin/system', adminOnly, (_req: Request, res: Response) => {
+    res.json(services.admin.getSystem())
+  })
+
+  router.get('/admin/agents', adminOnly, (_req: Request, res: Response) => {
     res.json(services.admin.listAgents())
+  })
+
+  router.get('/admin/agents/:id', adminOnly, (req: Request, res: Response) => {
+    res.json(services.admin.getAgentDetail(req.params.id!))
+  })
+
+  // Administrative writes — never touch XP/Energy/etc. directly (see
+  // adminApplicationService header).
+  router.patch('/admin/agents/:id', adminOnly, (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    const name = requireNonEmptyString(body.name, 'name').trim()
+    if (name.length > 80) throw ApiError.validation('"name" must be at most 80 characters.')
+    res.json(services.admin.renameAgent(req.params.id!, name))
+  })
+
+  router.post('/admin/agents/:id/reset', adminOnly, (req: Request, res: Response) => {
+    res.json(services.admin.resetAgent(req.params.id!))
+  })
+
+  router.delete('/admin/agents/:id', adminOnly, (req: Request, res: Response) => {
+    res.json(services.admin.deleteAgent(req.params.id!))
   })
 
   // ---------------------------------------------------------------------

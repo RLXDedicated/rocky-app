@@ -10,6 +10,12 @@ function brokenPersistence(): PersistenceContext {
       forAgent() {
         throw new Error('simulated repository outage: connection refused')
       },
+      hasAgent() {
+        throw new Error('simulated repository outage: connection refused')
+      },
+      deleteAgent() {
+        throw new Error('simulated repository outage: connection refused')
+      },
       listAgentIds() {
         throw new Error('simulated repository outage: connection refused')
       },

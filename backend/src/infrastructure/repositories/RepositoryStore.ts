@@ -19,6 +19,17 @@ export interface RepositoryStore {
    */
   listAgentIds(): string[]
 
+  /** Whether this store holds a record for `agentId` — never creates one (unlike forAgent). */
+  hasAgent(agentId: string): boolean
+
+  /**
+   * Permanently removes every record this store holds for `agentId`
+   * (profile, state, events, achievements, reminders, idempotency records).
+   * QA/ADMIN only — used to clean test/demo agents out of the pilot roster.
+   * If the same address opens the app again, it simply starts fresh.
+   */
+  deleteAgent(agentId: string): void
+
   /**
    * Runs `fn` as one atomic unit of work. For the Sqlite store this opens
    * a real SQL transaction (BEGIN/COMMIT, ROLLBACK on throw) so a Check-in/

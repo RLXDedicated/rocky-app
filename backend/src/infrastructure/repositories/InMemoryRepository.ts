@@ -107,6 +107,16 @@ export class InMemoryRepositoryStore implements RepositoryStore {
     }
   }
 
+  /** See RepositoryStore.hasAgent. */
+  hasAgent(agentId: string): boolean {
+    return this.records.has(agentId)
+  }
+
+  /** See RepositoryStore.deleteAgent. (Idempotency records live in a separate in-memory store and simply expire with the process.) */
+  deleteAgent(agentId: string): void {
+    this.records.delete(agentId)
+  }
+
   /** See RepositoryStore.listAgentIds. */
   listAgentIds(): string[] {
     return [...this.records.keys()].sort()

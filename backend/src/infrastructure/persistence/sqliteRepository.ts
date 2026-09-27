@@ -271,6 +271,18 @@ export class SqliteRepositoryStore implements RepositoryStore {
     }
   }
 
+  /** See RepositoryStore.hasAgent. */
+  hasAgent(agentId: string): boolean {
+    return Boolean(this.db.prepare('SELECT agent_id FROM agents WHERE agent_id = ?').get(agentId))
+  }
+
+  /** See RepositoryStore.deleteAgent. Callers wrap this in withTransaction. */
+  deleteAgent(agentId: string): void {
+    for (const table of ['reminders', 'achievements', 'events', 'game_state', 'idempotency_records', 'agents']) {
+      this.db.prepare(`DELETE FROM ${table} WHERE agent_id = ?`).run(agentId)
+    }
+  }
+
   /** See RepositoryStore.listAgentIds. */
   listAgentIds(): string[] {
     const rows = this.db.prepare('SELECT agent_id FROM agents ORDER BY agent_id ASC').all() as unknown as { agent_id: string }[]

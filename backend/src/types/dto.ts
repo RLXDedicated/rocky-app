@@ -138,14 +138,105 @@ export interface ReminderActionResponse {
 // ---------------------------------------------------------------------------
 // Admin (QA/ADMIN only)
 // ---------------------------------------------------------------------------
+export interface AdminAgentMetrics {
+  checkIns: number
+  /** Effective (after corrections). */
+  qaPasses: number
+  /** Effective (after corrections). */
+  alerts: number
+  corrections: number
+  achievements: number
+  totalEvents: number
+  checkedInToday: boolean
+  daysSinceCheckIn: number | null
+  firstSeenAt: string | null
+  atRisk: boolean
+  riskReasons: string[]
+}
+
 export interface AdminAgentSummary {
   id: string
   name: string
+  rockyName: string
   state: GameState
+  metrics: AdminAgentMetrics
 }
 
 export interface AdminAgentsResponse {
   agents: AdminAgentSummary[]
+}
+
+export interface AdminEventRow {
+  id: string
+  agentId: string
+  type: GameEvent['type']
+  date: string
+  timestamp: string
+  payload: Record<string, unknown> | null
+  correctsEventId: string | null
+  /** Set on a QA_PASS / DOCUMENTATION_ALERT that a later CORRECTION overrode. */
+  correctedTo: QAOutcome | null
+}
+
+export interface AdminAgentDetailResponse {
+  agent: AdminAgentSummary
+  events: AdminEventRow[]
+  achievements: Achievement[]
+  reminders: ReminderRecord[]
+}
+
+export interface AdminOverviewResponse {
+  generatedAt: string
+  today: string
+  timezone: string
+  kpis: {
+    totalAgents: number
+    checkedInToday: number
+    checkInRateToday: number
+    active7d: number
+    atRisk: number
+    totalCheckIns: number
+    totalQaPasses: number
+    totalAlerts: number
+    qaPassRate: number | null
+    totalAchievements: number
+    avgLevel: number
+    avgXp: number
+    avgEnergy: number
+    avgStreak: number
+    bestStreak: { agentId: string; days: number } | null
+  }
+  moodDistribution: { key: string; count: number }[]
+  evolutionDistribution: { key: string; count: number }[]
+  daily: { date: string; checkIns: number; qaPasses: number; alerts: number; activeAgents: number }[]
+  hourlyCheckIns: { hour: number; checkIns: number }[]
+  weekdayCheckIns: { day: number; checkIns: number }[]
+  topAgents: AdminAgentSummary[]
+  atRiskAgents: AdminAgentSummary[]
+  recentActivity: AdminEventRow[]
+}
+
+export interface AdminSystemResponse {
+  serverTime: string
+  serverLocalTime: string
+  today: string
+  timezone: string
+  processTz: string | null
+  nodeEnv: string
+  nodeVersion: string
+  authMode: string
+  adminEmails: string[]
+  allowedOrigins: string[]
+  persistenceDriver: string
+  uptimeSeconds: number
+  deployment: {
+    commitSha: string | null
+    commitMessage: string | null
+    branch: string | null
+    environment: string | null
+    deploymentId: string | null
+  }
+  agentCount: number
 }
 
 // ---------------------------------------------------------------------------
