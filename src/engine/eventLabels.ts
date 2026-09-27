@@ -1,0 +1,35 @@
+import type { GameEvent } from '../types/domain'
+
+export function labelForEvent(event: GameEvent): string {
+  switch (event.type) {
+    case 'CHECK_IN':
+      // Read from the event's own payload rather than hardcoding the
+      // reward — it's already there, and this way the label can never
+      // drift out of sync with GAME_CONFIG or a future corrected value.
+      return `Checked in with Rocky · +${event.payload?.xpGained ?? 0} XP, +${event.payload?.energyGained ?? 0} Energy`
+    case 'QA_PASS':
+      return `QA Pass · +${event.payload?.xpGained ?? 0} XP, +${event.payload?.energyGained ?? 0} Energy`
+    case 'DOCUMENTATION_ALERT':
+      return 'Documentation Alert · Rocky is a little worried'
+    case 'STREAK_MILESTONE':
+      return `🔥 ${event.payload?.days ?? ''}-day streak milestone · +${event.payload?.xpGained ?? 0} XP`
+    case 'LEVEL_UP': {
+      const prev = event.payload?.previousLevel
+      const next = event.payload?.newLevel ?? event.payload?.level
+      return prev != null ? `🎉 Level Up! Level ${prev} → ${next}` : `🎉 Level Up! Now Level ${next ?? ''}`
+    }
+    case 'EVOLUTION': {
+      const prev = event.payload?.previousStage
+      const next = event.payload?.newStage ?? event.payload?.stage
+      return prev != null
+        ? `✨ Rocky evolved! ${prev} Rocky → ${next} Rocky`
+        : `✨ Rocky evolved into ${next ?? 'a new form'}!`
+    }
+    case 'ACHIEVEMENT':
+      return `Achievement unlocked: ${event.payload?.name ?? ''}`
+    case 'CORRECTION':
+      return 'A correction was recorded'
+    default:
+      return 'Activity recorded'
+  }
+}

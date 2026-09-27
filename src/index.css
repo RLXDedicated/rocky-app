@@ -1,0 +1,40 @@
+:root {
+  --bg: #f4f8f4;
+  --hero-bg: linear-gradient(135deg, #ffffff, #eef8f0);
+  --card-bg: #ffffff;
+  --track-bg: #e6efe6;
+  --divider: #eef1ee;
+  --text-strong: #1c2b20;
+  --text-muted: #6b7a6f;
+
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-strong);
+  overflow-x: hidden;
+}
+
+/* Rocky stays alive, not distracting: idle bounces, sparkles, and celebration
+   spins are all non-essential motion, so a viewer who's asked the OS for
+   reduced motion gets a near-static (but still fully functional) experience
+   instead of constant movement. Every keyframe animation in the app is
+   covered by animation-duration/animation-iteration-count here — nothing
+   needs its own reduced-motion branch. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

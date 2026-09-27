@@ -1,0 +1,56 @@
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px 0;
+}
+
+.navButton {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--divider);
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.navButtonActive {
+  background: #1f8a4c;
+  border-color: #1f8a4c;
+  color: #fff;
+}
+
+/* QA/dev-only nav entries get a visibly different treatment — an amber
+   dashed border — so they never read as "part of the normal agent flow"
+   even when a tester has QA Tools switched on. */
+.navButtonQa {
+  border-style: dashed;
+  border-color: #e0a53a;
+  color: #a06a1a;
+}
+
+.navButtonQa.navButtonActive {
+  background: #e0a53a;
+  border-color: #e0a53a;
+  border-style: solid;
+  color: #fff;
+}
+
+.qaModeToggle {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 90;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px dashed var(--divider);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
