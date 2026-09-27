@@ -15,26 +15,21 @@
   position: relative;
 }
 
-/* The approved artwork is a 512x512 canvas with Rocky drawn small and
-   centered in it (a consistent ~95x186px figure, reactions ~239x189px) —
-   see docs/rocky-assets-source/. `.zoom` magnifies around that (already
-   centered) figure so Rocky reads clearly at avatar sizes, cropping only
-   the surrounding white margin via `overflow: hidden` on `.wrapper` — the
-   image file itself is never touched, resized, or redrawn. Reactions get a
-   smaller zoom since their artwork (e.g. the "LEVEL UP!" banner) uses more
-   of the canvas width and would otherwise clip.
-*/
+/* The delivered artwork is NOT a small figure centered in a big canvas:
+   each 512x512 PNG is already mostly filled by the character (the figure
+   spans roughly 30px-480px vertically on most variants; reactions span
+   nearly the full width). The old 2.1x/1.85x zoom was tuned for a
+   placeholder asset and, against the real approved art, cropped straight
+   through horns, ears and feet. No zoom is applied now — `object-fit:
+   contain` on `.image` shows each asset in full. If a tighter, uniform crop
+   is wanted later, it has to be done in the source art (or per-asset crop
+   values), not a single scale factor applied to every variant. */
 .zoom {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: scale(2.1);
-}
-
-.zoomReaction {
-  transform: scale(1.85);
 }
 
 .image {

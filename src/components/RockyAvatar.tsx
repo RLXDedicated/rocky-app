@@ -30,7 +30,7 @@ export function RockyAvatar({ mood, evolutionStage, size = 220, reaction }: Rock
 
   return (
     <div className={styles.wrapper} style={{ width: size, height: size }}>
-      <div className={`${styles.zoom} ${reaction ? styles.zoomReaction : ''}`}>
+      <div className={styles.zoom}>
         {/* The `key` forces a fresh <img> (and its entrance animation) each
             time the resolved asset changes, whether that's a mood/evolution
             change or a reaction starting/ending. */}
