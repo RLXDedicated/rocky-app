@@ -271,6 +271,12 @@ export class SqliteRepositoryStore implements RepositoryStore {
     }
   }
 
+  /** See RepositoryStore.listAgentIds. */
+  listAgentIds(): string[] {
+    const rows = this.db.prepare('SELECT agent_id FROM agents ORDER BY agent_id ASC').all() as unknown as { agent_id: string }[]
+    return rows.map((row) => row.agent_id)
+  }
+
   withTransaction<T>(fn: () => T): T {
     this.db.exec('BEGIN')
     try {

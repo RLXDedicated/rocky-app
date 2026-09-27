@@ -12,7 +12,7 @@ import { createPersistenceContext, type PersistenceContext } from './infrastruct
 import { config as defaultConfig, type AppConfig } from './config/env'
 import { requestId } from './middleware/requestId'
 import { devIdentity } from './middleware/devIdentity'
-import { pilotIdentity } from './middleware/pilotIdentity'
+import { createPilotIdentity } from './middleware/pilotIdentity'
 import { errorHandler, notFoundHandler } from './middleware/errorHandler'
 import { createApiRouter } from './api/routes'
 import { createGameApplicationService } from './application/gameApplicationService'
@@ -20,6 +20,7 @@ import { createQaApplicationService } from './application/qaApplicationService'
 import { createReminderApplicationService } from './application/reminderApplicationService'
 import { createLeaderboardApplicationService } from './application/leaderboardApplicationService'
 import { createTeamApplicationService } from './application/teamApplicationService'
+import { createAdminApplicationService } from './application/adminApplicationService'
 import type { Clock } from './domain/rockyEngine'
 
 // Reusing teamService/leaderboardService/reminderService UNCHANGED (see
@@ -54,7 +55,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   // the Teams-reminder pilot only — every other configuration (including
   // an unconfigured production deployment) keeps the fail-closed devIdentity
   // behavior, which 401s every request when devIdentityEnabled is false.
-  api.use(config.authMode === 'pilot-header' ? pilotIdentity : devIdentity)
+  api.use(config.authMode === 'pilot-header' ? createPilotIdentity(config) : devIdentity)
   api.use(
     createApiRouter({
       game: createGameApplicationService({ persistence, clock: options.clock }),
@@ -62,6 +63,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
       reminders: createReminderApplicationService({ persistence, clock: options.clock }),
       leaderboard: createLeaderboardApplicationService({ persistence }),
       team: createTeamApplicationService({ persistence }),
+      admin: createAdminApplicationService({ persistence }),
       clock: options.clock,
     }),
   )

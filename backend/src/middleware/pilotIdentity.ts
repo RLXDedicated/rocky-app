@@ -24,25 +24,30 @@
 // closed (401 via devIdentity) rather than silently trusting a header.
 import type { NextFunction, Request, Response } from 'express'
 import { ApiError } from '../api/errors'
+import type { AppConfig } from '../config/env'
 
 // Deliberately loose: this only needs to reject obvious garbage (blank
 // strings, values with no "@"), not fully validate RFC 5322 email syntax —
 // the roster it's ultimately compared against does that job downstream.
 const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function pilotIdentity(req: Request, _res: Response, next: NextFunction): void {
-  const rawEmail = req.header('X-Agent-Email')
-  const email = rawEmail?.trim().toLowerCase()
+export function createPilotIdentity(config: Pick<AppConfig, 'adminEmails'>) {
+  const adminEmails = new Set(config.adminEmails)
 
-  if (!email || !LOOKS_LIKE_EMAIL.test(email)) {
-    next(ApiError.unauthorized('X-Agent-Email header is required and must look like an email address.'))
-    return
+  return function pilotIdentity(req: Request, _res: Response, next: NextFunction): void {
+    const rawEmail = req.header('X-Agent-Email')
+    const email = rawEmail?.trim().toLowerCase()
+
+    if (!email || !LOOKS_LIKE_EMAIL.test(email)) {
+      next(ApiError.unauthorized('X-Agent-Email header is required and must look like an email address.'))
+      return
+    }
+
+    // Every pilot request acts as an AGENT unless its address is on the
+    // explicit ROCKY_ADMIN_EMAILS allowlist (see AppConfig.adminEmails),
+    // which acts as ADMIN — the pilot's QA coordinators. With no allowlist
+    // configured, QA/ADMIN-only routes stay unreachable, as before.
+    req.identity = { agentId: email, role: adminEmails.has(email) ? 'ADMIN' : 'AGENT' }
+    next()
   }
-
-  // Every pilot request acts as an AGENT — this mode has no notion of a QA
-  // or SUPERVISOR caller. QA/ADMIN-only routes stay unreachable via
-  // pilot-header identity, which is correct: this mode exists for the
-  // agent-facing frontend only.
-  req.identity = { agentId: email, role: 'AGENT' }
-  next()
 }

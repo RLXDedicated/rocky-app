@@ -10,6 +10,9 @@ function brokenPersistence(): PersistenceContext {
       forAgent() {
         throw new Error('simulated repository outage: connection refused')
       },
+      listAgentIds() {
+        throw new Error('simulated repository outage: connection refused')
+      },
       withTransaction<T>(fn: () => T): T {
         return fn()
       },

@@ -107,6 +107,11 @@ export class InMemoryRepositoryStore implements RepositoryStore {
     }
   }
 
+  /** See RepositoryStore.listAgentIds. */
+  listAgentIds(): string[] {
+    return [...this.records.keys()].sort()
+  }
+
   /** See RepositoryStore.withTransaction — nothing to wrap for an in-memory Map. */
   withTransaction<T>(fn: () => T): T {
     return fn()

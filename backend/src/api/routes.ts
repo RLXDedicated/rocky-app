@@ -11,6 +11,8 @@ import type { QaApplicationService } from '../application/qaApplicationService'
 import type { ReminderApplicationService } from '../application/reminderApplicationService'
 import type { LeaderboardApplicationService } from '../application/leaderboardApplicationService'
 import type { TeamApplicationService } from '../application/teamApplicationService'
+import type { AdminApplicationService } from '../application/adminApplicationService'
+import type { AgentResponse } from '../types/dto'
 import { systemClock, type Clock } from '../domain/rockyEngine'
 
 export interface ApiServices {
@@ -19,6 +21,7 @@ export interface ApiServices {
   reminders: ReminderApplicationService
   leaderboard: LeaderboardApplicationService
   team: TeamApplicationService
+  admin: AdminApplicationService
   clock?: Clock
 }
 
@@ -35,7 +38,8 @@ export function createApiRouter(services: ApiServices): Router {
   // Agent
   // ---------------------------------------------------------------------
   router.get('/agent/me', (req: Request, res: Response) => {
-    res.json(services.game.getAgent(req.identity!.agentId))
+    const body: AgentResponse = { ...services.game.getAgent(req.identity!.agentId), role: req.identity!.role }
+    res.json(body)
   })
 
   // ---------------------------------------------------------------------
@@ -85,6 +89,14 @@ export function createApiRouter(services: ApiServices): Router {
     res.json(
       services.qa.correction({ agentId, originalEventId, correctedTo, reason, idempotencyKey: idempotencyKey(req) }),
     )
+  })
+
+  // ---------------------------------------------------------------------
+  // Admin roster — QA (or ADMIN) only. Read-only: every state change still
+  // goes through the event routes above.
+  // ---------------------------------------------------------------------
+  router.get('/admin/agents', requireRole('QA', 'ADMIN'), (_req: Request, res: Response) => {
+    res.json(services.admin.listAgents())
   })
 
   // ---------------------------------------------------------------------

@@ -12,6 +12,14 @@ export interface RepositoryStore {
   forAgent(agentId: string): Repository
 
   /**
+   * Every agent id this store holds a record for, sorted. Read-only — used
+   * by the QA/ADMIN roster view (GET /api/admin/agents). An agent only
+   * appears here once something has touched their record (they opened the
+   * app via their Teams link, or QA recorded an event for them).
+   */
+  listAgentIds(): string[]
+
+  /**
    * Runs `fn` as one atomic unit of work. For the Sqlite store this opens
    * a real SQL transaction (BEGIN/COMMIT, ROLLBACK on throw) so a Check-in/
    * QA Pass/Alert/Correction's several repository writes (state + event(s)

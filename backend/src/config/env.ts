@@ -58,6 +58,21 @@ export interface AppConfig {
    * here. Comma-separated in ROCKY_ALLOWED_ORIGINS.
    */
   allowedOrigins: string[]
+  /**
+   * Pilot-only role allowlist (see ../middleware/pilotIdentity.ts): the
+   * lowercased X-Agent-Email addresses that act as ADMIN instead of AGENT
+   * under authMode 'pilot-header' — i.e. the QA coordinators who may record
+   * QA Pass / Documentation Alert / Correction events for any agent and see
+   * the roster. Empty by default: nobody is elevated unless a deployment
+   * names them explicitly. Comma-separated in ROCKY_ADMIN_EMAILS.
+   *
+   * Same caveat as pilot-header itself: this is an allowlist over an
+   * UNVERIFIED header, acceptable only because the pilot frontend is
+   * reachable solely via per-agent Teams links. Anyone who learns an admin's
+   * address could act as them — replace with Entra ID roles before this
+   * leaves the closed pilot.
+   */
+  adminEmails: string[]
 }
 
 function readNodeEnv(env: NodeJS.ProcessEnv): NodeEnv {
@@ -93,6 +108,15 @@ function readAllowedOrigins(env: NodeJS.ProcessEnv): string[] {
     .split(',')
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0)
+}
+
+function readAdminEmails(env: NodeJS.ProcessEnv): string[] {
+  const raw = env.ROCKY_ADMIN_EMAILS
+  if (!raw) return []
+  return raw
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => email.length > 0)
 }
 
 /**
@@ -138,6 +162,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     persistenceDriver: readPersistenceDriver(env, nodeEnv),
     dbPath: readDbPath(env),
     allowedOrigins: readAllowedOrigins(env),
+    adminEmails: readAdminEmails(env),
   }
 
   assertProductionSafety(config)

@@ -13,7 +13,10 @@ import type { TeamMember } from '../../../src/services/teamService'
 // ---------------------------------------------------------------------------
 // Agent
 // ---------------------------------------------------------------------------
-export type AgentResponse = Agent
+export type AgentResponse = Agent & {
+  /** The caller's role for this request — lets the frontend decide whether to show QA/admin tooling. Server-decided; never trusted back from a client. */
+  role: 'AGENT' | 'QA' | 'SUPERVISOR' | 'ADMIN'
+}
 
 // ---------------------------------------------------------------------------
 // Game state
@@ -130,6 +133,19 @@ export interface ReminderActionRequest {}
 export interface ReminderActionResponse {
   id: string
   status: string
+}
+
+// ---------------------------------------------------------------------------
+// Admin (QA/ADMIN only)
+// ---------------------------------------------------------------------------
+export interface AdminAgentSummary {
+  id: string
+  name: string
+  state: GameState
+}
+
+export interface AdminAgentsResponse {
+  agents: AdminAgentSummary[]
 }
 
 // ---------------------------------------------------------------------------
