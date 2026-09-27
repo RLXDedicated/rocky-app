@@ -2,11 +2,15 @@ import { createApp } from './app'
 import { config } from './config/env'
 import { createPersistenceContext } from './infrastructure/persistenceContext'
 
+// Must run before any request computes a "today" — see AppConfig.timezone.
+process.env.TZ = config.timezone
+
 const persistence = createPersistenceContext(config)
 const app = createApp({ persistence })
 
 const server = app.listen(config.port, () => {
   console.log(`[rocky-backend] listening on port ${config.port} (${config.nodeEnv})`)
+  console.log(`[rocky-backend] timezone: ${config.timezone} (local now: ${new Date().toString()})`)
   console.log(`[rocky-backend] persistence: ${config.persistenceDriver}${config.persistenceDriver === 'sqlite' ? ` (${config.dbPath})` : ''}`)
   if (config.authMode === 'pilot-header') {
     console.log('[rocky-backend] Pilot identity is ENABLED — X-Agent-Email header accepted. This is NOT authentication (Teams-pilot-only stopgap).')

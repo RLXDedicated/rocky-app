@@ -73,6 +73,15 @@ export interface AppConfig {
    * leaves the closed pilot.
    */
   adminEmails: string[]
+  /**
+   * IANA time zone that defines "today" for every agent (check-in day,
+   * streaks, "already checked in today", audit-date validation). The Game
+   * Engine uses the process's local time for its day boundary, and hosted
+   * containers (Railway) run in UTC — without this, a check-in after
+   * 7 p.m. in Colombia was recorded as the NEXT day. server.ts applies it to
+   * process.env.TZ at startup. ROCKY_TIMEZONE, default America/Bogota.
+   */
+  timezone: string
 }
 
 function readNodeEnv(env: NodeJS.ProcessEnv): NodeEnv {
@@ -119,6 +128,16 @@ function readAdminEmails(env: NodeJS.ProcessEnv): string[] {
     .filter((email) => email.length > 0)
 }
 
+function readTimezone(env: NodeJS.ProcessEnv): string {
+  const raw = env.ROCKY_TIMEZONE?.trim() || 'America/Bogota'
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: raw })
+  } catch {
+    throw new Error(`Refusing to start: ROCKY_TIMEZONE="${raw}" is not a valid IANA time zone (e.g. America/Bogota).`)
+  }
+  return raw
+}
+
 /**
  * Fail-fast guards against configurations that would silently create a
  * production system with no real durability or no real identity check —
@@ -163,6 +182,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     dbPath: readDbPath(env),
     allowedOrigins: readAllowedOrigins(env),
     adminEmails: readAdminEmails(env),
+    timezone: readTimezone(env),
   }
 
   assertProductionSafety(config)
