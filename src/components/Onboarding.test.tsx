@@ -11,20 +11,20 @@ describe('Onboarding', () => {
 
   it('shows the "Meet Rocky" step first, not the name step', () => {
     render(<Onboarding onComplete={() => {}} />)
-    expect(screen.getByText('Meet Rocky.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Meet Rocky.' })).toBeInTheDocument()
     expect(screen.queryByLabelText("Rocky's name")).not.toBeInTheDocument()
   })
 
   it('advances to the name step and defaults to "Rocky"', () => {
     render(<Onboarding onComplete={() => {}} />)
-    fireEvent.click(screen.getByText('Meet Rocky'))
+    fireEvent.click(screen.getByRole('button', { name: 'Meet Rocky' }))
     expect(screen.getByLabelText("Rocky's name")).toHaveValue('Rocky')
   })
 
   it('accepting the default name completes onboarding and persists it', () => {
     const onComplete = vi.fn()
     render(<Onboarding onComplete={onComplete} />)
-    fireEvent.click(screen.getByText('Meet Rocky'))
+    fireEvent.click(screen.getByRole('button', { name: 'Meet Rocky' }))
     fireEvent.click(screen.getByText("Let's go"))
 
     expect(onComplete).toHaveBeenCalledOnce()
@@ -35,7 +35,7 @@ describe('Onboarding', () => {
   it('a custom name is persisted as the single source of truth (the Agent record)', () => {
     const onComplete = vi.fn()
     render(<Onboarding onComplete={onComplete} />)
-    fireEvent.click(screen.getByText('Meet Rocky'))
+    fireEvent.click(screen.getByRole('button', { name: 'Meet Rocky' }))
     fireEvent.change(screen.getByLabelText("Rocky's name"), { target: { value: 'Bruiser' } })
     fireEvent.click(screen.getByText("Let's go"))
 
@@ -44,7 +44,7 @@ describe('Onboarding', () => {
 
   it('falls back to "Rocky" if the name is submitted blank', () => {
     render(<Onboarding onComplete={() => {}} />)
-    fireEvent.click(screen.getByText('Meet Rocky'))
+    fireEvent.click(screen.getByRole('button', { name: 'Meet Rocky' }))
     fireEvent.change(screen.getByLabelText("Rocky's name"), { target: { value: '   ' } })
     fireEvent.click(screen.getByText("Let's go"))
 

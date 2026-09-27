@@ -16,7 +16,7 @@
   margin: 0;
   font-size: clamp(1.8rem, 4vw, 2.4rem);
   font-weight: 800;
-  color: var(--pine);
+  color: var(--navy);
 }
 
 .subtitle {
@@ -64,8 +64,8 @@
 }
 
 .rankTop {
-  background: var(--pine);
-  color: var(--hivis);
+  background: var(--navy);
+  color: var(--gold);
 }
 
 .rowInfo {
@@ -100,7 +100,7 @@
   font-weight: 800;
   font-size: 1.6rem;
   line-height: 1;
-  color: var(--pine);
+  color: var(--navy);
 }
 
 .scoreLabel {

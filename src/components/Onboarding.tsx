@@ -39,7 +39,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
         {step === 'meet' ? (
           <>
-            <h1 className={styles.title}>Meet Rocky.</h1>
+            <h1 className={styles.title}>
+              Meet Rocky<span className={styles.dot}>.</span>
+            </h1>
             <p className={styles.tagline}>
               Your documentation buddy. Check in every day and Rocky gains XP, grows a streak and evolves from Baby all the
               way to Elite.
@@ -61,7 +63,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           </>
         ) : (
           <>
-            <h1 className={styles.title}>Name your Rocky.</h1>
+            <h1 className={styles.title}>
+              Name your Rocky<span className={styles.dot}>.</span>
+            </h1>
             <p className={styles.tagline}>Keep the classic name or give your buddy one of their own.</p>
             <label className={styles.nameTag} htmlFor="rocky-name">
               <span className={styles.nameTagHole} aria-hidden="true" />

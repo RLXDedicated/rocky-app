@@ -3,26 +3,30 @@
    is logistics hi-vis (safety tape, shipping labels) and is reserved for XP
    and streaks. Every screen reads colors, type and radii from here. */
 :root {
-  /* Brand */
-  --pine: #0c3b2a;
-  --pine-2: #134d37;
-  --rlx-green: #1f7a46;
-  --rlx-green-hover: #19663a;
-  --sprout: #8fd19e;
-  --hivis: #f3b13b;
-  --hivis-ink: #7a4d00;
+  /* Brand — RLX / Riverstone Logistics: deep navy + kelly green on white,
+     taken from rlx.us. Gold is the game's reward color (levels, badges,
+     celebrations) and is never used for regular UI. */
+  --navy: #0f2341;
+  --navy-2: #1b3358;
+  --rlx-green: #008c45;
+  --rlx-green-hover: #007439;
+  --green-bright: #1fbf68;
+  --sprout: #7fd6a0;
+  --mint: #e3f5ea;
+  --gold: #f5b82e;
+  --gold-ink: #7a5200;
   --hide: #8a5a36;
 
   /* Surfaces & ink */
-  --bg: #f4f7f1;
+  --bg: #f5f8f7;
   --card-bg: #ffffff;
-  --card-border: #e2e9e1;
-  --track-bg: #e6eee5;
-  --divider: #edf1ec;
-  --text-strong: #14241b;
-  --text-muted: #5f6f64;
-  --text-on-dark: #f2f7f1;
-  --text-on-dark-muted: #a9c3b1;
+  --card-border: #e2e8ec;
+  --track-bg: #e8eef1;
+  --divider: #eef2f4;
+  --text-strong: #0f2341;
+  --text-muted: #5b6b80;
+  --text-on-dark: #f4f7fb;
+  --text-on-dark-muted: #a9b8cc;
 
   /* Status (always paired with a label or icon) */
   --alert: #c9542e;
@@ -31,18 +35,20 @@
   /* Kept for components that still reference them */
   --hero-bg: var(--card-bg);
 
-  /* Type */
-  --font-display: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
-  --font-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Type — Poppins is RLX's typeface; Caveat stands in for the hand-written
+     green notes rlx.us uses ("love", "serve", "improve"). */
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-hand: 'Caveat', 'Segoe Print', 'Bradley Hand', system-ui, sans-serif;
 
   /* Shape */
   --radius-lg: 28px;
-  --radius-md: 18px;
+  --radius-md: 20px;
   --radius-sm: 12px;
 
   font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.55;
   color-scheme: light;
   -webkit-font-smoothing: antialiased;
 }
@@ -62,8 +68,14 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  letter-spacing: -0.01em;
-  line-height: 1.15;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+}
+
+/* RLX's signature: headlines end in a green period. */
+.dot::after {
+  content: '.';
+  color: var(--rlx-green);
 }
 
 button,
@@ -73,7 +85,7 @@ select {
 }
 
 :focus-visible {
-  outline: 3px solid var(--hivis);
+  outline: 3px solid var(--gold);
   outline-offset: 2px;
 }
 

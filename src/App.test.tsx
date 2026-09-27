@@ -10,7 +10,7 @@ describe('App — Agent Mode vs QA Mode navigation (Phase 8 §23-24)', () => {
 
   it('shows the onboarding intro on a brand-new browser instead of the nav', () => {
     render(<App />)
-    expect(screen.getByText('Meet Rocky.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Meet Rocky.' })).toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument()
   })
 

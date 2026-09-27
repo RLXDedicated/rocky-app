@@ -18,7 +18,7 @@
   gap: 24px;
   padding: 24px 32px;
   border-radius: var(--radius-lg);
-  background: var(--pine);
+  background: var(--navy);
   color: var(--text-on-dark);
 }
 
@@ -52,7 +52,7 @@
 }
 
 .shelfBar .shelfOn {
-  background: var(--hivis);
+  background: var(--gold);
 }
 
 .grid {
@@ -82,7 +82,7 @@
   margin: 10px 0 0;
   font-size: 1.15rem;
   font-weight: 700;
-  color: var(--pine);
+  color: var(--navy);
 }
 
 .description {
@@ -118,7 +118,7 @@
   padding: 3px 10px;
   border-radius: 999px;
   background: #fdf0d8;
-  color: var(--hivis-ink);
+  color: var(--gold-ink);
   font-weight: 700;
 }
 
@@ -142,7 +142,7 @@
 }
 
 .medalFill {
-  stroke: var(--hivis);
+  stroke: var(--gold);
 }
 
 .medalFace {

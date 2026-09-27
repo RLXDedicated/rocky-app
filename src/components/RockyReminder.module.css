@@ -9,7 +9,7 @@
   align-items: flex-start;
   padding: 16px 16px 16px 12px;
   border-radius: var(--radius-md);
-  background: var(--pine);
+  background: var(--navy);
   color: var(--text-on-dark);
   box-shadow: 0 16px 40px rgba(8, 30, 21, 0.35);
   animation: slideIn 0.35s ease;
@@ -68,10 +68,9 @@
   padding: 8px 16px;
   border: none;
   border-radius: 999px;
-  background: var(--hivis);
-  color: var(--pine);
-  font-family: var(--font-display);
-  font-weight: 800;
+  background: var(--rlx-green);
+  color: #ffffff;
+  font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
 }

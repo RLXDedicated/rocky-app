@@ -1,0 +1,462 @@
+.world {
+  position: relative;
+  height: clamp(380px, 52vw, 500px);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #f2f6f8;
+  isolation: isolate;
+  user-select: none;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.decor {
+  position: absolute;
+  z-index: 1;
+  height: auto;
+  transform: translateX(0);
+}
+
+.hud {
+  position: absolute;
+  z-index: 5;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.hud > * {
+  pointer-events: auto;
+}
+
+/* Rocky */
+.actor {
+  position: absolute;
+  z-index: 3;
+  transform: translateX(-50%);
+  transition-property: left;
+  transition-timing-function: cubic-bezier(0.45, 0, 0.3, 1);
+}
+
+.shadow {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(15, 35, 65, 0.16);
+  filter: blur(2px);
+}
+
+.body {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: grab;
+  transform-origin: 50% 94%;
+  animation: breathe 3.4s ease-in-out infinite;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.body:focus-visible {
+  outline: 3px dashed var(--rlx-green);
+  outline-offset: -12px;
+  border-radius: 24px;
+}
+
+.body > span {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.25s ease;
+}
+
+.art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.hat {
+  position: absolute;
+  overflow: visible;
+  filter: drop-shadow(0 2px 1px rgba(15, 35, 65, 0.18));
+  pointer-events: none;
+}
+
+.leanLeft {
+  transform: rotate(-4deg);
+}
+
+.leanRight {
+  transform: rotate(4deg);
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.012, 0.988);
+  }
+}
+
+.pose-walk {
+  animation: waddle 0.42s ease-in-out infinite;
+}
+
+@keyframes waddle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5%);
+  }
+}
+
+.pose-pet {
+  animation: squish 0.7s ease;
+}
+
+@keyframes squish {
+  0% {
+    transform: scale(1, 1);
+  }
+  25% {
+    transform: scale(1.1, 0.88);
+  }
+  55% {
+    transform: scale(0.94, 1.08);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+.pose-eat {
+  animation: chomp 0.35s ease-in-out 4;
+}
+
+@keyframes chomp {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.04, 0.95);
+  }
+}
+
+.pose-hop {
+  animation: hop 0.55s cubic-bezier(0.3, 0, 0.3, 1) 2;
+}
+
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  15% {
+    transform: translateY(0) scale(1.08, 0.9);
+  }
+  50% {
+    transform: translateY(-18%) scale(0.96, 1.05);
+  }
+}
+
+/* Speech bubble — hand-written, like the green notes on rlx.us. */
+.bubble {
+  position: absolute;
+  z-index: 4;
+  bottom: 96%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(250px, 62vw);
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  color: var(--navy);
+  font-family: var(--font-hand);
+  font-weight: 700;
+  font-size: 1.45rem;
+  line-height: 1.1;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(15, 35, 65, 0.12);
+}
+
+.bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  margin-left: -8px;
+  border: 8px solid transparent;
+  border-bottom: none;
+  border-top-color: #ffffff;
+}
+
+/* Particles */
+.heart,
+.crumb {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.heart {
+  color: #e2445c;
+  font-size: 1.6rem;
+  animation: floatUp 1.5s ease-out forwards;
+}
+
+.crumb {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: #c99a63;
+  animation: crumb 0.9s ease-out forwards;
+}
+
+@keyframes floatUp {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -90px) scale(1.2);
+  }
+}
+
+@keyframes crumb {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(-50% + 20px), 40px) rotate(90deg);
+  }
+}
+
+.treat {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 34%;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff8a7a, #d63a3a 70%);
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.12);
+  animation: toss 0.65s cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+}
+
+@keyframes toss {
+  from {
+    transform: translate(260px, 180px) scale(0.6);
+  }
+  60% {
+    transform: translate(60px, -60px) scale(1);
+  }
+  to {
+    transform: translate(-13px, 0) scale(0.4);
+    opacity: 0.4;
+  }
+}
+
+.ball {
+  position: absolute;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  margin-left: -15px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0 30%, transparent 31%), var(--rlx-green);
+  border: 3px solid #ffffff;
+  box-shadow: 0 3px 0 rgba(15, 35, 65, 0.2);
+  animation: drop 0.45s cubic-bezier(0.5, 0, 0.8, 1);
+}
+
+@keyframes drop {
+  from {
+    transform: translateY(-220px);
+  }
+}
+
+.ballKicked {
+  animation: kick 1s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+}
+
+@keyframes kick {
+  to {
+    transform: translate(180px, -320px) rotate(540deg);
+    opacity: 0;
+  }
+}
+
+/* Bottom dock: care actions and the primary check-in. */
+.dock {
+  position: absolute;
+  z-index: 5;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+
+.dock > * {
+  pointer-events: auto;
+}
+
+.care {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 20px rgba(15, 35, 65, 0.1);
+  backdrop-filter: blur(6px);
+}
+
+.heartsMeter {
+  display: flex;
+  gap: 4px;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.heartSlot {
+  color: #dfe5ea;
+}
+
+.heartSlot[data-fill='1'] {
+  color: #f2a3ae;
+}
+
+.heartSlot[data-fill='2'] {
+  color: #e2445c;
+}
+
+.careButtons {
+  display: flex;
+  gap: 6px;
+}
+
+.careBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: #ffffff;
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.careBtn:hover:not(:disabled) {
+  border-color: var(--rlx-green);
+  color: var(--rlx-green);
+}
+
+.careBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.careBtn b {
+  font-weight: 800;
+  color: var(--rlx-green);
+}
+
+.primary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  /* Phones: HUD on top, Rocky's stage in the middle, controls below —
+     nothing covers Rocky. */
+  .world {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+  }
+
+  .hud {
+    position: static;
+    padding: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .stage {
+    position: relative;
+    inset: auto;
+    height: 330px;
+  }
+
+  .dock {
+    position: static;
+    padding: 10px;
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .primary {
+    align-items: stretch;
+  }
+
+  .care {
+    align-items: center;
+    box-shadow: none;
+    background: var(--bg);
+  }
+
+  .bubble {
+    font-size: 1.2rem;
+    max-width: 58vw;
+  }
+}

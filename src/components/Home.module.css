@@ -12,64 +12,73 @@
   gap: 20px;
 }
 
-/* The habitat — Rocky's home. Deep RLX pine with a soft ground glow. */
-.habitat {
+/* HUD over the world */
+.levelCard {
   position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 40px;
-  padding: 36px 48px;
-  border-radius: var(--radius-lg);
-  background:
-    radial-gradient(ellipse 60% 38% at 22% 92%, rgba(143, 209, 158, 0.28), transparent 70%),
-    radial-gradient(circle at 85% 10%, rgba(243, 177, 59, 0.12), transparent 40%),
-    var(--pine);
+  min-width: 220px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: var(--navy);
   color: var(--text-on-dark);
+  box-shadow: 0 8px 24px rgba(15, 35, 65, 0.22);
+}
+
+.levelTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.levelNum {
+  font-weight: 800;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.levelNum small {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-on-dark-muted);
+}
+
+.dressUp {
+  color: var(--sprout);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.xpTrack {
+  margin: 10px 0 6px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
   overflow: hidden;
 }
 
-.habitatStage {
-  position: relative;
-  display: grid;
-  place-items: center;
-}
-
-.levelBadge {
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 6px 16px;
+.xpTrack span {
+  display: block;
+  height: 100%;
   border-radius: 999px;
-  background: var(--hivis);
-  color: var(--pine);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.35rem;
-  line-height: 1;
-  box-shadow: 0 0 0 4px var(--pine);
+  background: var(--green-bright);
+  transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.levelBadge small {
-  font-size: 0.72rem;
-  font-weight: 700;
+.xpText {
+  font-size: 0.8rem;
+  color: var(--text-on-dark-muted);
 }
 
 .xpBurst {
   position: absolute;
-  top: 18px;
-  right: 6px;
-  padding: 4px 12px;
+  right: 12px;
+  top: -14px;
+  padding: 3px 12px;
   border-radius: 999px;
-  background: var(--hivis);
-  color: var(--pine);
-  font-family: var(--font-display);
+  background: var(--gold);
+  color: var(--navy);
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1rem;
   animation: burst 1.8s ease-out forwards;
 }
 
@@ -92,61 +101,33 @@
   }
 }
 
-.habitatInfo {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
-  min-width: 0;
-}
-
-.speech {
-  position: relative;
-  margin: 4px 0 0;
-  max-width: 44ch;
-  padding: 14px 18px;
-  border-radius: 18px 18px 18px 4px;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-on-dark);
-  font-size: 1.05rem;
-  line-height: 1.45;
-}
-
 .checkInButton {
   padding: 16px 30px;
   border: none;
   border-radius: 999px;
-  background: var(--hivis);
-  color: var(--pine);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.15rem;
+  background: var(--rlx-green);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.08rem;
   cursor: pointer;
-  box-shadow: 0 6px 0 #c98a1a;
+  box-shadow: 0 6px 0 #006231, 0 12px 24px rgba(0, 140, 69, 0.25);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .checkInButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 7px 0 #c98a1a;
+  background: var(--rlx-green-hover);
 }
 
 .checkInButton:active:not(:disabled) {
   transform: translateY(5px);
-  box-shadow: 0 1px 0 #c98a1a;
+  box-shadow: 0 1px 0 #006231;
 }
 
 .checkInButton:disabled {
   cursor: default;
-  background: rgba(143, 209, 158, 0.18);
-  color: var(--sprout);
-  box-shadow: none;
-}
-
-.levelLine {
-  margin: 0;
-  color: var(--text-on-dark-muted);
-  font-size: 0.9rem;
+  background: #ffffff;
+  color: var(--rlx-green);
+  box-shadow: 0 6px 20px rgba(15, 35, 65, 0.1);
 }
 
 /* Needs — the three meters a pet owner watches. */
@@ -178,7 +159,7 @@
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--pine);
+  color: var(--navy);
 }
 
 .needValue {
@@ -253,12 +234,13 @@
   border: 2px dashed #c9d6c8;
   font-size: 0.8rem;
   font-weight: 800;
-  color: var(--pine);
+  color: var(--navy);
 }
 
 .dayDone .dayDot {
   border: none;
-  background: var(--hivis);
+  background: var(--rlx-green);
+  color: #fff;
 }
 
 .dayToday .dayDot {
@@ -267,7 +249,7 @@
 }
 
 .dayToday.dayDone .dayDot {
-  box-shadow: 0 0 0 3px #fbe3b0;
+  box-shadow: 0 0 0 3px var(--mint);
 }
 
 .dayLabel {
@@ -277,7 +259,7 @@
 
 .dayToday .dayLabel {
   font-weight: 700;
-  color: var(--pine);
+  color: var(--navy);
 }
 
 .moodChip {
@@ -299,7 +281,7 @@
 
 .moodWorried {
   background: #fdf0d8;
-  color: var(--hivis-ink);
+  color: var(--gold-ink);
 }
 
 .moodRecovery {
@@ -375,7 +357,7 @@
 .goalReward {
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--hivis-ink);
+  color: var(--gold-ink);
   white-space: nowrap;
 }
 
@@ -384,28 +366,27 @@
 }
 
 @media (max-width: 900px) {
-  .habitat {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 24px;
-    padding: 28px 20px;
-  }
-
-  .habitatInfo {
-    align-items: center;
-    text-align: center;
-  }
-
-  .speech {
-    border-radius: 18px;
-  }
-
   .needs {
     grid-template-columns: 1fr;
   }
 
   .split {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .levelCard {
+    min-width: 0;
+    padding: 10px 14px;
+  }
+
+  .levelNum {
+    font-size: 1.3rem;
+  }
+
+  .xpTrack {
+    margin: 8px 0 4px;
   }
 }
 

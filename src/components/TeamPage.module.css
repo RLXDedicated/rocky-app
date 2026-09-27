@@ -21,7 +21,7 @@
   border-radius: var(--radius-lg);
   background:
     radial-gradient(ellipse 50% 40% at 15% 100%, rgba(143, 209, 158, 0.25), transparent 70%),
-    var(--pine);
+    var(--navy);
   color: var(--text-on-dark);
 }
 
@@ -33,8 +33,8 @@
   display: inline-block;
   padding: 3px 12px;
   border-radius: 999px;
-  background: var(--hivis);
-  color: var(--pine);
+  background: var(--gold);
+  color: var(--navy);
   font-weight: 700;
   font-size: 0.8rem;
 }
@@ -74,7 +74,7 @@
   margin: 0 0 14px;
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--pine);
+  color: var(--navy);
 }
 
 .metricsGrid {
@@ -162,7 +162,7 @@
 }
 
 .activityList li::marker {
-  color: var(--hivis);
+  color: var(--gold);
 }
 
 @media (max-width: 760px) {

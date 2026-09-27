@@ -5,8 +5,8 @@
   justify-content: center;
   padding: 24px 16px;
   background:
-    radial-gradient(ellipse 70% 40% at 50% 100%, rgba(143, 209, 158, 0.25), transparent 70%),
-    var(--pine);
+    radial-gradient(ellipse 70% 40% at 50% 100%, rgba(31, 191, 104, 0.22), transparent 70%),
+    var(--navy);
 }
 
 .card {
@@ -35,8 +35,8 @@
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: var(--hivis);
-  color: var(--pine);
+  background: #ffffff;
+  color: var(--navy);
 }
 
 .brandBy {
@@ -54,7 +54,7 @@
   margin: 0;
   font-size: clamp(2rem, 7vw, 2.8rem);
   font-weight: 800;
-  color: var(--hivis);
+  color: #ffffff;
 }
 
 .tagline {
@@ -91,18 +91,17 @@
   padding: 15px;
   border: none;
   border-radius: 999px;
-  background: var(--hivis);
-  color: var(--pine);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.15rem;
+  background: var(--rlx-green);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.1rem;
   cursor: pointer;
-  box-shadow: 0 6px 0 #c98a1a;
+  box-shadow: 0 6px 0 #006231;
 }
 
 .primaryButton:active {
   transform: translateY(5px);
-  box-shadow: 0 1px 0 #c98a1a;
+  box-shadow: 0 1px 0 #006231;
 }
 
 /* The name is written on an RLX shipping tag, same as on Home. */
@@ -147,7 +146,7 @@
   font-family: var(--font-display);
   font-size: 2rem;
   font-weight: 800;
-  color: var(--pine);
+  color: var(--navy);
 }
 
 .nameInput:focus {
@@ -159,4 +158,8 @@
   margin: 4px 0 0;
   font-size: 0.85rem;
   color: var(--text-on-dark-muted);
+}
+
+.dot {
+  color: var(--green-bright);
 }

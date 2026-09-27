@@ -14,9 +14,11 @@ import { LoadingRocky } from './LoadingRocky'
 import { Celebration, type CelebrationData } from './pet/Celebration'
 import { EvolutionPath } from './pet/EvolutionPath'
 import { NameTag } from './pet/NameTag'
-import { XpRing } from './pet/XpRing'
-import { RockyAvatar } from './RockyAvatar'
 import { type RockyReactionKey } from './rockyVisuals'
+import { ClosetPanel } from './world/ClosetPanel'
+import { RockyWorld } from './world/RockyWorld'
+import { loadOutfit, sanitizeOutfit, saveOutfit, type Outfit, type ProgressFacts } from '../game/closet'
+import { MAX_HEARTS, feed, loadCare, pet, play, treatsAvailable, type CareState } from '../game/care'
 
 function isToday(dateKey: string | null): boolean {
   if (!dateKey) return false
@@ -47,6 +49,28 @@ export function Home() {
   const [rockyReaction, setRockyReaction] = useState<RockyReactionKey | null>(null)
   const [xpBurst, setXpBurst] = useState<number | null>(null)
   const [celebration, setCelebration] = useState<CelebrationData | null>(null)
+  const [facts, setFacts] = useState<ProgressFacts | null>(null)
+  const [outfit, setOutfit] = useState<Outfit>(() => loadOutfit())
+  const [care, setCare] = useState<CareState>(() => loadCare())
+
+  function refreshFacts(state: GameState) {
+    const progress = gameService.getAchievementProgress()
+    const next: ProgressFacts = {
+      level: state.level,
+      stage: state.evolutionStage,
+      bestStreak: state.bestStreak,
+      checkIns: progress.metrics.checkins,
+      qaPasses: progress.metrics.qaPasses,
+      badgeIds: progress.unlocked.map((a) => a.id),
+    }
+    setFacts(next)
+    setOutfit((o) => sanitizeOutfit(o, next))
+  }
+
+  function changeOutfit(next: Outfit) {
+    setOutfit(next)
+    saveOutfit(next)
+  }
 
   function refreshEvents() {
     setEvents(gameService.getRecentEvents(6))
@@ -58,6 +82,7 @@ export function Home() {
     setAgent(snapshot.agent)
     setGameState(snapshot.gameState)
     refreshEvents()
+    refreshFacts(snapshot.gameState)
   }, [])
 
   const alreadyCheckedInToday = useMemo(() => (gameState ? isToday(gameState.lastCheckInDate) : false), [gameState])
@@ -70,7 +95,7 @@ export function Home() {
   const moodLine = useMemo(() => moodMessage(mood), [mood])
   const week = useMemo(() => checkInWeek(allEvents), [allEvents])
 
-  if (!agent || !gameState) return <LoadingRocky />
+  if (!agent || !gameState || !facts) return <LoadingRocky />
 
   function handleRename(name: string) {
     const current = repository.getAgent()
@@ -106,6 +131,7 @@ export function Home() {
       }
       setGameState(result.state)
       refreshEvents()
+      refreshFacts(result.state)
 
       const gained = result.state.xp - previousXp
       if (gained > 0) {
@@ -161,6 +187,7 @@ export function Home() {
   const evolution = nextEvolution(gameState.evolutionStage, gameState.xp)
   const energyTier = energyLabel(gameState.energy)
   const litCells = Math.round((gameState.energy / 100) * ENERGY_CELLS)
+  const treats = treatsAvailable(care, facts.checkIns, facts.qaPasses)
 
   const goals = [
     { done: alreadyCheckedInToday, text: 'Check in with Rocky today', reward: alreadyCheckedInToday ? 'Done' : '+10 XP' },
@@ -176,42 +203,60 @@ export function Home() {
   return (
     <div className={styles.page}>
       <div className={styles.layout}>
-        <section className={styles.habitat} aria-label={`${agent.rockyName}'s habitat`}>
-          <div className={styles.habitatStage}>
-            <XpRing
-              fraction={progress.fraction}
-              size={300}
-              label={progress.isMax ? `Level ${gameState.level}, max level` : `Level ${gameState.level}: ${progress.intoLevel} of ${progress.levelSpan} XP`}
-            >
-              <RockyAvatar mood={mood} evolutionStage={gameState.evolutionStage} reaction={rockyReaction} size={236} bare />
-            </XpRing>
-            <span className={styles.levelBadge}>
-              <small>Level</small>
-              {gameState.level}
-            </span>
-            {xpBurst !== null && (
-              <span className={styles.xpBurst} aria-live="polite">
-                +{xpBurst} XP
-              </span>
-            )}
-          </div>
-
-          <div className={styles.habitatInfo}>
-            <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} />
-            <p className={styles.speech} aria-live="polite">
-              {reaction ?? moodLine}
-            </p>
+        <RockyWorld
+          mood={mood}
+          stage={gameState.evolutionStage}
+          reaction={rockyReaction}
+          outfit={outfit}
+          speech={reaction ?? moodLine}
+          treats={treats}
+          hearts={care.hearts}
+          maxHearts={MAX_HEARTS}
+          onPet={() => setCare((c) => pet(c))}
+          onFeed={() => setCare((c) => feed(c, treats))}
+          onPlay={() => setCare((c) => play(c))}
+          hud={
+            <>
+              <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} />
+              <div className={styles.levelCard}>
+                <div className={styles.levelTop}>
+                  <span className={styles.levelNum}>
+                    <small>Level</small> {gameState.level}
+                  </span>
+                  <a className={styles.dressUp} href="#closet">
+                    Dress up
+                  </a>
+                </div>
+                <div
+                  className={styles.xpTrack}
+                  role="meter"
+                  aria-valuemin={0}
+                  aria-valuemax={progress.levelSpan || 1}
+                  aria-valuenow={progress.intoLevel}
+                  aria-label="XP to next level"
+                >
+                  <span style={{ width: `${progress.fraction * 100}%` }} />
+                </div>
+                <span className={styles.xpText}>
+                  {progress.isMax ? `${gameState.xp.toLocaleString()} XP · max level` : `${progress.toNext} XP to level ${gameState.level + 1}`}
+                </span>
+                {xpBurst !== null && (
+                  <span className={styles.xpBurst} aria-live="polite">
+                    +{xpBurst} XP
+                  </span>
+                )}
+              </div>
+            </>
+          }
+          action={
             <button className={styles.checkInButton} onClick={handleCheckIn} disabled={isCheckingIn || alreadyCheckedInToday}>
               {alreadyCheckedInToday && <span aria-hidden="true">✓ </span>}
               {buttonLabel}
             </button>
-            <p className={styles.levelLine}>
-              {progress.isMax
-                ? `${gameState.xp.toLocaleString()} XP · max level reached`
-                : `${progress.intoLevel} / ${progress.levelSpan} XP · ${progress.toNext} XP to level ${gameState.level + 1}`}
-            </p>
-          </div>
-        </section>
+          }
+        />
+
+        <ClosetPanel outfit={outfit} facts={facts} onChange={changeOutfit} />
 
         <section className={styles.needs} aria-label="Rocky's needs">
           <article className={styles.need}>

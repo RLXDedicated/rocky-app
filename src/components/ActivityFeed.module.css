@@ -42,7 +42,7 @@
 .item[data-type='EVOLUTION'] .dot,
 .item[data-type='ACHIEVEMENT'] .dot,
 .item[data-type='STREAK_MILESTONE'] .dot {
-  background: var(--hivis);
+  background: var(--gold);
 }
 
 .text {
