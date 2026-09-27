@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import styles from './App.module.css'
 import { Achievements } from './components/Achievements'
-import { AdminPanel } from './components/AdminPanel'
+import { AdminConsole } from './components/admin/AdminConsole'
 import { DevControls } from './components/DevControls'
 import { Home } from './components/Home'
 import { Leaderboard } from './components/Leaderboard'
@@ -111,7 +111,7 @@ function App() {
 
       {view === 'home' && <Home />}
       {view === 'qa-simulator' && qaMode && <QASimulator />}
-      {view === 'admin' && canUseAdmin && <AdminPanel />}
+      {view === 'admin' && canUseAdmin && <AdminConsole />}
       {view === 'achievements' && <Achievements />}
       {view === 'leaderboard' && <Leaderboard />}
       {view === 'team' && <TeamPage />}
