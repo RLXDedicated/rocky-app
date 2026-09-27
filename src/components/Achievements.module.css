@@ -1,0 +1,116 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px 64px;
+}
+
+.layout {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: 18px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid transparent;
+}
+
+.unlocked {
+  border-color: #bfe6cd;
+  background: linear-gradient(135deg, #ffffff, #f2fbf5);
+}
+
+.locked {
+  opacity: 0.75;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.badgeUnlocked {
+  background: #e3f6ea;
+}
+
+.badgeLocked {
+  background: var(--bg);
+  filter: grayscale(1);
+}
+
+.name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-strong);
+  margin: 0;
+}
+
+.description {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.unlockedDate {
+  font-size: 0.76rem;
+  color: #1f8a4c;
+  font-weight: 600;
+}
+
+.progressTrack {
+  height: 8px;
+  background: var(--track-bg);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #2fae63, #1f8a4c);
+  border-radius: 999px;
+}
+
+.progressLabel {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}

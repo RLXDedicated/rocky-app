@@ -1,0 +1,177 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px 64px;
+}
+
+.layout {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.internalBadge {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #a06a1a;
+  background: #fdf1de;
+  border: 1px dashed #e0a53a;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.agentSelect {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--divider);
+  background: var(--card-bg);
+  font-size: 0.9rem;
+}
+
+.actionsCard {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.passButton,
+.alertButton {
+  padding: 12px 22px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.passButton {
+  background: linear-gradient(135deg, #2fae63, #1f8a4c);
+}
+
+.alertButton {
+  background: linear-gradient(135deg, #f2994a, #d9822b);
+}
+
+.passButton:hover,
+.alertButton:hover {
+  transform: translateY(-2px);
+}
+
+.reactionText {
+  font-size: 0.95rem;
+  color: var(--text-strong);
+  font-weight: 600;
+  min-height: 1.3em;
+}
+
+.resultCard {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resultBadge {
+  align-self: flex-start;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badgePass {
+  background: #e3f6ea;
+  color: #1f8a4c;
+}
+
+.badgeAlert {
+  background: #fdece0;
+  color: #b35c17;
+}
+
+.diffGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.diffRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-radius: 12px;
+}
+
+.diffLabel {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.diffValue {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.diffDelta {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.deltaPositive {
+  color: #1f8a4c;
+}
+
+.deltaNegative {
+  color: #c9432c;
+}
+
+.deltaNeutral {
+  color: var(--text-muted);
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}

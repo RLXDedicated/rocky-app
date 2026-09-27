@@ -1,0 +1,146 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px 64px;
+}
+
+.layout {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.heroCard {
+  background: var(--hero-bg);
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  box-shadow: 0 4px 20px rgba(31, 138, 76, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.heroInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rockyName {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--text-strong);
+  margin: 0;
+}
+
+.stageLine {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1f8a4c;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stageXp {
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.moodLine {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin: 0;
+  min-height: 1.3em;
+}
+
+.checkInButton {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 14px 32px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #2fae63, #1f8a4c);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(31, 138, 76, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.checkInButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(31, 138, 76, 0.4);
+}
+
+.checkInButton:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.reactionBubble {
+  margin-top: 4px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1f8a4c;
+  min-height: 1.3em;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+}
+
+.xpSection {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.evolutionRow {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--divider);
+}
+
+.activitySection {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-strong);
+  margin: 0 0 12px;
+}
+
+@media (max-width: 640px) {
+  .heroCard {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .heroInfo {
+    align-items: center;
+  }
+
+  .checkInButton {
+    align-self: center;
+  }
+}

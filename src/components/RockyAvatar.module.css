@@ -1,0 +1,73 @@
+/* The approved Rocky artwork is a 512x512 PNG with a flat white background
+   baked in (not transparent) — see docs/rocky-assets-source/. Rather than
+   fight that, the wrapper is a soft white "plate" the same shape and color,
+   so the art's own background reads as an intentional card/sticker instead
+   of a stray box floating on the page. */
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-radius: 28%;
+  box-shadow: 0 12px 24px rgba(31, 138, 76, 0.18);
+  overflow: hidden;
+  position: relative;
+}
+
+/* The approved artwork is a 512x512 canvas with Rocky drawn small and
+   centered in it (a consistent ~95x186px figure, reactions ~239x189px) —
+   see docs/rocky-assets-source/. `.zoom` magnifies around that (already
+   centered) figure so Rocky reads clearly at avatar sizes, cropping only
+   the surrounding white margin via `overflow: hidden` on `.wrapper` — the
+   image file itself is never touched, resized, or redrawn. Reactions get a
+   smaller zoom since their artwork (e.g. the "LEVEL UP!" banner) uses more
+   of the canvas width and would otherwise clip.
+*/
+.zoom {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(2.1);
+}
+
+.zoomReaction {
+  transform: scale(1.85);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  animation: enter 0.35s ease, float 3.6s ease-in-out 0.35s infinite;
+}
+
+/* A fresh <img> mounts (new `key`) whenever the resolved asset changes, so
+   this brief scale/fade reads as a gentle transition between states rather
+   than a hard swap — this replaces the old per-mood bounce/droop/pulse
+   animations, since the artwork itself now carries the mood expression. */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* One subtle, mood-independent idle motion — enough for Rocky to feel
+   alive without bouncing, pulsing, or spinning distractingly. */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3%);
+  }
+}

@@ -1,0 +1,104 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px 64px;
+}
+
+.layout {
+  width: 100%;
+  max-width: 780px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+}
+
+.rowCurrentTeam {
+  border: 1.5px solid #bfe6cd;
+  background: #f6fbf7;
+}
+
+.rank {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  width: 32px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.rankTop {
+  color: #f2b705;
+}
+
+.rowInfo {
+  flex: 1;
+  min-width: 160px;
+}
+
+.rowName {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-strong);
+  margin: 0;
+}
+
+.rowStage {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.rowScore {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.scoreValue {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1f8a4c;
+}
+
+.scoreLabel {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rowMetrics {
+  display: flex;
+  gap: 14px;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
