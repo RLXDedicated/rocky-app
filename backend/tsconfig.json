@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    // "DOM" is included only so the TYPE of `window.localStorage` resolves
+    // when type-checking the unchanged frontend service files this backend
+    // imports (teamService.ts etc.) — see browserGlobalsShim.ts, which
+    // provides the actual runtime value under Node. No DOM API is ever
+    // called at runtime by this backend's own code.
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    // Matching the frontend's own tsconfig.app.json here deliberately:
+    // this backend's own new code (src/, tests/) is written carefully with
+    // explicit null/undefined handling, but this program also includes the
+    // UNCHANGED, already-tested `../src/engine` etc. files (see `include`
+    // below) so the backend can import them directly rather than copying
+    // them. Turning on a stricter mode than the frontend itself uses would
+    // surface pre-existing, already-passing code as "errors" that have
+    // nothing to do with this phase — not a real defect, just a stricter
+    // flag the frontend never opted into. See docs/BACKEND_FOUNDATION.md.
+    "strict": false,
+    "strictNullChecks": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  // Includes the repo-root `src/` (the unchanged Game Engine, types,
+  // Repository interface, and services) alongside this package's own
+  // `src/` and `tests/` — the backend imports those files directly rather
+  // than copying them (see docs/BACKEND_FOUNDATION.md §Game Engine
+  // integration). `noEmit: true` because this package runs via `tsx`
+  // (on-the-fly transpilation); `build` is a type-check only, so there's
+  // no output directory straddling two roots to reason about.
+  "include": ["src/**/*", "tests/**/*", "../src/engine/**/*", "../src/types/**/*", "../src/repository/repository.ts", "../src/repository/localStorageRepository.ts", "../src/repository/sanitize.ts", "../src/services/**/*"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,60 @@
+// Minimal migration runner (Phase 13 §14) — no framework, just an ordered
+// list and a tracking table. New migrations are added by appending a new
+// { version, name, sql } entry with the next integer version; never
+// editing a previously-shipped entry (same immutability principle as
+// GameEvent — a shipped migration is a historical fact).
+import type { DatabaseSync } from 'node:sqlite'
+import { MIGRATION_001_INITIAL, MIGRATION_002_IDEMPOTENCY } from './schema'
+
+export interface Migration {
+  version: number
+  name: string
+  sql: string
+}
+
+// To add a new migration: append `{ version: N, name: '...', sql: '...' }`
+// here, where N is the next integer. Never assumes the database starts
+// empty — runMigrations() below only applies versions not already
+// recorded in schema_migrations, so it's safe to run against a database
+// created by an earlier version of this backend.
+export const MIGRATIONS: Migration[] = [
+  { version: 1, name: 'initial', sql: MIGRATION_001_INITIAL },
+  { version: 2, name: 'add_idempotency', sql: MIGRATION_002_IDEMPOTENCY },
+]
+
+export function runMigrations(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version    INTEGER PRIMARY KEY,
+      name       TEXT NOT NULL,
+      applied_at TEXT NOT NULL
+    );
+  `)
+
+  const appliedRows = db.prepare('SELECT version FROM schema_migrations').all() as { version: number }[]
+  const applied = new Set(appliedRows.map((r) => r.version))
+
+  const pending = [...MIGRATIONS].sort((a, b) => a.version - b.version).filter((m) => !applied.has(m.version))
+
+  for (const migration of pending) {
+    db.exec('BEGIN');
+    try {
+      db.exec(migration.sql)
+      db.prepare('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)').run(
+        migration.version,
+        migration.name,
+        new Date().toISOString(),
+      )
+      db.exec('COMMIT')
+    } catch (err) {
+      db.exec('ROLLBACK')
+      throw new Error(`Migration ${migration.version} ("${migration.name}") failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+}
+
+/** Test/diagnostic helper: which migrations have been applied. */
+export function getAppliedMigrations(db: DatabaseSync): { version: number; name: string; appliedAt: string }[] {
+  const rows = db.prepare('SELECT version, name, applied_at as appliedAt FROM schema_migrations ORDER BY version').all()
+  return rows as { version: number; name: string; appliedAt: string }[]
+}
