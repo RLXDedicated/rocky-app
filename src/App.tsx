@@ -4,6 +4,7 @@ import { Achievements } from './components/Achievements'
 import { AdminConsole } from './components/admin/AdminConsole'
 import { DevControls } from './components/DevControls'
 import { Home } from './components/Home'
+import { NavIcon, type NavIconName } from './components/NavIcon'
 import { Leaderboard } from './components/Leaderboard'
 import { Onboarding } from './components/Onboarding'
 import { QASimulator } from './components/QASimulator'
@@ -50,64 +51,39 @@ function App() {
     setQaMode(next)
   }
 
+  const navItems: { view: View; label: string; icon: NavIconName; internal?: boolean }[] = [
+    { view: 'home', label: 'Rocky', icon: 'home' },
+    { view: 'achievements', label: 'Badges', icon: 'medal' },
+    { view: 'leaderboard', label: 'Ranking', icon: 'podium' },
+    { view: 'team', label: 'My team', icon: 'team' },
+    { view: 'team-leaderboard', label: 'Teams', icon: 'teams' },
+    ...(canUseAdmin ? [{ view: 'admin' as View, label: 'Admin', icon: 'admin' as NavIconName, internal: true }] : []),
+    ...(qaMode ? [{ view: 'qa-simulator' as View, label: 'QA sim', icon: 'flask' as NavIconName, internal: true }] : []),
+    ...(import.meta.env.DEV ? [{ view: 'dev-controls' as View, label: 'Dev', icon: 'wrench' as NavIconName, internal: true }] : []),
+  ]
+
   return (
-    <div>
-      <nav className={styles.nav}>
-        <button
-          className={`${styles.navButton} ${view === 'home' ? styles.navButtonActive : ''}`}
-          onClick={() => setView('home')}
-        >
-          Home
-        </button>
-        <button
-          className={`${styles.navButton} ${view === 'achievements' ? styles.navButtonActive : ''}`}
-          onClick={() => setView('achievements')}
-        >
-          Achievements
-        </button>
-        <button
-          className={`${styles.navButton} ${view === 'leaderboard' ? styles.navButtonActive : ''}`}
-          onClick={() => setView('leaderboard')}
-        >
-          Leaderboard
-        </button>
-        <button
-          className={`${styles.navButton} ${view === 'team' ? styles.navButtonActive : ''}`}
-          onClick={() => setView('team')}
-        >
-          Team
-        </button>
-        <button
-          className={`${styles.navButton} ${view === 'team-leaderboard' ? styles.navButtonActive : ''}`}
-          onClick={() => setView('team-leaderboard')}
-        >
-          Team Leaderboard
-        </button>
-        {canUseAdmin && (
-          <button
-            className={`${styles.navButton} ${styles.navButtonQa} ${view === 'admin' ? styles.navButtonActive : ''}`}
-            onClick={() => setView('admin')}
-          >
-            Admin
-          </button>
-        )}
-        {qaMode && (
-          <button
-            className={`${styles.navButton} ${styles.navButtonQa} ${view === 'qa-simulator' ? styles.navButtonActive : ''}`}
-            onClick={() => setView('qa-simulator')}
-          >
-            QA Simulator
-          </button>
-        )}
-        {import.meta.env.DEV && (
-          <button
-            className={`${styles.navButton} ${styles.navButtonQa} ${view === 'dev-controls' ? styles.navButtonActive : ''}`}
-            onClick={() => setView('dev-controls')}
-          >
-            Dev Controls
-          </button>
-        )}
-      </nav>
+    <div className={styles.shell}>
+      <header className={styles.topBar}>
+        <div className={styles.brand}>
+          <span className={styles.brandMark} aria-hidden="true">R</span>
+          <span className={styles.brandName}>Rocky</span>
+          <span className={styles.brandBy}>by RLX</span>
+        </div>
+        <nav className={styles.nav} aria-label="Main">
+          {navItems.map((item) => (
+            <button
+              key={item.view}
+              className={`${styles.navButton} ${item.internal ? styles.navButtonQa : ''} ${view === item.view ? styles.navButtonActive : ''}`}
+              aria-current={view === item.view ? 'page' : undefined}
+              onClick={() => setView(item.view)}
+            >
+              <NavIcon name={item.icon} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </header>
 
       {view === 'home' && <Home />}
       {view === 'qa-simulator' && qaMode && <QASimulator />}

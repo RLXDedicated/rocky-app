@@ -1,166 +1,186 @@
 .page {
-  min-height: 100vh;
   display: flex;
   justify-content: center;
-  padding: 32px 16px 64px;
+  padding: 24px 16px 64px;
 }
 
 .layout {
   width: 100%;
-  max-width: 780px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  max-width: 1080px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
 .heroCard {
-  background: linear-gradient(135deg, #ffffff, #eef8f0);
-  border-radius: 24px;
-  padding: 28px;
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 24px;
-  box-shadow: 0 4px 20px rgba(31, 138, 76, 0.1);
-  flex-wrap: wrap;
+  gap: 28px;
+  padding: 28px 36px;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse 50% 40% at 15% 100%, rgba(143, 209, 158, 0.25), transparent 70%),
+    var(--pine);
+  color: var(--text-on-dark);
 }
 
 .heroInfo {
-  flex: 1;
-  min-width: 220px;
+  min-width: 0;
 }
 
 .yourTeamBadge {
   display: inline-block;
-  background: #1f8a4c;
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 3px 10px;
+  padding: 3px 12px;
   border-radius: 999px;
-  margin-bottom: 8px;
+  background: var(--hivis);
+  color: var(--pine);
+  font-weight: 700;
+  font-size: 0.8rem;
 }
 
 .teamName {
-  font-size: 1.7rem;
+  margin: 8px 0 4px;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
   font-weight: 800;
-  margin: 0;
-  color: var(--text-strong);
 }
 
 .teamStage {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #1f8a4c;
-  margin: 4px 0 0;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  margin: 0 0 10px;
+  color: var(--text-on-dark-muted);
 }
 
 .teamMoodLine {
-  color: var(--text-muted);
-  font-size: 0.92rem;
-  margin: 8px 0 0;
+  margin: 4px 0 0;
+  font-size: 1rem;
 }
 
 .statsGrid {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 14px;
 }
 
 .metricsCard,
 .membersCard,
 .activityCard {
   background: var(--card-bg);
-  border-radius: 16px;
-  padding: 18px 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 20px 22px;
+  min-width: 0;
 }
 
 .sectionTitle {
-  font-size: 1rem;
+  margin: 0 0 14px;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: var(--text-strong);
-  margin: 0 0 12px;
+  color: var(--pine);
 }
 
 .metricsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 12px 32px;
 }
 
 .metricRow {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: 170px 1fr 72px;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.92rem;
 }
 
 .metricLabel {
-  font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
+  color: var(--text-strong);
+  font-weight: 600;
 }
 
 .metricBarTrack {
-  height: 8px;
-  background: var(--track-bg);
+  height: 10px;
   border-radius: 999px;
+  background: var(--track-bg);
   overflow: hidden;
 }
 
 .metricBarFill {
   height: 100%;
-  background: linear-gradient(90deg, #2fae63, #1f8a4c);
-  border-radius: 999px;
+  border-radius: 0 5px 5px 0;
+  background: var(--rlx-green);
 }
 
 .metricValue {
-  font-size: 0.78rem;
-  color: var(--text-muted);
+  text-align: right;
+  font-family: var(--font-display);
+  font-weight: 700;
 }
 
 .memberList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
 .memberRow {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding-bottom: 10px;
+  gap: 12px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--divider);
-  font-size: 0.88rem;
+  font-size: 0.95rem;
 }
 
 .memberRow:last-child {
   border-bottom: none;
-  padding-bottom: 0;
 }
 
 .memberName {
   font-weight: 600;
-  color: var(--text-strong);
 }
 
 .memberStats {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
   color: var(--text-muted);
   font-size: 0.82rem;
   white-space: nowrap;
 }
 
+.memberStats b {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--text-strong);
+}
+
 .activityList {
-  list-style: none;
   margin: 0;
-  padding: 0;
+  padding-left: 18px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 0.86rem;
-  color: var(--text-strong);
+  gap: 10px;
+  font-size: 0.95rem;
+}
+
+.activityList li::marker {
+  color: var(--hivis);
+}
+
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .heroCard {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 20px;
+  }
+
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .metricRow {
+    grid-template-columns: 120px 1fr 60px;
+  }
 }

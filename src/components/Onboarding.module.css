@@ -3,87 +3,160 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 16px;
+  padding: 24px 16px;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 100%, rgba(143, 209, 158, 0.25), transparent 70%),
+    var(--pine);
 }
 
 .card {
   width: 100%;
-  max-width: 440px;
-  background: linear-gradient(135deg, #ffffff, #eef8f0);
-  border-radius: 28px;
-  padding: 40px 32px;
+  max-width: 460px;
+  color: var(--text-on-dark);
   text-align: center;
-  box-shadow: 0 8px 32px rgba(31, 138, 76, 0.14);
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 10px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--hivis);
+  color: var(--pine);
+}
+
+.brandBy {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-on-dark-muted);
 }
 
 .avatarRow {
-  margin-bottom: 12px;
+  margin: 4px 0;
 }
 
 .title {
-  font-size: 1.7rem;
-  font-weight: 800;
-  color: var(--text-strong);
   margin: 0;
+  font-size: clamp(2rem, 7vw, 2.8rem);
+  font-weight: 800;
+  color: var(--hivis);
 }
 
 .tagline {
-  color: var(--text-muted);
+  margin: 0 0 6px;
+  max-width: 40ch;
+  color: var(--text-on-dark-muted);
+  font-size: 1.02rem;
+}
+
+.howList {
+  list-style: none;
+  margin: 4px 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+
+.howList li {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
   font-size: 0.95rem;
-  line-height: 1.5;
-  margin: 0 0 20px;
+}
+
+.howList b {
+  color: #fff;
 }
 
 .primaryButton {
   width: 100%;
-  padding: 14px;
-  font-size: 1.02rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #2fae63, #1f8a4c);
+  padding: 15px;
   border: none;
   border-radius: 999px;
+  background: var(--hivis);
+  color: var(--pine);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(31, 138, 76, 0.3);
+  box-shadow: 0 6px 0 #c98a1a;
 }
 
-.primaryButton:hover {
-  transform: translateY(-1px);
+.primaryButton:active {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 #c98a1a;
+}
+
+/* The name is written on an RLX shipping tag, same as on Home. */
+.nameTag {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 6px 0 14px;
+  padding: 14px 18px 14px 40px;
+  background: #fbf6ea;
+  border-radius: 8px 16px 16px 8px;
+  clip-path: polygon(16px 0, 100% 0, 100% 100%, 16px 100%, 0 50%);
+  transform: rotate(-1.5deg);
+}
+
+.nameTagHole {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 50%;
+  border: 2.5px solid #d9cfb8;
 }
 
 .nameLabel {
-  align-self: flex-start;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--text-muted);
-  margin: 4px 0 6px;
 }
 
 .nameInput {
   width: 100%;
-  padding: 12px 14px;
-  font-size: 1rem;
-  border: 1.5px solid var(--divider);
-  border-radius: 12px;
-  margin-bottom: 16px;
-  color: var(--text-strong);
-  background: var(--card-bg);
+  padding: 4px 0;
+  border: none;
+  border-bottom: 2px dashed #cdbf9f;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--pine);
 }
 
 .nameInput:focus {
-  outline: 2px solid #2fae63;
-  outline-offset: 1px;
-  border-color: #2fae63;
+  outline: none;
+  border-bottom-color: var(--rlx-green);
 }
 
 .skipHint {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin: 10px 0 0;
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-on-dark-muted);
 }

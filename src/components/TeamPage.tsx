@@ -62,12 +62,12 @@ export function TeamPage() {
     <div className={styles.page}>
       <div className={styles.layout}>
         <section className={styles.heroCard}>
-          <RockyAvatar mood={detail.mood} evolutionStage={detail.evolutionStage} size={130} />
+          <RockyAvatar mood={detail.mood} evolutionStage={detail.evolutionStage} size={160} bare />
           <div className={styles.heroInfo}>
-            <span className={styles.yourTeamBadge}>YOUR TEAM</span>
+            <span className={styles.yourTeamBadge}>Your team</span>
             <h1 className={styles.teamName}>{detail.name}</h1>
             <p className={styles.teamStage}>
-              {detail.evolutionStage} Team Rocky · Rank #{detail.rank} · Score {detail.score}
+              {detail.evolutionStage} Team Rocky, rank #{detail.rank}, score {detail.score}
             </p>
             <p className={styles.teamMoodLine}>{teamMoodMessage(detail.mood)}</p>
             <p className={styles.teamMoodLine}>{teamRockyReaction(rankChange, detail.mood)}</p>
@@ -76,7 +76,7 @@ export function TeamPage() {
 
         <section className={styles.statsGrid}>
           <div className={styles.metricsCard} style={{ gridColumn: '1 / -1' }}>
-            <h2 className={styles.sectionTitle}>Team Metrics</h2>
+            <h2 className={styles.sectionTitle}>Team health</h2>
             <div className={styles.metricsGrid}>
               {metricRow('Participation', detail.metrics.participation)}
               {metricRow('Average Streak', detail.metrics.averageStreakScore, `${detail.metrics.averageStreak.toFixed(1)} days`)}
@@ -88,13 +88,13 @@ export function TeamPage() {
         </section>
 
         <section className={styles.membersCard}>
-          <h2 className={styles.sectionTitle}>Team Members</h2>
+          <h2 className={styles.sectionTitle}>Members</h2>
           <div className={styles.memberList}>
             {detail.members.map((member) => (
               <div key={member.agentId} className={styles.memberRow}>
                 <span className={styles.memberName}>{member.name}</span>
                 <span className={styles.memberStats}>
-                  Level {member.level} · {member.currentStreak}-day streak
+                  <b>{member.level}</b> level <b>{member.currentStreak}</b> 🔥
                 </span>
               </div>
             ))}
@@ -102,7 +102,7 @@ export function TeamPage() {
         </section>
 
         <section className={styles.activityCard}>
-          <h2 className={styles.sectionTitle}>Team Activity</h2>
+          <h2 className={styles.sectionTitle}>Team news</h2>
           <ul className={styles.activityList}>
             {activity.map((line) => (
               <li key={line}>{line}</li>

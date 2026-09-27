@@ -1,43 +1,131 @@
+.shell {
+  min-height: 100vh;
+}
+
+/* Top bar: brand on the left, sections on the right. On phones the section
+   buttons move into a fixed bottom tab bar, the way a pet app is held. */
+.topBar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  background: rgba(244, 247, 241, 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--card-border);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.brandMark {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--pine);
+  color: var(--hivis);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.brandName {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: var(--pine);
+  letter-spacing: -0.02em;
+}
+
+.brandBy {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .nav {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  padding: 16px 12px 0;
+  gap: 4px;
 }
 
 .navButton {
-  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid var(--divider);
-  background: var(--card-bg);
+  border: none;
+  background: transparent;
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.navButtonActive {
-  background: #1f8a4c;
-  border-color: #1f8a4c;
-  color: #fff;
+.navButton:hover {
+  color: var(--pine);
+  background: #e7efe6;
 }
 
-/* QA/dev-only nav entries get a visibly different treatment — an amber
-   dashed border — so they never read as "part of the normal agent flow"
-   even when a tester has QA Tools switched on. */
+.navButtonActive,
+.navButtonActive:hover {
+  background: var(--pine);
+  color: var(--text-on-dark);
+}
+
+/* Internal (QA/admin/dev) entries read as tools, not part of the agent flow. */
 .navButtonQa {
-  border-style: dashed;
-  border-color: #e0a53a;
-  color: #a06a1a;
+  color: var(--hivis-ink);
 }
 
 .navButtonQa.navButtonActive {
-  background: #e0a53a;
-  border-color: #e0a53a;
-  border-style: solid;
-  color: #fff;
+  background: var(--hivis);
+  color: var(--pine);
+}
+
+@media (max-width: 760px) {
+  /* backdrop-filter would make the header the containing block for the
+     fixed bottom nav, pinning it to the top — use a solid bar instead. */
+  .topBar {
+    padding: 10px 16px;
+    backdrop-filter: none;
+    background: var(--bg);
+  }
+
+  .shell {
+    padding-bottom: 76px;
+  }
+
+  .nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: space-around;
+    gap: 0;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    background: var(--card-bg);
+    border-top: 1px solid var(--card-border);
+    overflow-x: auto;
+  }
+
+  .navButton {
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    border-radius: 14px;
+    font-size: 0.7rem;
+  }
 }
 
 .qaModeToggle {
@@ -47,10 +135,15 @@
   z-index: 90;
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px dashed var(--divider);
-  background: rgba(255, 255, 255, 0.85);
+  border: 1px dashed var(--card-border);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--text-muted);
   font-size: 0.72rem;
   cursor: pointer;
 }
 
+@media (max-width: 760px) {
+  .qaModeToggle {
+    bottom: 84px;
+  }
+}

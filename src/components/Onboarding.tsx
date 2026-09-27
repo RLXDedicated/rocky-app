@@ -29,40 +29,57 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
+        <div className={styles.brand}>
+          <span className={styles.brandMark} aria-hidden="true">R</span>
+          Rocky <span className={styles.brandBy}>by RLX</span>
+        </div>
         <div className={styles.avatarRow}>
-          <RockyAvatar mood="Happy" evolutionStage="Baby" size={140} />
+          <RockyAvatar mood="Happy" evolutionStage="Baby" size={200} bare />
         </div>
 
         {step === 'meet' ? (
           <>
             <h1 className={styles.title}>Meet Rocky.</h1>
             <p className={styles.tagline}>
-              Rocky helps you build a consistent documentation habit — one Check-in at a time.
+              Your documentation buddy. Check in every day and Rocky gains XP, grows a streak and evolves from Baby all the
+              way to Elite.
             </p>
+            <ul className={styles.howList}>
+              <li>
+                <b>Check in daily</b> to earn XP and keep the streak alive
+              </li>
+              <li>
+                <b>Clean QA audits</b> give Rocky extra energy
+              </li>
+              <li>
+                <b>Collect badges</b> and climb the team ranking
+              </li>
+            </ul>
             <button className={styles.primaryButton} onClick={() => setStep('name')}>
-              MEET ROCKY
+              Meet Rocky
             </button>
           </>
         ) : (
           <>
-            <h1 className={styles.title}>Choose Rocky's name.</h1>
-            <p className={styles.tagline}>Keep the default, or make it your own.</p>
-            <label className={styles.nameLabel} htmlFor="rocky-name">
-              Rocky's name
+            <h1 className={styles.title}>Name your Rocky.</h1>
+            <p className={styles.tagline}>Keep the classic name or give your buddy one of their own.</p>
+            <label className={styles.nameTag} htmlFor="rocky-name">
+              <span className={styles.nameTagHole} aria-hidden="true" />
+              <span className={styles.nameLabel}>Rocky's name</span>
+              <input
+                id="rocky-name"
+                className={styles.nameInput}
+                value={name}
+                maxLength={24}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleConfirmName()}
+                autoFocus
+              />
             </label>
-            <input
-              id="rocky-name"
-              className={styles.nameInput}
-              value={name}
-              maxLength={24}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleConfirmName()}
-              autoFocus
-            />
             <button className={styles.primaryButton} onClick={handleConfirmName}>
-              LET'S GO
+              Let's go
             </button>
-            <p className={styles.skipHint}>You can't rename Rocky later in this prototype — choose what feels right.</p>
+            <p className={styles.skipHint}>You can rename Rocky any time from the home screen.</p>
           </>
         )}
       </div>

@@ -1,8 +1,7 @@
-/* The approved Rocky artwork is a 512x512 PNG with a flat white background
-   baked in (not transparent) — see docs/rocky-assets-source/. Rather than
-   fight that, the wrapper is a soft white "plate" the same shape and color,
-   so the art's own background reads as an intentional card/sticker instead
-   of a stray box floating on the page. */
+/* The approved Rocky artwork is a 512x512 PNG with a transparent
+   background. By default the wrapper is a soft white "plate" (a sticker
+   look for lists and cards); `.bare` drops the plate so Rocky can stand
+   directly in a scene such as the Home habitat. */
 .wrapper {
   display: inline-flex;
   align-items: center;
@@ -13,6 +12,13 @@
   box-shadow: 0 12px 24px rgba(31, 138, 76, 0.18);
   overflow: hidden;
   position: relative;
+}
+
+.bare {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
 }
 
 /* The delivered artwork is NOT a small figure centered in a big canvas:

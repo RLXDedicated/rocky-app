@@ -17,14 +17,15 @@ function formatTime(iso: string): string {
 
 export function ActivityFeed({ events }: ActivityFeedProps) {
   if (events.length === 0) {
-    return <p className={styles.empty}>Your Rocky journey starts here.</p>
+    return <p className={styles.empty}>Nothing here yet. Your first check-in writes the first page.</p>
   }
 
   return (
     <ul className={styles.list}>
       {events.map((event) => (
-        <li key={event.id} className={styles.item}>
-          <span>{labelForEvent(event)}</span>
+        <li key={event.id} className={styles.item} data-type={event.type}>
+          <span className={styles.dot} aria-hidden="true" />
+          <span className={styles.text}>{labelForEvent(event)}</span>
           <span className={styles.time}>{formatTime(event.timestamp)}</span>
         </li>
       ))}

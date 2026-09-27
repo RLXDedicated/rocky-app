@@ -1,14 +1,50 @@
+/* Rocky by RLX — design tokens.
+   Brand green is sampled from Rocky's approved RLX vest artwork; the amber
+   is logistics hi-vis (safety tape, shipping labels) and is reserved for XP
+   and streaks. Every screen reads colors, type and radii from here. */
 :root {
-  --bg: #f4f8f4;
-  --hero-bg: linear-gradient(135deg, #ffffff, #eef8f0);
-  --card-bg: #ffffff;
-  --track-bg: #e6efe6;
-  --divider: #eef1ee;
-  --text-strong: #1c2b20;
-  --text-muted: #6b7a6f;
+  /* Brand */
+  --pine: #0c3b2a;
+  --pine-2: #134d37;
+  --rlx-green: #1f7a46;
+  --rlx-green-hover: #19663a;
+  --sprout: #8fd19e;
+  --hivis: #f3b13b;
+  --hivis-ink: #7a4d00;
+  --hide: #8a5a36;
 
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* Surfaces & ink */
+  --bg: #f4f7f1;
+  --card-bg: #ffffff;
+  --card-border: #e2e9e1;
+  --track-bg: #e6eee5;
+  --divider: #edf1ec;
+  --text-strong: #14241b;
+  --text-muted: #5f6f64;
+  --text-on-dark: #f2f7f1;
+  --text-on-dark-muted: #a9c3b1;
+
+  /* Status (always paired with a label or icon) */
+  --alert: #c9542e;
+  --alert-bg: #fbe9e3;
+
+  /* Kept for components that still reference them */
+  --hero-bg: var(--card-bg);
+
+  /* Type */
+  --font-display: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
+  --font-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Shape */
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
   color-scheme: light;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -20,6 +56,25 @@ body {
   background: var(--bg);
   color: var(--text-strong);
   overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--hivis);
+  outline-offset: 2px;
 }
 
 /* Rocky stays alive, not distracting: idle bounces, sparkles, and celebration
@@ -37,4 +92,16 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

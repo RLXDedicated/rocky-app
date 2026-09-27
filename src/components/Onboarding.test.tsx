@@ -17,15 +17,15 @@ describe('Onboarding', () => {
 
   it('advances to the name step and defaults to "Rocky"', () => {
     render(<Onboarding onComplete={() => {}} />)
-    fireEvent.click(screen.getByText('MEET ROCKY'))
+    fireEvent.click(screen.getByText('Meet Rocky'))
     expect(screen.getByLabelText("Rocky's name")).toHaveValue('Rocky')
   })
 
   it('accepting the default name completes onboarding and persists it', () => {
     const onComplete = vi.fn()
     render(<Onboarding onComplete={onComplete} />)
-    fireEvent.click(screen.getByText('MEET ROCKY'))
-    fireEvent.click(screen.getByText("LET'S GO"))
+    fireEvent.click(screen.getByText('Meet Rocky'))
+    fireEvent.click(screen.getByText("Let's go"))
 
     expect(onComplete).toHaveBeenCalledOnce()
     expect(hasCompletedOnboarding()).toBe(true)
@@ -35,18 +35,18 @@ describe('Onboarding', () => {
   it('a custom name is persisted as the single source of truth (the Agent record)', () => {
     const onComplete = vi.fn()
     render(<Onboarding onComplete={onComplete} />)
-    fireEvent.click(screen.getByText('MEET ROCKY'))
+    fireEvent.click(screen.getByText('Meet Rocky'))
     fireEvent.change(screen.getByLabelText("Rocky's name"), { target: { value: 'Bruiser' } })
-    fireEvent.click(screen.getByText("LET'S GO"))
+    fireEvent.click(screen.getByText("Let's go"))
 
     expect(repository.getAgent().rockyName).toBe('Bruiser')
   })
 
   it('falls back to "Rocky" if the name is submitted blank', () => {
     render(<Onboarding onComplete={() => {}} />)
-    fireEvent.click(screen.getByText('MEET ROCKY'))
+    fireEvent.click(screen.getByText('Meet Rocky'))
     fireEvent.change(screen.getByLabelText("Rocky's name"), { target: { value: '   ' } })
-    fireEvent.click(screen.getByText("LET'S GO"))
+    fireEvent.click(screen.getByText("Let's go"))
 
     expect(repository.getAgent().rockyName).toBe('Rocky')
   })

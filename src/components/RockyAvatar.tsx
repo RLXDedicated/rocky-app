@@ -15,6 +15,8 @@ interface RockyAvatarProps {
    * at which point Rocky reverts to `getRockyAsset(evolutionStage, mood)`.
    */
   reaction?: RockyReactionKey | null
+  /** Drop the white plate so Rocky stands directly in a scene (the art is transparent). */
+  bare?: boolean
 }
 
 // Approved Rocky 2.5D artwork — resolved via rockyVisuals.ts's
@@ -22,14 +24,14 @@ interface RockyAvatarProps {
 // concrete image paths. This component only ever asks for
 // "Rocky = evolutionStage + mood" (or a named reaction); it never
 // hardcodes a path itself.
-export function RockyAvatar({ mood, evolutionStage, size = 220, reaction }: RockyAvatarProps) {
+export function RockyAvatar({ mood, evolutionStage, size = 220, reaction, bare = false }: RockyAvatarProps) {
   const src = reaction ? getReactionAsset(reaction) : getRockyAsset(evolutionStage, mood)
   const label = reaction
     ? `${ROCKY_VISUALS[evolutionStage].label} reacting`
     : `${ROCKY_VISUALS[evolutionStage].label}, feeling ${mood.toLowerCase()}`
 
   return (
-    <div className={styles.wrapper} style={{ width: size, height: size }}>
+    <div className={`${styles.wrapper} ${bare ? styles.bare : ''}`} style={{ width: size, height: size }}>
       <div className={styles.zoom}>
         {/* The `key` forces a fresh <img> (and its entrance animation) each
             time the resolved asset changes, whether that's a mood/evolution

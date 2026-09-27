@@ -9,7 +9,7 @@ import { RockyAvatar } from './RockyAvatar'
 export function LoadingRocky() {
   return (
     <div className={styles.page}>
-      <RockyAvatar mood="Motivated" evolutionStage="Baby" size={90} />
+      <RockyAvatar mood="Motivated" evolutionStage="Baby" size={110} bare />
     </div>
   )
 }

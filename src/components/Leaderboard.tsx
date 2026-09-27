@@ -72,54 +72,79 @@ export function Leaderboard() {
   // reflects or affects it.
   const liveMood = calculateMood(gameState)
 
+  const podium = entries.slice(0, 3)
+  // Visual order on the podium: 2nd, 1st, 3rd.
+  const podiumOrder = [podium[1], podium[0], podium[2]].filter(Boolean) as LeaderboardEntry[]
+
   return (
     <div className={styles.page}>
       <div className={styles.layout}>
-        <div>
-          <h1 className={styles.title}>Leaderboard</h1>
-          <p className={styles.subtitle}>Ranked by Level, then XP, then Current Streak, then Best Streak.</p>
-        </div>
+        <header>
+          <h1 className={styles.title}>Ranking</h1>
+          <p className={styles.subtitle}>Ranked by level, then XP, then current streak.</p>
+        </header>
 
-        <section className={styles.highlightCard}>
-          <RockyAvatar mood={liveMood} evolutionStage={currentUser.evolutionStage} size={90} />
-          <div className={styles.highlightInfo}>
-            <span className={styles.youBadge}>YOU</span>
-            <p className={styles.highlightRank}>Rank #{currentUser.rank}</p>
-            <p className={styles.highlightStats}>
+        <section className={styles.podium} aria-label="Top 3">
+          {podiumOrder.map((entry) => (
+            <div key={entry.agentId} className={`${styles.podiumSpot} ${styles[`place${entry.rank}`] ?? ''} ${entry.isCurrentUser ? styles.podiumYou : ''}`}>
+              <RockyAvatar
+                mood={entry.isCurrentUser ? liveMood : approximateMoodForDisplay(entry.currentStreak)}
+                evolutionStage={entry.evolutionStage}
+                size={entry.rank === 1 ? 118 : 92}
+                bare
+              />
+              <span className={styles.podiumName}>{entry.isCurrentUser ? 'You' : entry.name}</span>
+              <span className={styles.podiumStats}>
+                Level {entry.level} · {entry.xp.toLocaleString()} XP
+              </span>
+              <div className={styles.podiumBlock}>{entry.rank}</div>
+            </div>
+          ))}
+        </section>
+
+        <section className={styles.youCard}>
+          <RockyAvatar mood={liveMood} evolutionStage={currentUser.evolutionStage} size={84} bare />
+          <div className={styles.youInfo}>
+            <p className={styles.youRank}>
+              You're <b>#{currentUser.rank}</b>
+            </p>
+            <p className={styles.youStats}>
               Level {currentUser.level} · {currentUser.xp.toLocaleString()} XP · {currentUser.currentStreak}-day streak
             </p>
-            <p className={styles.motivation}>{motivationFor(entries, currentUser)}</p>
-            <p className={styles.rockyReaction}>{rockyReactionFor(rankChange)}</p>
+            <p className={styles.motivation}>
+              {motivationFor(entries, currentUser)} {rockyReactionFor(rankChange)}
+            </p>
           </div>
         </section>
 
-        <section className={styles.list}>
+        <ol className={styles.list}>
           {entries.map((entry) => (
-            <div key={entry.agentId} className={`${styles.row} ${entry.isCurrentUser ? styles.rowCurrentUser : ''}`}>
-              <span className={`${styles.rank} ${entry.rank === 1 ? styles.rankTop : ''}`}>#{entry.rank}</span>
+            <li key={entry.agentId} className={`${styles.row} ${entry.isCurrentUser ? styles.rowCurrentUser : ''}`}>
+              <span className={`${styles.rank} ${entry.rank <= 3 ? styles.rankTop : ''}`}>{entry.rank}</span>
               <RockyAvatar
-                mood={approximateMoodForDisplay(entry.currentStreak)}
+                mood={entry.isCurrentUser ? liveMood : approximateMoodForDisplay(entry.currentStreak)}
                 evolutionStage={entry.evolutionStage}
-                size={44}
+                size={48}
+                bare
               />
               <div className={styles.rowInfo}>
-                <p className={styles.rowName}>{entry.isCurrentUser ? `${entry.name} (You)` : entry.name}</p>
+                <p className={styles.rowName}>{entry.isCurrentUser ? `${entry.name} (you)` : entry.name}</p>
                 <span className={styles.rowStage}>{entry.evolutionStage} Rocky</span>
               </div>
               <div className={styles.rowStats}>
                 <span>
-                  Level<span className={styles.statValue}>{entry.level}</span>
+                  <b>{entry.level}</b> level
                 </span>
                 <span>
-                  XP<span className={styles.statValue}>{entry.xp.toLocaleString()}</span>
+                  <b>{entry.xp.toLocaleString()}</b> XP
                 </span>
                 <span>
-                  Streak<span className={styles.statValue}>{entry.currentStreak}🔥</span>
+                  <b>{entry.currentStreak}</b> 🔥
                 </span>
               </div>
-            </div>
+            </li>
           ))}
-        </section>
+        </ol>
       </div>
     </div>
   )

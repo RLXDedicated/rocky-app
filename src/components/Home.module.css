@@ -1,146 +1,424 @@
 .page {
-  min-height: 100vh;
   display: flex;
   justify-content: center;
-  padding: 32px 16px 64px;
+  padding: 24px 16px 64px;
 }
 
 .layout {
   width: 100%;
-  max-width: 900px;
+  max-width: 1080px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.heroCard {
-  background: var(--hero-bg);
-  border-radius: 24px;
-  padding: 32px;
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  box-shadow: 0 4px 20px rgba(31, 138, 76, 0.1);
+/* The habitat — Rocky's home. Deep RLX pine with a soft ground glow. */
+.habitat {
   position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 40px;
+  padding: 36px 48px;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse 60% 38% at 22% 92%, rgba(143, 209, 158, 0.28), transparent 70%),
+    radial-gradient(circle at 85% 10%, rgba(243, 177, 59, 0.12), transparent 40%),
+    var(--pine);
+  color: var(--text-on-dark);
   overflow: hidden;
 }
 
-.heroInfo {
-  flex: 1;
-  min-width: 0;
+.habitatStage {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.levelBadge {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: var(--hivis);
+  color: var(--pine);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1;
+  box-shadow: 0 0 0 4px var(--pine);
+}
+
+.levelBadge small {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.xpBurst {
+  position: absolute;
+  top: 18px;
+  right: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--hivis);
+  color: var(--pine);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  animation: burst 1.8s ease-out forwards;
+}
+
+@keyframes burst {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1.08);
+  }
+  75% {
+    opacity: 1;
+    transform: translateY(-14px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px);
+  }
+}
+
+.habitatInfo {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
 }
 
-.rockyName {
-  font-size: 1.9rem;
-  font-weight: 800;
-  color: var(--text-strong);
-  margin: 0;
-}
-
-.stageLine {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #1f8a4c;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.stageXp {
-  color: var(--text-muted);
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.moodLine {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  margin: 0;
-  min-height: 1.3em;
+.speech {
+  position: relative;
+  margin: 4px 0 0;
+  max-width: 44ch;
+  padding: 14px 18px;
+  border-radius: 18px 18px 18px 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-on-dark);
+  font-size: 1.05rem;
+  line-height: 1.45;
 }
 
 .checkInButton {
-  align-self: flex-start;
-  margin-top: 6px;
-  padding: 14px 32px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #2fae63, #1f8a4c);
+  padding: 16px 30px;
   border: none;
   border-radius: 999px;
+  background: var(--hivis);
+  color: var(--pine);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(31, 138, 76, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 6px 0 #c98a1a;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .checkInButton:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(31, 138, 76, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 7px 0 #c98a1a;
+}
+
+.checkInButton:active:not(:disabled) {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 #c98a1a;
 }
 
 .checkInButton:disabled {
   cursor: default;
-  opacity: 0.7;
+  background: rgba(143, 209, 158, 0.18);
+  color: var(--sprout);
+  box-shadow: none;
 }
 
-.reactionBubble {
-  margin-top: 4px;
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: #1f8a4c;
-  min-height: 1.3em;
+.levelLine {
+  margin: 0;
+  color: var(--text-on-dark-muted);
+  font-size: 0.9rem;
 }
 
-.statsGrid {
+/* Needs — the three meters a pet owner watches. */
+.needs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
-.xpSection {
+.need,
+.panel {
   background: var(--card-bg);
-  border-radius: 16px;
-  padding: 16px 18px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 20px 22px;
+  min-width: 0;
 }
 
-.evolutionRow {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--divider);
+.needHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
-.activitySection {
-  background: var(--card-bg);
-  border-radius: 16px;
-  padding: 18px 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.sectionTitle {
-  font-size: 1rem;
+.needHead h2,
+.panelTitle {
+  margin: 0;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: var(--text-strong);
-  margin: 0 0 12px;
+  color: var(--pine);
 }
 
-@media (max-width: 640px) {
-  .heroCard {
-    flex-direction: column;
-    text-align: center;
-    padding: 24px;
+.needValue {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.needValue small {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+}
+
+.streakValue span[aria-hidden] {
+  font-size: 1.3rem;
+}
+
+.needNote {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.cells {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.cell {
+  height: 18px;
+  border-radius: 5px;
+  background: var(--track-bg);
+}
+
+.cellOn {
+  background: var(--rlx-green);
+}
+
+.cellLow {
+  background: var(--alert);
+}
+
+.week {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.dayDot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px dashed #c9d6c8;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--pine);
+}
+
+.dayDone .dayDot {
+  border: none;
+  background: var(--hivis);
+}
+
+.dayToday .dayDot {
+  border-color: var(--rlx-green);
+  border-style: solid;
+}
+
+.dayToday.dayDone .dayDot {
+  box-shadow: 0 0 0 3px #fbe3b0;
+}
+
+.dayLabel {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.dayToday .dayLabel {
+  font-weight: 700;
+  color: var(--pine);
+}
+
+.moodChip {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.moodHappy {
+  background: #dff3e4;
+  color: #155b33;
+}
+
+.moodMotivated {
+  background: #e3effa;
+  color: #1d4f7a;
+}
+
+.moodWorried {
+  background: #fdf0d8;
+  color: var(--hivis-ink);
+}
+
+.moodRecovery {
+  background: #efe6f7;
+  color: #5b3a80;
+}
+
+.moodGuide {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-strong);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.panelTitle {
+  margin-bottom: 14px;
+}
+
+.panelNote {
+  margin: 14px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.goals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.goals li {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--divider);
+  font-size: 0.95rem;
+}
+
+.goals li:last-child {
+  border-bottom: none;
+}
+
+.goalCheck {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 2px solid #c9d6c8;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.goalDone .goalCheck {
+  background: var(--rlx-green);
+  border-color: var(--rlx-green);
+}
+
+.goalDone .goalText {
+  color: var(--text-muted);
+}
+
+.goalReward {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--hivis-ink);
+  white-space: nowrap;
+}
+
+.goalDone .goalReward {
+  color: var(--rlx-green);
+}
+
+@media (max-width: 900px) {
+  .habitat {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 24px;
+    padding: 28px 20px;
   }
 
-  .heroInfo {
+  .habitatInfo {
     align-items: center;
+    text-align: center;
   }
 
-  .checkInButton {
-    align-self: center;
+  .speech {
+    border-radius: 18px;
+  }
+
+  .needs {
+    grid-template-columns: 1fr;
+  }
+
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .page {
+    padding: 16px 12px 48px;
+  }
+
+  .goals li {
+    grid-template-columns: 26px 1fr;
+  }
+
+  .goalReward {
+    grid-column: 2;
   }
 }

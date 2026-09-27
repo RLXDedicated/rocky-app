@@ -30,7 +30,7 @@ export function RockyReminder({ reminder, mood, evolutionStage, onDismiss, onAct
       <div className={styles.avatarWrap}>
         {/* Always Rocky's real current state — a reminder never invents a
             mood or borrows a reaction it didn't actually just have. */}
-        <RockyAvatar mood={mood} evolutionStage={evolutionStage} size={56} />
+        <RockyAvatar mood={mood} evolutionStage={evolutionStage} size={64} bare />
       </div>
       <div className={styles.body}>
         <span className={styles.categoryBadge}>{reminder.category}</span>
@@ -38,11 +38,11 @@ export function RockyReminder({ reminder, mood, evolutionStage, onDismiss, onAct
         <div className={styles.actions}>
           {onAction && (
             <button className={styles.actionButton} onClick={onAction}>
-              {actionLabel ?? 'CHECK IN WITH ROCKY'}
+              {actionLabel ?? 'Check in now'}
             </button>
           )}
           <button className={styles.dismissButton} onClick={onDismiss}>
-            Dismiss
+            Later
           </button>
         </div>
       </div>

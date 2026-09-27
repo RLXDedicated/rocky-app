@@ -3,15 +3,15 @@
   right: 20px;
   bottom: 20px;
   z-index: 100;
-  max-width: 340px;
-  background: var(--card-bg);
-  border-radius: 18px;
-  padding: 16px;
+  width: min(360px, calc(100vw - 32px));
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
-  border: 1px solid var(--divider);
+  padding: 16px 16px 16px 12px;
+  border-radius: var(--radius-md);
+  background: var(--pine);
+  color: var(--text-on-dark);
+  box-shadow: 0 16px 40px rgba(8, 30, 21, 0.35);
   animation: slideIn 0.35s ease;
 }
 
@@ -26,6 +26,13 @@
   }
 }
 
+@media (max-width: 760px) {
+  .toast {
+    right: 16px;
+    bottom: 88px;
+  }
+}
+
 .avatarWrap {
   flex-shrink: 0;
 }
@@ -37,59 +44,57 @@
 
 .categoryBadge {
   display: inline-block;
-  font-size: 0.66rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #1f8a4c;
-  background: #e3f6ea;
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 999px;
-  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--sprout);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .message {
-  font-size: 0.88rem;
-  color: var(--text-strong);
-  margin: 0 0 10px;
-  line-height: 1.35;
+  margin: 6px 0 12px;
+  font-size: 0.98rem;
+  line-height: 1.4;
 }
 
 .actions {
   display: flex;
   gap: 8px;
-  align-items: center;
+  flex-wrap: wrap;
 }
 
 .actionButton {
-  padding: 7px 14px;
-  border-radius: 999px;
+  padding: 8px 16px;
   border: none;
-  background: linear-gradient(135deg, #2fae63, #1f8a4c);
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: 700;
+  border-radius: 999px;
+  background: var(--hivis);
+  color: var(--pine);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.9rem;
   cursor: pointer;
 }
 
 .dismissButton {
-  padding: 7px 12px;
+  padding: 8px 12px;
+  border: none;
   border-radius: 999px;
-  border: 1px solid var(--divider);
   background: transparent;
-  color: var(--text-muted);
-  font-size: 0.8rem;
+  color: var(--text-on-dark-muted);
+  font-weight: 600;
+  font-size: 0.88rem;
   cursor: pointer;
 }
 
 .closeCorner {
   position: absolute;
-  top: 10px;
-  right: 12px;
+  top: 6px;
+  right: 10px;
   border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 1rem;
-  cursor: pointer;
+  background: none;
+  color: var(--text-on-dark-muted);
+  font-size: 1.3rem;
   line-height: 1;
+  cursor: pointer;
 }

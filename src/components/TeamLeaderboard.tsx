@@ -27,22 +27,22 @@ export function TeamLeaderboard() {
     <div className={styles.page}>
       <div className={styles.layout}>
         <div>
-          <h1 className={styles.title}>Team Leaderboard</h1>
+          <h1 className={styles.title}>Teams</h1>
           <p className={styles.subtitle}>
-            Ranked by Team Score — participation, average streak, QA pass performance, improvement, and
-            engagement. Never by team size or individual failures.
+            Ranked by team score: participation, average streak, QA results, improvement and engagement. Never by team
+            size or anyone's misses.
           </p>
         </div>
 
         <section className={styles.list}>
           {entries.map((team) => (
             <div key={team.id} className={`${styles.row} ${team.id === currentTeamId ? styles.rowCurrentTeam : ''}`}>
-              <span className={`${styles.rank} ${team.rank === 1 ? styles.rankTop : ''}`}>#{team.rank}</span>
-              <RockyAvatar mood={team.mood} evolutionStage={team.evolutionStage} size={56} />
+              <span className={`${styles.rank} ${team.rank <= 3 ? styles.rankTop : ''}`}>{team.rank}</span>
+              <RockyAvatar mood={team.mood} evolutionStage={team.evolutionStage} size={56} bare />
               <div className={styles.rowInfo}>
                 <p className={styles.rowName}>
                   {team.name}
-                  {team.id === currentTeamId ? ' (Your Team)' : ''}
+                  {team.id === currentTeamId ? ' (your team)' : ''}
                 </p>
                 <span className={styles.rowStage}>
                   {team.evolutionStage} Team Rocky · {team.memberCount} member{team.memberCount === 1 ? '' : 's'}
@@ -54,7 +54,7 @@ export function TeamLeaderboard() {
               </div>
               <div className={styles.rowScore}>
                 <div className={styles.scoreValue}>{team.score}</div>
-                <div className={styles.scoreLabel}>Team Score</div>
+                <div className={styles.scoreLabel}>score</div>
               </div>
             </div>
           ))}
