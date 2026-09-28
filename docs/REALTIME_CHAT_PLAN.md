@@ -95,13 +95,57 @@ es el plan para decidir alcance y orden.
   mensajes y silenciar a un usuario por un tiempo. Todo queda en el
   historial de auditoría, como ya pasa con las acciones de admin.
 - **Límite de envío**: por ejemplo, 20 mensajes por minuto por agente.
-- **Retención**: definir con RRHH y Legal cuánto tiempo se guardan los
-  mensajes (propuesta: 90 días, con borrado automático nocturno).
+- **Retención (decidido)**: 90 días en el historial, con borrado
+  automático nocturno de lo más antiguo.
 - **Privacidad entre agentes**: se siguen usando los ids opacos que ya
   existen; los correos nunca se muestran a otros agentes.
-- **Decisión pendiente de RLX**: si los supervisores pueden leer los chats
-  1 a 1. Afecta al texto de consentimiento y debe quedar claro para los
-  agentes desde el primer día.
+- **Quién puede leer los chats (decidido)**: el chat es personal entre
+  agentes; los **supervisores no tienen acceso**. Solo los **admins de
+  Rocky** (`ROCKY_ADMIN_EMAILS`) tienen una copia completa de todas las
+  conversaciones, para control de calidad. Eso implica:
+  - Un rol separado: no basta con ser supervisor para ver chats.
+  - Una vista de admin para buscar y leer conversaciones. Cada lectura
+    queda registrada en la auditoría (quién leyó qué y cuándo).
+  - Un backup propio de las conversaciones: una exportación diaria cifrada
+    fuera del servidor (por ejemplo, un bucket de Railway), aparte de la
+    copia del volumen. Así la copia de QA no depende de un solo disco.
+  - Aviso claro a los agentes (ver el texto de uso aceptable, abajo).
+
+### Texto de uso aceptable
+
+Son las reglas del chat que el agente lee y acepta **una vez**, antes de
+usarlo por primera vez. Queda guardado quién aceptó y cuándo, y se puede
+volver a leer desde el chat. Sirve para dos cosas:
+
+1. **Transparencia**: el agente sabe que sus mensajes no son privados
+   frente a los admins de QA. En Colombia la Ley 1581 de 2012 (habeas
+   data) exige informar la finalidad del tratamiento de datos personales.
+   Legal/RRHH de RLX debe revisar el texto final.
+2. **Reglas claras**: con ellas los admins pueden moderar sin
+   discusiones.
+
+Borrador (en inglés, el idioma de la app):
+
+> **Rocky chat — house rules**
+>
+> Rocky chat is for friendly conversation between RLX agents.
+>
+> - Be kind and respectful. No harassment, discrimination, threats or
+>   offensive content.
+> - **Never share customer information**: names, phone numbers, emails,
+>   addresses, order numbers or account details. Use the approved work
+>   systems for that.
+> - Don't share passwords, PINs or any login details, not even with a
+>   teammate.
+> - Keep it work-appropriate. No spam, chain messages or selling.
+> - Your supervisors can't read your chats. **Rocky admins keep a copy
+>   of every conversation for quality control and safety**, and may review
+>   it when needed. Messages are kept for 90 days.
+> - Anyone can report a message. Admins may hide messages or pause chat
+>   for someone who breaks these rules.
+>
+> [ I understand and agree ]
+
 
 ## 4. ¿La infraestructura actual aguanta? Sí, de sobra.
 
@@ -155,5 +199,6 @@ servidor, plan ni base de datos. Recomendaciones de bajo costo:
 | 5 | Chat fase 2 (canales de equipo, menciones, stickers de Rocky) | 3 días |
 | — | Backups del volumen (en paralelo, configuración) | < 1 hora |
 
-Antes del paso 3 hay que confirmar con RLX la retención de mensajes, quién
-puede leer los chats y el texto de uso aceptable.
+Decidido: retención de 90 días; los supervisores no leen chats; los admins
+tienen copia completa con backup. Antes del paso 3 solo falta que
+Legal/RRHH de RLX apruebe el texto de uso aceptable.
