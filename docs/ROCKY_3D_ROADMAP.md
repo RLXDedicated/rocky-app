@@ -1,6 +1,6 @@
 # Rocky: from 2.5D to an interactive pet (and maybe 3D)
 
-Status: Baby Rocky live in 3D · Owner: RLX QA (Anibal Pereira) · Last updated: 2026-09-28
+Status: Baby Rocky 3D in preview (off by default) · Owner: RLX QA (Anibal Pereira) · Last updated: 2026-09-28
 
 ## Goal
 
@@ -31,9 +31,12 @@ between artworks).
 
 ## 3D Rocky — what's live (Baby stage)
 
-The Baby Rocky GLB (Tripo model, Mixamo rig, 9 clips) now drives Rocky in
-the Home world whenever the agent's Rocky is Baby. Other stages keep the
-2.5D art until their models arrive.
+The Baby Rocky GLB (Tripo model, Mixamo rig, 9 clips) is wired into the
+Home world, but it is **off by default**: the delivered file has no texture
+(see below) and the stop-gap colouring isn't at the approved art's quality,
+so agents keep seeing the 2.5D Rocky. Open the app with `?rocky3d=1` to
+preview the 3D Rocky on that browser (`?rocky3d=0` to go back). Flip the
+default in `rocky3dModels.ts` once a textured model is in.
 
 | Game moment | Clip |
 | --- | --- |
@@ -53,8 +56,8 @@ How it's built (`src/components/world/`):
   Loaded as a separate chunk only when needed.
 - `Rocky3D.tsx` — React wrapper; shows the 2.5D art until the model is
   ready and falls back to it on any error or when WebGL is missing.
-- `rocky3dModels.ts` — which stage has a model. `?rocky3d=0` turns 3D off
-  on a browser (`?rocky3d=1` back on).
+- `rocky3dModels.ts` — which stage has a model, and the 3D on/off switch
+  (off by default; `?rocky3d=1` / `?rocky3d=0` per browser).
 - Reduced motion: Rocky holds still poses, no animation.
 
 ### Known issue in the delivered file — no textures
@@ -62,10 +65,12 @@ How it's built (`src/components/world/`):
 `docs/rocky-assets-source/3d/Baby_Rocky_AllAnimations.glb` has **no
 textures and no material colours** (Blender export dropped Tripo's
 texture), so as delivered it renders plain white. `tools/bake-rocky3d-colors.py`
-works around it by projecting the approved 2.5D Baby art onto the model as
-vertex colours (head fitted to the sculpted eyes, body to the silhouette,
-arms/horns flat, back never gets a face). It looks close to the art, but a
-real texture will look better. Re-export from Blender with the texture
+works around it with vertex colours: clean solid colours per part (fur,
+hair, horns, RLX-green vest, hooves) and only the facial features (eyes,
+muzzle, mouth) projected from the approved Happy art, fitted to the
+sculpted eyes. It's presentable for a preview, not for release — a real
+texture is needed. (A first version projected the art onto the whole body
+and looked smeared; don't go back to that.) Re-export from Blender with the texture
 packed (File › External Data › Pack Resources, then glTF export with
 Materials: Export and Images: Automatic) and drop it in — the app uses a
 file's own textures automatically; skip the bake step for it.

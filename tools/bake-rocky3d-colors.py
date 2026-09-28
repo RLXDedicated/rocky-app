@@ -4,20 +4,16 @@ The delivered Baby Rocky GLB (docs/rocky-assets-source/3d/) has its geometry,
 Mixamo rig and 9 animations intact, but NO textures: its 8 materials carry
 neither a base-color texture nor a color, so it renders plain white.
 
-Until a re-export with textures arrives, this script paints it from the
-approved artwork instead of inventing colors:
+Until a re-export with textures arrives, this script paints it:
 
-  * every vertex is projected straight onto the front-facing approved PNG
-    (the model and the art are both front views of the same character, so
-    their silhouettes are fitted box-to-box);
-  * the art colour is blended in by how much the surface faces the viewer
-    (normal.z), and sides/back fall back to a flat per-part colour — so the
-    face, muzzle, eyes and RLX vest show on the front, and there are never
-    eyes on the back of Rocky's head;
-  * horns always use the part colour (they stick out sideways).
+  * every part gets a clean, solid colour sampled from the approved art
+    (fur, darker hair tuft, cream horns, RLX-green vest, dark hooves);
+  * only the FACE (eyes, muzzle, mouth) is projected from the approved
+    Happy artwork, fitted to the sculpted eyes, and faded out smoothly at
+    the edge of the face and towards the sides — never on the back.
 
-Head colours come from the Happy art (friendly face), the body from the
-Worried art (arms down, same as the model's rest pose).
+A first version projected the art onto the whole body; that smeared the
+vest and tinted the legs, so projection is now limited to the face.
 
     python3 tools/bake-rocky3d-colors.py
 
@@ -35,30 +31,58 @@ SRC = os.path.join(ROOT, 'docs/rocky-assets-source/3d/Baby_Rocky_AllAnimations.g
 OUT = os.path.join(ROOT, 'src/assets/rocky3d/baby.glb')
 ART = os.path.join(ROOT, 'src/assets/rocky/baby')
 
-# Flat colours used where the art can't reach (sides, back) — sampled from the art.
-PART_COLOR = {
-    'Head': (0.55, 0.32, 0.18),
-    'L_Arm': (0.55, 0.32, 0.18),
-    'R_Arm': (0.55, 0.32, 0.18),
-    'Lower_Body': (0.50, 0.29, 0.16),
-    'L_Horn': (0.94, 0.89, 0.78),
-    'R_Horn': (0.94, 0.89, 0.78),
-    'Vest': (0.12, 0.52, 0.28),
-    'Badge': (0.95, 0.95, 0.95),
-}
-ART_FOR_PART = {'Head': 'happy'}  # everything else: worried
-# Arms swing away from the body in every animation, and the horns stick out
-# sideways, so projecting the front view onto them smears the vest across the
-# arms — they keep their flat part colour.
-NO_PROJECTION = {'L_Horn', 'R_Horn', 'L_Arm', 'R_Arm'}
+def hex_rgb(h):
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
 
-# The head is fitted by facial landmarks rather than by silhouette, so the
-# painted eyes land exactly on the sculpted ones. Measured once:
+
+FUR = hex_rgb('#9a5a32')
+HAIR = hex_rgb('#7a4124')
+HORN = hex_rgb('#f1e6cc')
+VEST = hex_rgb('#1f7f45')
+VEST_TRIM = hex_rgb('#17663a')
+BADGE = hex_rgb('#f7f7f5')
+HOOF = hex_rgb('#3b2a22')
+
+PART_COLOR = {
+    'Head': FUR,
+    'L_Arm': FUR,
+    'R_Arm': FUR,
+    'Lower_Body': FUR,
+    'L_Horn': HORN,
+    'R_Horn': HORN,
+    'Vest': VEST,
+    'Badge': BADGE,
+}
+
+# The head is fitted by facial landmarks, so the painted eyes land exactly on
+# the sculpted ones. Measured once:
 #   model (rest pose): eyes at x = -0.097 / 0.079, y = 0.666
 #   happy.png:         iris centres at (223, 188) / (328, 189)
 # Both axes give ~600 px per model unit.
-HORN_LINE_PX = 165  # happy.png rows above the eyes (horn height)
 HEAD_FIT = {'eye_mid_model': (-0.009, 0.666), 'eye_mid_art': (275.5, 188.5), 'px_per_unit': 600.0}
+# The face zone (model units) — an ellipse around eyes, muzzle and mouth.
+FACE_CENTER = (-0.009, 0.615)
+FACE_RADII = (0.2, 0.135)
+HAIR_LINE_Y = 0.74  # above this the head is the hair tuft
+HOOF_TOP_Y = 0.035
+
+
+def smoothstep(e0, e1, x):
+    t = min(1.0, max(0.0, (x - e0) / (e1 - e0)))
+    return t * t * (3 - 2 * t)
+
+
+def furness(r, g, b):
+    """~1 for the art's orange/brown fur tones, ~0 for eyes (dark, blue,
+    white), the pale muzzle and the mouth."""
+    lum = 0.3 * r + 0.59 * g + 0.11 * b
+    warm = smoothstep(0.1, 0.25, r - b) * (1.0 if r >= g >= b else 0.0)
+    mid = smoothstep(0.2, 0.3, lum) * (1 - smoothstep(0.7, 0.8, lum))
+    return warm * mid
+
+
+def mix(a, b, t):
+    return tuple(a[k] * (1 - t) + b[k] * t for k in range(3))
 
 
 def load_glb(path):
@@ -115,39 +139,36 @@ def main():
     gltf, binary = load_glb(SRC)
     meshes = [(n['name'], n['mesh']) for n in gltf['nodes'] if 'mesh' in n]
 
-    # Model silhouette (rest pose, front view) — shared by every part.
-    xs, ys = [], []
-    for _, mi in meshes:
-        for x, y, _z in read_accessor(gltf, binary, gltf['meshes'][mi]['primitives'][0]['attributes']['POSITION']):
-            xs.append(x)
-            ys.append(y)
-    mx0, mx1, my0, my1 = min(xs), max(xs), min(ys), max(ys)
-    arts = {m: art_image(m) for m in ('happy', 'worried')}
+    happy, _ = art_image('happy')
+    (mx, my), (axm, aym), k = HEAD_FIT['eye_mid_model'], HEAD_FIT['eye_mid_art'], HEAD_FIT['px_per_unit']
 
     for name, mi in meshes:
         prim = gltf['meshes'][mi]['primitives'][0]
         positions = read_accessor(gltf, binary, prim['attributes']['POSITION'])
         normals = read_accessor(gltf, binary, prim['attributes']['NORMAL'])
-        im, (ax0, ay0, ax1, ay1) = arts[ART_FOR_PART.get(name, 'worried')]
         base = PART_COLOR[name]
         colors = []
         for (x, y, _z), (_nx, _ny, nz) in zip(positions, normals):
-            rgb = list(base)
-            if name not in NO_PROJECTION:
-                if name == 'Head':
-                    (mx, my), (axm, aym), k = HEAD_FIT['eye_mid_model'], HEAD_FIT['eye_mid_art'], HEAD_FIT['px_per_unit']
-                    px = axm + (x - mx) * k
-                    py = aym - (y - my) * k
-                else:
-                    px = ax0 + (x - mx0) / (mx1 - mx0) * (ax1 - ax0)
-                    py = ay0 + (my1 - y) / (my1 - my0) * (ay1 - ay0)
-                r, g, b, a = sample(im, px, py)
-                # Above the eyes the art's cream horns sit behind the hair tuft,
-                # where the model has fur — don't let horn colour land on fur.
-                if name == 'Head' and py < HORN_LINE_PX and (0.3 * r + 0.59 * g + 0.11 * b) > 0.55:
-                    a = 0.0
-                facing = min(1.0, max(0.0, (nz - 0.15) / 0.45)) * min(1.0, max(0.0, (a - 0.6) / 0.35))
-                rgb = [base[k] * (1 - facing) + (r, g, b)[k] * facing for k in range(3)]
+            rgb = base
+            if name == 'Head':
+                rgb = mix(FUR, HAIR, smoothstep(HAIR_LINE_Y - 0.03, HAIR_LINE_Y + 0.03, y))
+                # Face: project the approved art inside a soft ellipse, only
+                # where the surface faces forward.
+                dx = (x - FACE_CENTER[0]) / FACE_RADII[0]
+                dy = (y - FACE_CENTER[1]) / FACE_RADII[1]
+                zone = 1 - smoothstep(0.75, 1.0, (dx * dx + dy * dy) ** 0.5)
+                facing = smoothstep(0.2, 0.55, nz)
+                if zone * facing > 0:
+                    r, g, b, a = sample(happy, axm + (x - mx) * k, aym - (y - my) * k)
+                    # Keep only the features (eyes, muzzle, mouth); the art's
+                    # warm-lit fur around them would show as orange patches.
+                    w = zone * facing * smoothstep(0.6, 0.95, a) * (1 - furness(r, g, b))
+                    rgb = mix(rgb, (r, g, b), w)
+            elif name == 'Lower_Body':
+                rgb = mix(HOOF, FUR, smoothstep(HOOF_TOP_Y - 0.012, HOOF_TOP_Y + 0.012, y))
+            elif name == 'Vest':
+                # Slightly darker trim toward the bottom hem for a bit of shape.
+                rgb = mix(VEST_TRIM, VEST, smoothstep(0.22, 0.30, y))
             colors.extend(srgb_to_linear(c) for c in rgb)
 
         # Append a COLOR_0 accessor (float VEC3, linear) to the binary chunk.
