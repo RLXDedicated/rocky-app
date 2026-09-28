@@ -117,7 +117,7 @@ export function NeedsDock({ needs, treats, busy, playing = false, onPet, onFeed,
           onClick={onFeed}
           disabled={busy}
           aria-pressed={feedOpen}
-          aria-label={visitor ? `Give one of your treats (${treats} left)` : `Food — open the bag (${treats} treats)`}
+          aria-label={visitor ? `Give one of your treats (${treats} left)` : `Food — open the bag (${treats} to eat)`}
         >
           <span className={styles.careIcon}>
             <Icon>{ICON.treat}</Icon>

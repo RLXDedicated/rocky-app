@@ -1444,9 +1444,12 @@ export function RockyWorld({
             transitionDuration: `${walkMs}ms`,
           }}
         >
-          <p key={line} className={styles.speech} aria-live="polite">
-            {line}
-          </p>
+          {/* Out of the way while playing ball: the bubble covered the ball. */}
+          {!playing && (
+            <p key={line} className={styles.speech} aria-live="polite">
+              {line}
+            </p>
+          )}
           {floatReacts.map((r, i) => (
             <span key={r.id} className={styles.floatReact} style={{ left: `${30 + ((r.id * 37 + i * 11) % 40)}%` }} aria-hidden="true">
               {r.emoji}
@@ -1756,7 +1759,17 @@ export function RockyWorld({
         )}
         <NeedsDock
           needs={needs}
-          treats={treats}
+          treats={
+            // Everything edible in the bag: earned treats plus bought food
+            // (visitors can only give treats).
+            visitor
+              ? treats
+              : treats +
+                Object.entries(inventory).reduce(
+                  (n, [id, qty]) => n + (findFood(id) ? qty : 0),
+                  0,
+                )
+          }
           busy={busy}
           playing={playing}
           onPet={handlePet}

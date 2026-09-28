@@ -428,7 +428,9 @@ function AgentsTab({
       }
     }
     setBusy(false)
-    setPicked(new Set())
+    // Keep the selection for QA Pass / alerts so another pass can be logged
+    // for the same group; only a delete clears it.
+    if (kind === 'delete') setPicked(new Set())
     if (failures.length > 0) onError(`Fallaron ${failures.length} de ${ids.length}: ${failures.join(' · ')}`)
     const done = ids.length - failures.length
     if (done > 0) onChanged(kind === 'delete' ? `${done} agente(s) eliminados.` : `${label} registrado para ${done} agente(s).`)
