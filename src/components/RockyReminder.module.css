@@ -1,8 +1,10 @@
 .toast {
   position: fixed;
-  right: 20px;
-  /* Sits above the pet screen's bottom row so it never covers the check-in button. */
-  bottom: 150px;
+  /* Top centre, over the sky: clear of Rocky's floor, the care panel and
+     the check-in button. */
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 100;
   width: min(360px, calc(100vw - 32px));
   display: flex;
@@ -19,20 +21,18 @@
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translate(-50%, -12px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
   }
 }
 
 @media (max-width: 760px) {
   /* Phones: under the top bar, clear of Rocky's controls and the bottom nav. */
   .toast {
-    right: 16px;
     top: 64px;
-    bottom: auto;
   }
 }
 

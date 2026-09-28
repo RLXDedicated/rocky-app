@@ -1,7 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import type { Mood } from '../../types/domain'
 import type { RockyRigPoints } from '../rockyRig'
-import { createRigRenderer, RIG_MARGIN, type RigPose, type RigRenderer } from './rigRenderer'
+import { createRigRenderer, deformPoint, RIG_MARGIN, type RigPose, type RigRenderer } from './rigRenderer'
 import styles from './World.module.css'
 
 export type RigAction = 'idle' | 'walk' | 'run' | 'pet' | 'eat' | 'hop'
@@ -20,6 +20,8 @@ interface Props {
   /** Head-worn items (hat, glasses) moved with the head each frame. */
   hatRef?: RefObject<SVGSVGElement | null>
   headRefs?: RefObject<SVGSVGElement | null>[]
+  /** Items worn on the body (neck, back): they follow the collar and the breathing. */
+  bodyRefs?: RefObject<SVGSVGElement | null>[]
   /** Called once the artwork is on the canvas (hide the still image then). */
   onReady: () => void
   onFail: () => void
@@ -43,7 +45,7 @@ const STILL: RigPose = { headAngle: 0, headX: 0, headY: 0, turn: 0, breath: 0.5,
  * reacts to care — instead of a stiff image hopping around. Falls back to
  * the plain image (onFail) without WebGL.
  */
-export function RockyRig({ src, rig, size, mood, action, animate, facing = 0, lookAt, hatRef, headRefs, onReady, onFail }: Props) {
+export function RockyRig({ src, rig, size, mood, action, animate, facing = 0, lookAt, hatRef, headRefs, bodyRefs, onReady, onFail }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<RigRenderer | null>(null)
   const state = useRef({ mood, action, actionSince: 0, rig, size, facing })
@@ -221,6 +223,25 @@ export function RockyRig({ src, rig, size, mood, action, animate, facing = 0, lo
         lastPose.current = pose
 
         // Move the closet hat with the head (rotation about the neck pivot).
+        // Body items: pinned to the point of the art under their top-centre
+        // (the knot of a tie, the strap of a cape), moving and tilting with it.
+        for (const ref of bodyRefs ?? []) {
+          const item = ref.current
+          if (!item) continue
+          const left = parseFloat(item.style.left) || 0
+          const top = parseFloat(item.style.top) || 0
+          const w = parseFloat(item.style.width) || 0
+          const h = parseFloat(item.style.height) || 0
+          // Moves with the art under its middle (a badge rides the chest),
+          // tilts with the art under its top (the strap/knot at the collar).
+          const ax = (left + w / 2) / s.size
+          const ay = (top + h * 0.45) / s.size
+          const d = deformPoint(ax, ay, pose, s.rig)
+          const tilt = deformPoint(ax, (top + h * 0.05) / s.size, pose, s.rig).angle
+          item.style.transformOrigin = `${w / 2}px ${h * 0.05}px`
+          item.style.transform = `translate(${(d.x - ax) * s.size}px, ${(d.y - ay) * s.size}px) rotate(${tilt / DEG}deg)`
+        }
+
         for (const item of [hatRef?.current, ...(headRefs ?? []).map((r) => r.current)]) {
           if (!item) continue
           const px = s.rig.pivot.x * s.size - (parseFloat(item.style.left) || 0)
@@ -237,7 +258,7 @@ export function RockyRig({ src, rig, size, mood, action, animate, facing = 0, lo
       cancelAnimationFrame(raf)
       window.removeEventListener('pointermove', onMove)
     }
-  }, [animate, hatRef, headRefs, lookAt])
+  }, [animate, hatRef, headRefs, bodyRefs, lookAt])
 
   const canvasPx = size * (1 + 2 * RIG_MARGIN)
   return (

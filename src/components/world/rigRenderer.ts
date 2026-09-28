@@ -89,11 +89,17 @@ varying vec2 vUv;
 
 // Inside an eye the art is sampled a little off-centre, so the iris and
 // pupil slide toward the look direction while the eye's outline stays put.
+// The inner part (iris + pupil) moves as one rigid disc — never stretched —
+// and only the outer ring of the eye absorbs the shift. Kept small: a
+// glance, not a swivel.
 vec2 look(vec2 uv, vec4 eye) {
   if (eye.z <= 0.0) return uv;
   vec2 d = uv - eye.xy;
-  float k = 1.0 - smoothstep(0.35, 0.95, length(d) / eye.z);
-  return uv - uLook * eye.z * 0.24 * k;
+  float k = 1.0 - smoothstep(0.62, 1.0, length(d) / eye.z);
+  vec2 dir = uLook;
+  float len = length(dir);
+  if (len > 1.0) dir /= len;
+  return uv - vec2(dir.x * 0.09, dir.y * 0.05) * eye.z * k;
 }
 
 void main() {
@@ -120,7 +126,7 @@ export interface RigRenderer {
 export function createRigRenderer(canvas: HTMLCanvasElement): RigRenderer | null {
   const gl = (canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: true }) ??
     canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null
-  if (!gl) return null
+  if (!gl || gl.isContextLost()) return null
 
   const prog = gl.createProgram()!
   gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT))
@@ -221,7 +227,39 @@ export function createRigRenderer(canvas: HTMLCanvasElement): RigRenderer | null
       gl.deleteTexture(tex)
       gl.deleteBuffer(buf)
       gl.deleteProgram(prog)
-      gl.getExtension('WEBGL_lose_context')?.loseContext()
+      // The context is NOT force-lost here: React (StrictMode, fast
+      // remounts) can mount a new renderer on the same canvas right away,
+      // and a lost context would make its shaders fail to compile. The
+      // context is released with the canvas when it leaves the page.
     },
   }
+}
+
+function smoothstep(e0: number, e1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)))
+  return t * t * (3 - 2 * t)
+}
+
+/**
+ * Where a point of the art (canvas fractions) ends up in this pose — the
+ * vertex shader's head/neck/breathing math, mirrored on the CPU so items
+ * worn on the body (neck, back) move exactly with the art underneath them.
+ * Also returns how much of the head's rotation reaches that point.
+ */
+export function deformPoint(x: number, y: number, pose: RigPose, rig: RockyRigPoints): { x: number; y: number; angle: number } {
+  const wh = 1 - smoothstep(rig.neck - 0.06, rig.neck + 0.03, y)
+  let hx = x - rig.pivot.x
+  const hy = y - rig.pivot.y
+  hx *= 1 - Math.abs(pose.turn) * 0.07
+  hx += pose.turn * 0.018 * Math.min(1, Math.max(0, (rig.pivot.y - y) * 4))
+  const c = Math.cos(pose.headAngle)
+  const s = Math.sin(pose.headAngle)
+  const headX = rig.pivot.x + c * hx - s * hy + pose.headX
+  const headY = rig.pivot.y + s * hx + c * hy + pose.headY
+  let px = x + (headX - x) * wh
+  let py = y + (headY - y) * wh
+  const wc = Math.exp(-Math.pow((y - rig.chest) / 0.13, 2)) * (1 - wh)
+  px = rig.pivot.x + (px - rig.pivot.x) * (1 + pose.breath * 0.04 * wc)
+  py -= pose.breath * 0.009 * wc
+  return { x: px, y: py, angle: pose.headAngle * wh }
 }

@@ -48,7 +48,9 @@ interface Props {
   action: ReactNode
 }
 
-const FLOOR = 15 // % from the bottom of the world where Rocky's feet rest
+const FLOOR = 15 // default floor, % from the bottom of the stage
+/** Space kept between the top of the care panel and the floor Rocky walks on. */
+const FLOOR_GAP = 20
 const PET_LINES = ['Hehe, that tickles!', 'Right behind the horns!', 'More scratches, please!', 'Best teammate ever.']
 const FEED_LINES = ['Nom nom nom!', 'Delicious. Thank you!', 'Crunchy! Rocky approves.']
 const PLAY_LINES = ['Goooal!', 'Again! Again!', 'Did you see that kick?']
@@ -57,8 +59,8 @@ const PLAY_START = 'Ball! Let’s play!'
 /** How long Rocky plays with the ball before the final kick. */
 const PLAY_MS = 9000
 /** Rocky's walkable band, % of the stage width. */
-const WALK_MIN = 34
-const WALK_MAX = 86
+const WALK_MIN = 12
+const WALK_MAX = 88
 const BATH_LINES = ['Squeaky clean!', 'Ahh, bubbles!', 'Fresh as a daisy.']
 const NEED_LINES = {
   dirty: 'I could really use a bath…',
@@ -118,7 +120,8 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   }
   const idRef = useRef(0)
   const worldRef = useRef<HTMLDivElement>(null)
-  const [worldSize, setWorldSize] = useState({ w: 900, h: 420 })
+  const [worldSize, setWorldSize] = useState({ w: 900, h: 420, dock: 0 })
+  const dockRef = useRef<HTMLDivElement>(null)
   const worldSizeRef = useRef(worldSize)
   worldSizeRef.current = worldSize
   const model3d = ROCKY_3D_MODELS[stage]
@@ -133,6 +136,9 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   const hatRef = useRef<SVGSVGElement>(null)
   const glassesRef = useRef<SVGSVGElement>(null)
   const headRefs = useMemo(() => [glassesRef], [])
+  const neckRef = useRef<SVGSVGElement>(null)
+  const backRef = useRef<SVGSVGElement>(null)
+  const bodyRefs = useMemo(() => [neckRef, backRef], [])
   const animate = !prefersReducedMotion()
 
   // Evolving into a stage with (or without) a 3D model switches renderer.
@@ -160,11 +166,19 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   useEffect(() => {
     const el = worldRef.current
     if (!el) return
-    const measure = () => setWorldSize({ w: el.clientWidth || 900, h: el.clientHeight || 420 })
+    // `dock`: how much of the stage's bottom the care panel covers (0 on
+    // phones, where the panel sits below the stage instead of over it).
+    const measure = () => {
+      const stage = el.getBoundingClientRect()
+      const dock = dockRef.current?.getBoundingClientRect()
+      const covered = dock ? Math.max(0, stage.bottom - dock.top) : 0
+      setWorldSize({ w: el.clientWidth || 900, h: el.clientHeight || 420, dock: covered })
+    }
     measure()
     if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(measure)
     ro.observe(el)
+    if (dockRef.current) ro.observe(dockRef.current)
     return () => ro.disconnect()
   }, [])
 
@@ -375,7 +389,10 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   }
 
   // Rocky's size follows the world's height.
-  const size = Math.round(Math.min(340, Math.max(170, worldSize.h * 0.6)))
+  // The floor sits above the care panel, so nothing Rocky plays with ever
+  // ends up hidden (or unclickable) behind it.
+  const floorPx = Math.max((FLOOR / 100) * worldSize.h, worldSize.dock > 0 ? worldSize.dock + FLOOR_GAP : 0)
+  const size = Math.round(Math.min(340, Math.max(160, Math.min(worldSize.h * 0.6, (worldSize.h - floorPx - 40) * 0.95))))
   const anchor = ROCKY_HEAD_ANCHORS[stage][mood]
   const src = reaction ? getReactionAsset(reaction) : getRockyAsset(stage, mood)
   const equippedHat = outfit.hat ? HAT_ART[outfit.hat] : undefined
@@ -393,7 +410,6 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   const summary = needsSummary(needs)
   const needLine = !reaction && summary in NEED_LINES ? NEED_LINES[summary as keyof typeof NEED_LINES] : null
   const line = localLine ?? needLine ?? speech
-  const floorPx = (FLOOR / 100) * worldSize.h
   const bathing = pose === 'bath'
   // Mud shows from 40% dirt and is fully visible at 100%; never during/after a bath.
   const mud = bathing ? 0 : Math.max(0, Math.min(1, (needs.dirt - 40) / 60))
@@ -420,7 +436,7 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
               style={{
                 left: `${d.left}%`,
                 width: `${d.width}%`,
-                bottom: `${FLOOR + (d.lift ?? 0) - 2}%`,
+                bottom: floorPx + ((d.lift ?? 0) / 100) * worldSize.h - 0.02 * worldSize.h,
               }}
               aria-hidden="true"
             >
@@ -470,7 +486,7 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
           className={styles.actor}
           style={{
             left: `${x}%`,
-            bottom: `calc(${FLOOR}% - ${feetGap}px)`,
+            bottom: floorPx - feetGap,
             width: size,
             height: size,
             transitionDuration: `${walkMs}ms`,
@@ -501,6 +517,7 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
             >
               {!is3d && backItem && (
                 <svg
+                  ref={backRef}
                   className={styles.wearBack}
                   viewBox={WEAR_VIEWBOX.back}
                   preserveAspectRatio="none"
@@ -535,13 +552,20 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
                   lookAt={gazeRef}
                   hatRef={hatRef}
                   headRefs={headRefs}
+                  bodyRefs={bodyRefs}
                   onReady={() => setRigMode('ready')}
                   onFail={() => setRigMode('off')}
                 />
               )}
               {!is3d && (reaction || rigMode !== 'ready') && <img key={src} src={src} alt="" className={styles.art} draggable={false} />}
               {!is3d && neckItem && (
-                <svg className={styles.wear} viewBox={WEAR_VIEWBOX.neck} style={neckPlacement(rigPoints, anchor, size)} aria-hidden="true">
+                <svg
+                  ref={neckRef}
+                  className={styles.wear}
+                  viewBox={WEAR_VIEWBOX.neck}
+                  style={neckPlacement(rigPoints, anchor, size)}
+                  aria-hidden="true"
+                >
                   {neckItem}
                 </svg>
               )}
@@ -602,7 +626,7 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
             className={styles[p.kind]}
             style={{
               left: `calc(${p.x}% + ${p.dx}px)`,
-              bottom: `calc(${FLOOR + (p.kind === 'heart' ? 38 : p.kind === 'crumb' ? 20 : 26)}% + ${p.dy}px)`,
+              bottom: floorPx + ((p.kind === 'heart' ? 38 : p.kind === 'crumb' ? 20 : 26) / 100) * worldSize.h + p.dy,
             }}
             aria-hidden="true"
           >
@@ -636,7 +660,7 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
         </button>
       </div>
 
-      <div className={styles.dock}>
+      <div className={styles.dock} ref={dockRef}>
         <NeedsDock
           needs={needs}
           treats={treats}
