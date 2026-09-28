@@ -1248,7 +1248,11 @@ export function RockyWorld({
                     : undefined
                 }
               >
-                <svg viewBox={d.viewBox} aria-hidden="true">
+                <svg
+                  className="rocky-live"
+                  viewBox={d.viewBox}
+                  aria-hidden="true"
+                >
                   {d.svg}
                 </svg>
               </button>
@@ -1451,7 +1455,7 @@ export function RockyWorld({
               {!is3d && backItem && (
                 <svg
                   ref={backRef}
-                  className={styles.wearBack}
+                  className={`${styles.wearBack} rocky-live`}
                   viewBox={WEAR_VIEWBOX.back}
                   preserveAspectRatio="none"
                   style={backPlacement(rigPoints, anchor, size, outfit.back!)}
@@ -1502,7 +1506,7 @@ export function RockyWorld({
               {!is3d && shirtItem && (
                 <svg
                   ref={shirtRef}
-                  className={styles.wear}
+                  className={`${styles.wear} rocky-live`}
                   viewBox={WEAR_VIEWBOX.body}
                   preserveAspectRatio="none"
                   style={bodyPlacement(rigPoints, anchor, size)}
@@ -1514,7 +1518,7 @@ export function RockyWorld({
               {!is3d && neckItem && (
                 <svg
                   ref={neckRef}
-                  className={styles.wear}
+                  className={`${styles.wear} rocky-live`}
                   viewBox={WEAR_VIEWBOX.neck}
                   style={neckPlacement(rigPoints, anchor, size)}
                   aria-hidden="true"
@@ -1525,7 +1529,7 @@ export function RockyWorld({
               {!is3d && glasses && (
                 <svg
                   ref={glassesRef}
-                  className={styles.wear}
+                  className={`${styles.wear} rocky-live`}
                   viewBox={WEAR_VIEWBOX.glasses}
                   style={glassesPlacement(rigPoints, anchor, size)}
                   aria-hidden="true"
@@ -1536,7 +1540,7 @@ export function RockyWorld({
               {!is3d && hat && hatBox && (
                 <svg
                   ref={hatRef}
-                  className={styles.hat}
+                  className={`${styles.hat} rocky-live`}
                   viewBox="0 0 100 60"
                   style={hatBox}
                   aria-hidden="true"

@@ -9,6 +9,12 @@ import type { ReactElement } from "react";
 import type { HeadAnchor } from "../rockyAnchors";
 import type { RockyRigPoints } from "../rockyRig";
 import type { HatBox } from "./art";
+import {
+  EXTRA_BACK,
+  EXTRA_BACK_WIDTH,
+  EXTRA_GLASSES,
+  EXTRA_NECK,
+} from "./extraArt";
 
 const NAVY = "#0f2341";
 const GREEN = "#008c45";
@@ -232,6 +238,7 @@ export const GLASSES_ART: Record<string, ReactElement> = {
       />
     </>
   ),
+  ...EXTRA_GLASSES,
 };
 
 // ---------------------------------------------------------------------------
@@ -487,6 +494,7 @@ export const NECK_ART: Record<string, ReactElement> = {
       />
     </>
   ),
+  ...EXTRA_NECK,
 };
 
 // ---------------------------------------------------------------------------
@@ -610,6 +618,7 @@ export const BACK_ART: Record<string, ReactElement> = {
       />
     </>
   ),
+  ...EXTRA_BACK,
 };
 
 /** How wide each back item is relative to the face (wings spread past the body). */
@@ -619,6 +628,7 @@ const BACK_WIDTH: Record<string, number> = {
   "back-backpack": 1.15,
   "back-bat-wings": 2.1,
   "back-gift-sack": 1.2,
+  ...EXTRA_BACK_WIDTH,
 };
 
 // ---------------------------------------------------------------------------

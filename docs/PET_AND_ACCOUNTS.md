@@ -344,6 +344,9 @@ club; the art is ready to swap the patch.
 
 ### Going real-time (research, next step)
 
+The full plan (live visits, internal chat, infrastructure) is in
+[REALTIME_CHAT_PLAN.md](REALTIME_CHAT_PLAN.md). Earlier notes:
+
 What's built is asynchronous (like Pet Society's visits): you visit a
 friend's world and they see it later. Making Rockys meet *live* would add:
 
@@ -361,6 +364,38 @@ friend's world and they see it later. Making Rockys meet *live* would add:
    Redis template) so multiple backend instances can share it.
 4. **Safety**: only preset interactions (no free-text chat) keeps
    moderation out of scope; rate-limit visits per agent.
+
+## Effects with depth
+
+Effects used to read as one diagonal line of icons crossing the screen:
+the pseudo-random scatter was linear in the particle index, so position,
+height and delay all grew together. It is now a hash. Particle effects also
+have **depth of field** (far ones small, faint, blurred and slower; a few
+big soft ones right in front), a second independent wobble so no two follow
+the same path, travel sized to the real stage (container units), and
+overlays that add weight: settled snow along the ground, a purple dusk with
+drifting mist for the spooky ones, a warm glow for leaves and New Year.
+Ghosts wander, fade out mid-way and reappear elsewhere. Snow, leaves,
+confetti and hearts moved to this system (only fireflies keep their glow
+dots).
+
+## Wings, hats and more (second wave)
+
+- Wings: butterfly, fairy, golden, dragon, phoenix, plus an RLX jetpack.
+- Hats: propeller cap, bunny ears, beret, top hat, pirate, tiara, viking,
+  halo, space helmet. Glasses: study, aviators, monocle. Neck: flower lei,
+  pearls, gold R chain. World: flower bed, arcade cabinet, toy rocket.
+- Spooky adds 15 items (spider headband, monster bolts, mummy wrap,
+  black-cat glasses, vampire collar and cape, witch's broom, spider web,
+  black cat, scarecrow, candy coffin, lantern, Spooky wind and Pumpkin fall
+  effects), two treats (ghost cookie, witch's brew) and a slime soap.
+- Holidays adds 17 items (pom-pom beanie, earmuffs, star headband, New Year
+  hat, gold star glasses, holly bow, light-up necklace, gift bow, ice
+  wings, stocking, reindeer plush, snow globe, nutcracker, gingerbread
+  house, fireplace, Gift shower and New Year sparkle effects), four treats
+  (buñuelos, natilla, tamal, panettone) and a snow soap.
+- A test (`artCoverage.test.tsx`) now fails if any shop item has no
+  drawing; it caught the Arepa de huevo, which was missing its art.
 
 ## Admin superpowers
 
