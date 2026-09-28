@@ -227,12 +227,15 @@ describe('admin perks', () => {
     const { app } = build()
     await enroll(app, ANA, ADMIN)
     const adminPet = await request(app).get('/api/pet').set(as(ADMIN))
-    expect(adminPet.body.state.granted).toEqual(expect.arrayContaining(['back-sovereign-wings', 'hat-vip-crown', 'fx-royal-aura']))
+    expect(adminPet.body.state.granted).toEqual(expect.arrayContaining(['back-sovereign-wings', 'hat-vip-crown', 'fx-royal-aura', 'aura-golden']))
     const worn = await request(app)
       .post('/api/pet/actions')
       .set(as(ADMIN))
-      .send({ type: 'equip', outfit: { ...adminPet.body.state.outfit, back: 'back-sovereign-wings', hat: 'hat-vip-crown', fx: 'fx-royal-aura' } })
-    expect(worn.body.state.outfit).toMatchObject({ back: 'back-sovereign-wings', hat: 'hat-vip-crown', fx: 'fx-royal-aura' })
+      .send({ type: 'equip', outfit: { ...adminPet.body.state.outfit, back: 'back-sovereign-wings', hat: 'hat-vip-crown', fx: 'fx-royal-aura', aura: 'aura-golden' } })
+    expect(worn.body.state.outfit).toMatchObject({ back: 'back-sovereign-wings', hat: 'hat-vip-crown', fx: 'fx-royal-aura', aura: 'aura-golden' })
+    // And they can take it all off again.
+    const off = await request(app).post('/api/pet/actions').set(as(ADMIN)).send({ type: 'equip', outfit: { ...worn.body.state.outfit, aura: null, hat: null } })
+    expect(off.body.state.outfit).toMatchObject({ aura: null, hat: null, back: 'back-sovereign-wings' })
     // Someone else trying to wear them gets nothing.
     const sneaky = await request(app)
       .post('/api/pet/actions')

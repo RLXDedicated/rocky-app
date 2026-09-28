@@ -242,7 +242,7 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
           treats={myTreats}
           needs={needs}
           visitor
-          vip={!!friend.staff}
+          vip={!!friend.outfit.aura}
           guests={[self, ...room.guests]}
           floatReacts={room.floatReacts}
           onPet={() => send('pet')}

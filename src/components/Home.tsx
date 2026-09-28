@@ -314,6 +314,7 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
     spots: outfit.spots ?? {},
     sizes: outfit.sizes ?? {},
     fx: usable(outfit.fx) ? outfit.fx : null,
+    aura: usable(outfit.aura ?? null) ? (outfit.aura ?? null) : null,
   }
 
   function handleBuy(id: string): boolean {
@@ -330,7 +331,7 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
     <div className={styles.page}>
       <div className={styles.layout}>
         <RockyWorld
-          vip={vip}
+          vip={!!visibleOutfit.aura}
           guests={room.guests}
           floatReacts={room.floatReacts}
           onRockyMove={liveHome ? room.move : undefined}

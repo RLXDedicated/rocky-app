@@ -15,6 +15,7 @@ export type ItemSlot =
   | "neck"
   | "back"
   | "body"
+  | "aura"
   | "scene"
   | "decor"
   | "fx";
@@ -893,6 +894,7 @@ export const CLOSET: ClosetItem[] = [
       ["back-sovereign-wings", "back", "Sovereign wings"],
       ["hat-vip-crown", "hat", "Royal crown"],
       ["fx-royal-aura", "fx", "Royal aura"],
+      ["aura-golden", "aura", "Golden aura"],
     ] as const
   ).map(
     ([id, slot, name]): ClosetItem => ({
@@ -1008,6 +1010,8 @@ export interface Outfit {
   /** Size of each placed item (one of SIZE_STEPS; missing = normal size). */
   sizes: Record<string, number>;
   fx: string | null;
+  /** A glow around Rocky himself (admin-only for now). */
+  aura?: string | null;
 }
 
 export const DEFAULT_OUTFIT: Outfit = {
@@ -1021,6 +1025,7 @@ export const DEFAULT_OUTFIT: Outfit = {
   spots: {},
   sizes: {},
   fx: null,
+  aura: null,
 };
 
 /** Slots holding at most one item (decor holds up to MAX_DECOR; scene always has one). */
@@ -1031,6 +1036,7 @@ export const SINGLE_SLOTS = [
   "back",
   "body",
   "fx",
+  "aura",
 ] as const;
 export const MAX_DECOR = 12;
 /** Sizes a placed item can take (a multiple of its normal size). Fixed steps, never smaller than the first. */
@@ -1046,6 +1052,7 @@ export const STAFF_ITEMS: readonly string[] = [
   "back-sovereign-wings",
   "hat-vip-crown",
   "fx-royal-aura",
+  "aura-golden",
 ];
 
 /**
@@ -1071,6 +1078,7 @@ export function withStaffPerks<
       hat: o.hat && has(o.hat) ? null : o.hat,
       back: o.back && has(o.back) ? null : o.back,
       fx: o.fx && has(o.fx) ? null : o.fx,
+      aura: null,
     },
   };
 }
@@ -1190,6 +1198,7 @@ export function sanitizeOutfit(
     spots: sanitizeSpots(o.spots, decor),
     sizes: sanitizeSizes(o.sizes, decor),
     fx: ok(o.fx, "fx") ? (o.fx as string) : null,
+    aura: ok(o.aura, "aura") ? (o.aura as string) : null,
   };
 }
 

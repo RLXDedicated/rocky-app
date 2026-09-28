@@ -160,9 +160,10 @@ export function ShopPanel({
   // Items taken out of the shop by an admin stay visible only to agents who already have them.
   const visible = (i: ClosetItem) => (i.staff ? granted.includes(i.id) : i.enabled !== false || isUsable(i, facts, owned, granted))
   const closetFor = (t: Tab): ClosetItem[] => {
-    if (t === 'clothes') return [...itemsFor('body', catalog), ...itemsFor('neck', catalog), ...itemsFor('back', catalog)]
+    if (t === 'clothes')
+      return [...itemsFor('body', catalog, granted), ...itemsFor('neck', catalog, granted), ...itemsFor('back', catalog, granted), ...itemsFor('aura', catalog, granted)]
     if (t === 'spooky' || t === 'holiday') return catalog.filter((i) => i.season === t)
-    if (t === 'hat' || t === 'glasses' || t === 'scene' || t === 'decor' || t === 'fx') return itemsFor(t, catalog)
+    if (t === 'hat' || t === 'glasses' || t === 'scene' || t === 'decor' || t === 'fx') return itemsFor(t, catalog, granted)
     return []
   }
   const items = closetFor(tab).filter(visible)
@@ -394,6 +395,25 @@ function ItemPreview({ item }: { item: ClosetItem }) {
     return (
       <svg viewBox="0 0 100 75" aria-hidden="true">
         {FX_ART[item.id] ?? fxPreview(item.id)}
+      </svg>
+    )
+  if (item.slot === 'aura')
+    return (
+      <svg viewBox="0 0 100 75" aria-hidden="true">
+        <defs>
+          <radialGradient id="aura-prev" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#fff3b0" />
+            <stop offset="0.45" stopColor="#f5b82e" stopOpacity="0.8" />
+            <stop offset="0.75" stopColor="#a78bfa" stopOpacity="0.35" />
+            <stop offset="1" stopColor="#a78bfa" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="37" r="36" fill="url(#aura-prev)" />
+        {Array.from({ length: 12 }, (_, i) => (
+          <path key={i} d="M50 37 L48 4 L52 4 Z" fill="#fff6c2" opacity="0.7" transform={`rotate(${i * 30} 50 37)`} />
+        ))}
+        <ellipse cx="50" cy="66" rx="30" ry="6" fill="none" stroke="#ffd24a" strokeWidth="2" />
+        <circle cx="50" cy="37" r="9" fill="#ffffff" />
       </svg>
     )
   return null

@@ -48,7 +48,7 @@ export function GuestRocky({ guest, size, floor }: { guest: Guest; size: number;
           {guest.bubble}
         </p>
       )}
-      {guest.staff && <VipAura feet={feetGap} />}
+      {guest.outfit.aura && <VipAura feet={feetGap} />}
       <span className={styles.shadow} style={{ bottom: feetGap - 6 }} aria-hidden="true" />
       <div key={guest.hop ?? 0} className={`${styles.guestBody} ${guest.hop ? styles.guestHop : ''}`}>
         {back && (

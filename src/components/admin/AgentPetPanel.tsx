@@ -23,6 +23,7 @@ const SLOT_ES: Record<ItemSlot, string> = {
   scene: 'Lugares',
   decor: 'Decoración',
   fx: 'Ambientación',
+  aura: 'Aura',
 }
 
 function Meter({ label, value, invert = false }: { label: string; value: number; invert?: boolean }) {

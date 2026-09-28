@@ -381,6 +381,7 @@ export function normalizePetState(
         Array.isArray(o.decor) ? ids(o.decor) : base.outfit.decor,
       ),
       fx: typeof o.fx === "string" ? o.fx : null,
+      aura: typeof o.aura === "string" ? o.aura : null,
     },
     owned: ids(r.owned).filter((id) => !(id in RETIRED_ITEMS)),
     granted: ids(r.granted),

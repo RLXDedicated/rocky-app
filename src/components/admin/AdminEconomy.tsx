@@ -14,6 +14,7 @@ const SLOT_ES: Record<ItemSlot, string> = {
   scene: 'Lugares',
   decor: 'Decoración',
   fx: 'Ambientación',
+  aura: 'Aura',
 }
 const itemName = (id: string | null) => (id ? (CLOSET.find((i) => i.id === id)?.name ?? id) : '')
 
