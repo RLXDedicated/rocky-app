@@ -214,8 +214,9 @@ event with `grantedBy: "rocky-games"` (it replays, shows in the diary as
 "XP playing with Rocky", and can level Rocky up).
 
 - **Keep it up**: during Play, taps on (or within ~100 px of) the ball kick
-  it up; each tap in a row without the ball touching the ground counts. The
-  session keeps going while the rally lasts (up to 90 s). 3+ touches pay:
+  it up; each tap in a row without the ball touching the ground counts. A
+  Play session lasts 6 s; each kick-up adds 1.2 s, capped at 20 s total, so
+  the ball can't stay alive forever. 3+ touches pay:
   `keepyReward` (e.g. 5 → 1 coin + 1 XP, 10 → 6 coins + 2 XP, 20 → 14 coins
   + 3 XP). Streaks above 80 are clamped. The ball's hit area is 34 px larger
   than the ball on every side.
@@ -223,6 +224,21 @@ event with `grantedBy: "rocky-games"` (it replays, shows in the diary as
   in Rocky's world every 3 hours, up to 4 (deterministic, so browser and
   server agree). Drag it into the green bin: 1–5 coins, and a 35% chance of
   1–3 XP. Picked-up pieces can't be claimed twice.
+
+## Games (arcade, coins only)
+
+A **Games** tab with three short games scored by the server
+(`{type:'arcade', game, score}`); they pay coins, never XP, and share their
+own daily cap (`ARCADE_CAP`: 50 coins). Scores are clamped
+(`ARCADE_MAX_SCORE`). Each round is a `game` ledger entry
+("Arcade: Treat Catch (30)") and gives Rocky +3 happiness.
+
+- **Treat Catch** (30 s): move Rocky to catch falling food (+1), gold coins
+  (+3), dodge mud (−2). Pays score ÷ 3, max 10 coins.
+- **Typo Hunt** (45 s): tap the misspelled words in real-looking notes;
+  score = found − mistakes, max 10 coins.
+- **Memory Match**: 6 pairs; 1–3 stars by moves; 4 / 7 / 10 coins.
+- A card links to **Note Check**, the XP-paying core habit.
 
 ## Seasonal specials and more effects
 
@@ -284,6 +300,12 @@ an island, a sailboat, shells, a starfish, a sandcastle and two palms.
 Key elements sit in the middle of the art so they survive the side crop
 on narrow screens.
 
+Every background is alive (paused under "reduce motion"): trees and palms
+sway, chimneys smoke, birds and paper planes fly across, the RLX van drives
+the road, parcels ride the conveyor and the forklift patrols, crowds do the
+wave, waves roll and the boat bobs, bats and a ghost drift through the
+haunted house, and snow falls on the winter scenes.
+
 ## Red & white (Barranquilla tribute) items
 
 Inspired by Junior de Barranquilla's home kit (red and white vertical
@@ -293,8 +315,9 @@ colours and stripes: **no crest, club name, sponsors or kit-maker logos**
 (an RLX patch sits where a crest would go). Regular shop items, unlocked
 by progress:
 
-- Red & white stripes jersey — a new **body** slot, worn over the vest and
-  placed from each artwork's rig points (works on all four stages).
+- The striped jersey was withdrawn (it didn't fit Rocky's art well yet);
+  anyone who bought it was refunded 180 coins automatically
+  (`RETIRED_ITEMS`). The **body** slot stays ready for a future redraw.
 - Tiburón fan scarf, Red & white cap.
 - Rojiblanco flag, Inflatable shark, Mini goal (world items).
 - Rojiblanco stadium background ("¡Vamos Tiburón!" banner), Carnival

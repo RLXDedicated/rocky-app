@@ -411,7 +411,7 @@
 }
 
 /* Speech bubble — hand-written, like the green notes on rlx.us. */
-.bubble {
+.speech {
   position: absolute;
   z-index: 4;
   bottom: 96%;
@@ -430,10 +430,18 @@
   line-height: 1.1;
   text-align: center;
   box-shadow: 0 6px 20px rgba(15, 35, 65, 0.12);
+  animation: speechIn 0.25s cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 
-.bubble::after {
-  content: '';
+@keyframes speechIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.92);
+  }
+}
+
+.speech::after {
+  content: "";
   position: absolute;
   left: 50%;
   bottom: -8px;
@@ -563,15 +571,15 @@
   color: var(--meter);
 }
 
-.meter[data-level='mid'] {
+.meter[data-level="mid"] {
   --meter: #e0a21a;
 }
 
-.meter[data-level='low'] {
+.meter[data-level="low"] {
   --meter: #e2574c;
 }
 
-.meter[data-level='low'] > svg {
+.meter[data-level="low"] > svg {
   animation: needPulse 1.2s ease-in-out infinite;
 }
 
@@ -647,17 +655,17 @@
   white-space: nowrap;
 }
 
-.careBtn[data-tone='pet'] {
+.careBtn[data-tone="pet"] {
   --tone: #e2577a;
   --tone-dark: #b83a5b;
 }
 
-.careBtn[data-tone='treat'] {
+.careBtn[data-tone="treat"] {
   --tone: #f0a020;
   --tone-dark: #c07a0c;
 }
 
-.careBtn[data-tone='bath'] {
+.careBtn[data-tone="bath"] {
   --tone: #2f8fd8;
   --tone-dark: #1d6aa6;
 }
@@ -704,7 +712,7 @@
   opacity: 0.55;
 }
 
-.careBtn[aria-pressed='true'] .careIcon {
+.careBtn[aria-pressed="true"] .careIcon {
   animation: bouncePlay 0.6s ease-in-out infinite;
   opacity: 1;
   filter: none;
@@ -815,7 +823,7 @@
     background: var(--bg);
   }
 
-  .bubble {
+  .speech {
     font-size: 1.2rem;
     max-width: 58vw;
   }
@@ -892,7 +900,11 @@
   height: 60%;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 45% 38% at 50% 78%, rgba(255, 255, 255, 0.45), transparent 70%),
+    radial-gradient(
+      ellipse 45% 38% at 50% 78%,
+      rgba(255, 255, 255, 0.45),
+      transparent 70%
+    ),
     linear-gradient(to top, rgba(15, 35, 65, 0.08), transparent 30%);
 }
 
@@ -1030,7 +1042,9 @@
   width: 16px;
   height: 16px;
   background: #ff8fa3;
-  clip-path: path('M8 15 C8 15 1 10 1 5.5 C1 2.5 3.5 1 5.5 1 C7 1 8 2.2 8 3 C8 2.2 9 1 10.5 1 C12.5 1 15 2.5 15 5.5 C15 10 8 15 8 15 Z');
+  clip-path: path(
+    "M8 15 C8 15 1 10 1 5.5 C1 2.5 3.5 1 5.5 1 C7 1 8 2.2 8 3 C8 2.2 9 1 10.5 1 C12.5 1 15 2.5 15 5.5 C15 10 8 15 8 15 Z"
+  );
   animation-name: heartRise;
   animation-timing-function: ease-in-out;
 }
@@ -1052,10 +1066,232 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Living backgrounds. Scene art tags parts with these classes; they only
+   move inside a live scene (.rocky-live), never in the shop's thumbnails.
+   ------------------------------------------------------------------------- */
+:global(.rocky-live) :global(.rocky-sway),
+:global(.rocky-live) :global(.rocky-spin),
+:global(.rocky-live) :global(.rocky-flap) {
+  transform-box: fill-box;
+}
+
+:global(.rocky-live) :global(.rocky-sway) {
+  transform-origin: 50% 100%;
+  animation: sceneSway 4.5s ease-in-out infinite alternate;
+}
+
+:global(.rocky-live) :global(.rocky-bob) {
+  animation: sceneBob 3.2s ease-in-out infinite alternate;
+}
+
+:global(.rocky-live) :global(.rocky-float) {
+  animation: sceneFloat 38s ease-in-out infinite alternate;
+}
+
+:global(.rocky-live) :global(.rocky-cross) {
+  animation: sceneCross 26s linear infinite;
+}
+
+:global(.rocky-live) :global(.rocky-cross-back) {
+  animation: sceneCrossBack 34s linear infinite;
+}
+
+:global(.rocky-live) :global(.rocky-patrol) {
+  animation: scenePatrol 9s ease-in-out infinite alternate;
+}
+
+:global(.rocky-live) :global(.rocky-conveyor) {
+  animation: sceneConveyor 7s linear infinite;
+}
+
+:global(.rocky-live) :global(.rocky-flap) {
+  transform-origin: 50% 50%;
+  animation: sceneFlap 0.45s ease-in-out infinite alternate;
+}
+
+:global(.rocky-live) :global(.rocky-spin) {
+  transform-origin: 50% 50%;
+  animation: sceneSpin 6s linear infinite;
+}
+
+:global(.rocky-live) :global(.rocky-blink) {
+  animation: sceneBlink 1.6s steps(2, jump-none) infinite;
+}
+
+:global(.rocky-live) :global(.rocky-pulse) {
+  animation: scenePulse 3.5s ease-in-out infinite alternate;
+}
+
+:global(.rocky-live) :global(.rocky-smoke) {
+  animation: sceneSmoke 4s ease-out infinite;
+}
+
+:global(.rocky-live) :global(.rocky-waves) {
+  animation: sceneWaves 5s linear infinite;
+}
+
+:global(.rocky-live) :global(.rocky-hop) {
+  animation: sceneHop 2.4s ease-in-out infinite;
+}
+
+:global(.rocky-live) :global(.rocky-snowfall) {
+  animation: sceneSnow 9s linear infinite;
+}
+
+@keyframes sceneSway {
+  from {
+    transform: rotate(-2.5deg);
+  }
+  to {
+    transform: rotate(2.5deg);
+  }
+}
+
+@keyframes sceneBob {
+  from {
+    transform: translateY(-3px);
+  }
+  to {
+    transform: translateY(4px);
+  }
+}
+
+@keyframes sceneFloat {
+  from {
+    transform: translateX(60px);
+  }
+  to {
+    transform: translateX(-220px);
+  }
+}
+
+@keyframes sceneCross {
+  from {
+    transform: translateX(-300px);
+  }
+  to {
+    transform: translateX(1300px);
+  }
+}
+
+@keyframes sceneCrossBack {
+  from {
+    transform: translateX(1300px);
+  }
+  to {
+    transform: translateX(-300px);
+  }
+}
+
+@keyframes scenePatrol {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-140px);
+  }
+}
+
+@keyframes sceneConveyor {
+  from {
+    transform: translateX(-60px);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(460px);
+    opacity: 0;
+  }
+}
+
+@keyframes sceneFlap {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(-0.6);
+  }
+}
+
+@keyframes sceneSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sceneBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes scenePulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sceneSmoke {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(14px, -46px) scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes sceneWaves {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100px);
+  }
+}
+
+@keyframes sceneHop {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes sceneSnow {
+  from {
+    transform: translate(0, -420px);
+  }
+  to {
+    transform: translate(-30px, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :global(.rocky-drift),
-  :global(.rocky-twinkle) {
-    animation: none;
+  :global(.rocky-twinkle),
+  :global(.rocky-live) :global(*) {
+    animation: none !important;
   }
 
   .fx {
@@ -1084,7 +1320,7 @@
 
 /* A generous invisible hit area: the ball is small and always moving. */
 .ball::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -34px;
   border-radius: 50%;
@@ -1179,7 +1415,7 @@
 }
 
 .showerHead::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 50%;
   bottom: 100%;
@@ -1195,7 +1431,12 @@
   right: 30%;
   top: -9%;
   bottom: 8%;
-  background: repeating-linear-gradient(92deg, rgba(120, 190, 240, 0) 0 9px, rgba(120, 190, 240, 0.55) 9px 11px, rgba(120, 190, 240, 0) 11px 19px);
+  background: repeating-linear-gradient(
+    92deg,
+    rgba(120, 190, 240, 0) 0 9px,
+    rgba(120, 190, 240, 0.55) 9px 11px,
+    rgba(120, 190, 240, 0) 11px 19px
+  );
   background-size: 100% 40px;
   mask-image: linear-gradient(to bottom, #000 60%, transparent);
   animation:
@@ -1229,7 +1470,12 @@
 .foam i {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffffff 0 35%, #e7f3fc 70%, #cfe6f7);
+  background: radial-gradient(
+    circle at 35% 30%,
+    #ffffff 0 35%,
+    #e7f3fc 70%,
+    #cfe6f7
+  );
   box-shadow: 0 1px 2px rgba(15, 35, 65, 0.1);
   animation: foam 2.6s ease both;
 }
@@ -1321,7 +1567,12 @@
   height: 14px;
   border-radius: 50%;
   border: 1.5px solid rgba(120, 190, 240, 0.9);
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95) 0 20%, rgba(200, 230, 250, 0.35) 40%, transparent 70%);
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.95) 0 20%,
+    rgba(200, 230, 250, 0.35) 40%,
+    transparent 70%
+  );
   animation: bubbleUp 2.4s ease-out forwards;
 }
 
@@ -1349,7 +1600,16 @@
   width: 16px;
   height: 16px;
   background: #ffe28a;
-  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  clip-path: polygon(
+    50% 0,
+    61% 39%,
+    100% 50%,
+    61% 61%,
+    50% 100%,
+    39% 61%,
+    0 50%,
+    39% 39%
+  );
   animation: sparkle 1.3s ease-out forwards;
 }
 
@@ -1386,7 +1646,7 @@
   cursor: pointer;
 }
 
-.sound[aria-pressed='false'] {
+.sound[aria-pressed="false"] {
   color: var(--text-muted);
 }
 
@@ -1437,9 +1697,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .decorArrange,
-  .meter[data-level='low'] > svg,
+  .meter[data-level="low"] > svg,
   .careBtnNudge .careIcon,
-  .careBtn[aria-pressed='true'] .careIcon,
+  .careBtn[aria-pressed="true"] .careIcon,
   .water,
   .foam i,
   .pose-bath {
@@ -1744,7 +2004,7 @@
 }
 
 .litter::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -10px;
 }
@@ -1864,53 +2124,53 @@
   overflow: visible;
 }
 
-.fxP[data-motion='fall'] {
+.fxP[data-motion="fall"] {
   animation-name: fxFall;
 }
 
-.fxP[data-motion='sway'] {
+.fxP[data-motion="sway"] {
   animation-name: fxSway;
   animation-timing-function: ease-in-out;
 }
 
-.fxP[data-motion='rain'] {
+.fxP[data-motion="rain"] {
   animation-name: fxRain;
   opacity: 0.8;
 }
 
-.fxP[data-motion='rise'] {
+.fxP[data-motion="rise"] {
   top: auto;
   bottom: -40px;
   animation-name: fxRise;
   animation-timing-function: ease-in-out;
 }
 
-.fxP[data-motion='float'] {
+.fxP[data-motion="float"] {
   top: var(--y);
   left: -60px;
   animation-name: fxFloat;
   animation-timing-function: ease-in-out;
 }
 
-.fxP[data-motion='flutter'] {
+.fxP[data-motion="flutter"] {
   top: var(--y);
   left: -60px;
   animation-name: fxFlutter;
 }
 
-.fxP[data-motion='flutter'] > svg {
+.fxP[data-motion="flutter"] > svg {
   animation: fxFlap 0.35s ease-in-out infinite alternate;
 }
 
-.fxP[data-motion='streak'] {
+.fxP[data-motion="streak"] {
   top: var(--y);
   left: var(--x);
   animation-name: fxStreak;
   animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
 }
 
-.fxP[data-motion='streak']::after {
-  content: '';
+.fxP[data-motion="streak"]::after {
+  content: "";
   position: absolute;
   top: 45%;
   right: 60%;
@@ -1931,7 +2191,8 @@
     opacity: 1;
   }
   100% {
-    transform: translate(calc(var(--sway) * 0.4), 560px) rotate(calc(var(--spin) * 540deg));
+    transform: translate(calc(var(--sway) * 0.4), 560px)
+      rotate(calc(var(--spin) * 540deg));
     opacity: 0.9;
   }
 }
@@ -1948,10 +2209,12 @@
     transform: translate(var(--sway), 130px) rotate(calc(var(--spin) * 90deg));
   }
   50% {
-    transform: translate(calc(var(--sway) * -0.6), 270px) rotate(calc(var(--spin) * 200deg));
+    transform: translate(calc(var(--sway) * -0.6), 270px)
+      rotate(calc(var(--spin) * 200deg));
   }
   75% {
-    transform: translate(calc(var(--sway) * 0.8), 410px) rotate(calc(var(--spin) * 300deg));
+    transform: translate(calc(var(--sway) * 0.8), 410px)
+      rotate(calc(var(--spin) * 300deg));
   }
   100% {
     transform: translate(0, 560px) rotate(calc(var(--spin) * 400deg));
@@ -2081,19 +2344,37 @@
 
 .fxAurora > i:nth-child(1) {
   top: 0;
-  background: linear-gradient(90deg, transparent, #3ff2a4, #7a8bff, transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #3ff2a4,
+    #7a8bff,
+    transparent
+  );
 }
 
 .fxAurora > i:nth-child(2) {
   top: 12%;
-  background: linear-gradient(90deg, transparent, #d27aff, #3ff2a4, transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #d27aff,
+    #3ff2a4,
+    transparent
+  );
   animation-duration: 18s;
   animation-delay: -6s;
 }
 
 .fxAurora > i:nth-child(3) {
   top: 22%;
-  background: linear-gradient(90deg, transparent, #7a8bff, #ff7ac8, transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #7a8bff,
+    #ff7ac8,
+    transparent
+  );
   opacity: 0.35;
   animation-duration: 22s;
   animation-delay: -11s;
@@ -2119,7 +2400,11 @@
   width: 90%;
   height: 90px;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(233, 225, 255, 0.55), rgba(233, 225, 255, 0) 70%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(233, 225, 255, 0.55),
+    rgba(233, 225, 255, 0) 70%
+  );
   filter: blur(6px);
   animation: fogRoll var(--dur) linear infinite;
   animation-delay: var(--delay);
@@ -2221,7 +2506,16 @@
   width: 12px;
   height: 12px;
   background: #fffbe0;
-  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  clip-path: polygon(
+    50% 0,
+    61% 39%,
+    100% 50%,
+    61% 61%,
+    50% 100%,
+    39% 61%,
+    0 50%,
+    39% 39%
+  );
   animation: sparkle 2.4s ease-in-out infinite;
 }
 
