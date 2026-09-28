@@ -32,13 +32,7 @@ export type { LeaderboardResult } from '../../../src/services/leaderboardService
 
 export { systemClock, type Clock } from '../../../src/engine/clock'
 
-export type {
-  CheckInResult,
-  CorrectionInput,
-  CorrectionResult,
-  DocumentationAlertResult,
-  QAPassResult,
-} from '../../../src/engine/gameEngine'
+export type { CheckInResult, CorrectionInput, CorrectionResult, DocumentationAlertResult, QAPassResult } from '../../../src/engine/gameEngine'
 
 // Phase 13 §9 (replay/reconstruction): re-exported so a test can compare
 // persisted GameState against what replaying the persisted event history
@@ -46,7 +40,7 @@ export type {
 // replay function — never a reimplementation of it.
 export { recalculateStateFromEvents } from '../../../src/engine/gameEngine'
 export { buildCorrectionMap, countCheckIns, countEffectiveAlerts, countEffectiveQaPasses } from '../../../src/engine/gameEngine'
-export { daysBetweenKeys, todayKey } from '../../../src/engine/dateUtils'
+export { daysBetweenKeys, missedWorkingDays, todayKey } from '../../../src/engine/dateUtils'
 
 export type { Achievement, Agent, GameEvent, GameState, QAOutcome } from '../../../src/types/domain'
 export type { Repository } from '../../../src/repository/repository'

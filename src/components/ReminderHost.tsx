@@ -1,14 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { calculateMood } from '../engine/gameEngine'
 import { gameService } from '../services/gameService'
-import { performCheckIn } from '../services/checkInAction'
-import {
-  checkForReminder,
-  markReminderActed,
-  markReminderDismissed,
-  markReminderOpened,
-  REMINDER_DEV_EVENT,
-} from '../services/reminderService'
+import { CHECKED_IN_EVENT, performCheckIn } from '../services/checkInAction'
+import { checkForReminder, markReminderActed, markReminderDismissed, markReminderOpened, REMINDER_DEV_EVENT } from '../services/reminderService'
 import type { GameState } from '../types/domain'
 import type { ReminderRecord } from '../types/reminder'
 import { RockyReminder } from './RockyReminder'
@@ -55,9 +49,19 @@ export function ReminderHost() {
     }
     window.addEventListener(REMINDER_DEV_EVENT, onDevReminder)
 
+    // Checking in anywhere answers the nudge: close it.
+    function onCheckedIn() {
+      setActive((current) => {
+        if (current) markReminderActed(current.id)
+        return null
+      })
+    }
+    window.addEventListener(CHECKED_IN_EVENT, onCheckedIn)
+
     return () => {
       window.clearInterval(interval)
       window.removeEventListener(REMINDER_DEV_EVENT, onDevReminder)
+      window.removeEventListener(CHECKED_IN_EVENT, onCheckedIn)
     }
   }, [])
 

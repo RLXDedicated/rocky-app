@@ -1,4 +1,5 @@
 import type { AdminAgentSummary, AdminEventRow } from '../../services/apiClient'
+import { CLOSET } from '../../game/closet'
 
 // Spanish display helpers shared by the admin console.
 
@@ -89,13 +90,42 @@ function csvCell(v: unknown): string {
 
 export function agentsToCsv(agents: AdminAgentSummary[]): string {
   const header = [
-    'correo', 'nombre', 'nivel', 'xp', 'energia', 'animo', 'etapa', 'racha_actual', 'mejor_racha',
-    'ultimo_checkin', 'checkins', 'qa_pass', 'alertas', 'correcciones', 'logros', 'en_riesgo', 'motivos_riesgo',
+    'correo',
+    'nombre',
+    'nivel',
+    'xp',
+    'energia',
+    'animo',
+    'etapa',
+    'racha_actual',
+    'mejor_racha',
+    'ultimo_checkin',
+    'checkins',
+    'qa_pass',
+    'alertas',
+    'correcciones',
+    'logros',
+    'en_riesgo',
+    'motivos_riesgo',
   ]
   const rows = agents.map((a) => [
-    a.id, a.name, a.state.level, a.state.xp, a.state.energy, MOOD_ES[a.state.mood] ?? a.state.mood, a.state.evolutionStage,
-    a.state.currentStreak, a.state.bestStreak, a.state.lastCheckInDate ?? '', a.metrics.checkIns, a.metrics.qaPasses,
-    a.metrics.alerts, a.metrics.corrections, a.metrics.achievements, a.metrics.atRisk ? 'si' : 'no', a.metrics.riskReasons.join(' | '),
+    a.id,
+    a.name,
+    a.state.level,
+    a.state.xp,
+    a.state.energy,
+    MOOD_ES[a.state.mood] ?? a.state.mood,
+    a.state.evolutionStage,
+    a.state.currentStreak,
+    a.state.bestStreak,
+    a.state.lastCheckInDate ?? '',
+    a.metrics.checkIns,
+    a.metrics.qaPasses,
+    a.metrics.alerts,
+    a.metrics.corrections,
+    a.metrics.achievements,
+    a.metrics.atRisk ? 'si' : 'no',
+    a.metrics.riskReasons.join(' | '),
   ])
   return [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\n')
 }
@@ -109,4 +139,107 @@ export function downloadText(filename: string, text: string, type = 'text/csv;ch
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+// Audit trail actions (backend audit_log.action) in plain Spanish.
+export const AUDIT_ACTION_ES: Record<string, string> = {
+  'auth.login': 'Inició sesión',
+  'auth.logout': 'Cerró sesión',
+  'auth.pin-created': 'Creó su PIN',
+  'auth.failed': 'PIN incorrecto',
+  'auth.locked': 'Bloqueado por PIN incorrecto',
+  'auth.locked-attempt': 'Intento con cuenta bloqueada',
+  'agent.onboarded': 'Completó la bienvenida',
+  'agent.rocky-renamed': 'Renombró a Rocky',
+  'pet.pet': 'Acarició a Rocky',
+  'pet.feed': 'Le dio un premio',
+  'pet.play': 'Jugó con la pelota',
+  'pet.bath': 'Bañó a Rocky',
+  'pet.buy': 'Compró un accesorio',
+  'pet.buyTreats': 'Compró bolsa de premios',
+  'pet.equip': 'Cambió el look',
+  'qa.pass': 'QA Pass registrado',
+  'qa.alert': 'Alerta registrada',
+  'qa.correction': 'Corrección de auditoría',
+  'admin.coins': 'Ajuste de coins',
+  'admin.treats': 'Ajuste de premios',
+  'admin.item.grant': 'Regaló un accesorio',
+  'admin.item.revoke': 'Quitó un accesorio',
+  'admin.needs.restore': 'Restauró necesidades',
+  'admin.pet.reset': 'Reinició la mascota',
+  'admin.pin-reset': 'Reseteó el PIN',
+  'admin.sessions-revoked': 'Cerró todas las sesiones',
+  'admin.catalog': 'Editó la tienda',
+  'admin.agent.renamed': 'Renombró al agente',
+  'admin.agent.reset': 'Reseteó el progreso',
+  'admin.agent.deleted': 'Eliminó al agente',
+}
+
+export function auditLabel(action: string): string {
+  if (action.endsWith('.rejected')) return `${AUDIT_ACTION_ES[action.replace('.rejected', '')] ?? action} (rechazado)`
+  return AUDIT_ACTION_ES[action] ?? action
+}
+
+export const LEDGER_KIND_ES: Record<string, string> = {
+  purchase: 'Compra',
+  'treat-bag': 'Bolsa de premios',
+  'admin-grant': 'Otorgado por admin',
+  'admin-deduct': 'Descontado por admin',
+}
+
+export const SOURCE_ES: Record<string, string> = {
+  session: 'sesión con PIN',
+  'pilot-link': 'link de Teams',
+  dev: 'dev',
+  login: 'inicio de sesión',
+  admin: 'admin',
+}
+
+export function auditDetail(detail: Record<string, unknown> | null): string {
+  if (!detail) return ''
+  const parts: string[] = []
+  if (typeof detail.itemId === 'string')
+    parts.push(CLOSET.find((i) => i.id === detail.itemId)?.name ?? (detail.itemId === 'treat-bag' ? 'Bolsa de premios' : detail.itemId))
+  if (typeof detail.coins === 'number') parts.push(`${detail.coins > 0 ? '+' : ''}${detail.coins} coins`)
+  if (typeof detail.delta === 'number') parts.push(`${detail.delta > 0 ? '+' : ''}${detail.delta}`)
+  if (typeof detail.applied === 'number' && detail.applied !== detail.delta) parts.push(`aplicado ${detail.applied}`)
+  if (typeof detail.price === 'number') parts.push(`precio ${detail.price}`)
+  if (typeof detail.enabled === 'boolean') parts.push(detail.enabled ? 'disponible' : 'retirado de la tienda')
+  if (typeof detail.note === 'string') parts.push(`“${detail.note}”`)
+  if (typeof detail.reason === 'string') parts.push(detail.reason)
+  if (typeof detail.rockyName === 'string') parts.push(detail.rockyName)
+  if (typeof detail.name === 'string') parts.push(detail.name)
+  if (typeof detail.auditDate === 'string') parts.push(detail.auditDate)
+  if (typeof detail.correctedTo === 'string') parts.push(`→ ${detail.correctedTo}`)
+  if (typeof detail.attempt === 'number') parts.push(`intento ${detail.attempt}`)
+  if (typeof detail.sessionsRevoked === 'number') parts.push(`${detail.sessionsRevoked} sesiones cerradas`)
+  if (detail.firstLogin === true) parts.push('primer ingreso')
+  if (typeof detail.device === 'string') parts.push(shortDevice(detail.device))
+  return parts.join(' · ')
+}
+
+/** "Chrome · Windows" from a user-agent string. */
+export function shortDevice(ua: string | null): string {
+  if (!ua) return 'dispositivo desconocido'
+  const browser = /Edg\//.test(ua)
+    ? 'Edge'
+    : /Chrome\//.test(ua)
+      ? 'Chrome'
+      : /Firefox\//.test(ua)
+        ? 'Firefox'
+        : /Safari\//.test(ua)
+          ? 'Safari'
+          : 'Navegador'
+  const os = /Windows/.test(ua)
+    ? 'Windows'
+    : /iPhone|iPad/.test(ua)
+      ? 'iOS'
+      : /Android/.test(ua)
+        ? 'Android'
+        : /Mac OS/.test(ua)
+          ? 'macOS'
+          : /Linux/.test(ua)
+            ? 'Linux'
+            : ''
+  return os ? `${browser} · ${os}` : browser
 }

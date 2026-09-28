@@ -1,23 +1,31 @@
 // Runs once, before the app's first render (see main.tsx). In remote mode
-// it pulls this agent's real state down from the backend and seeds the
-// local repository with it, so every screen's synchronous reads
-// (Home/Achievements/Leaderboard/DevControls all read through
-// gameService -> repository) show the agent's REAL, durable progress from
-// the very first paint — not the empty/default local state a brand-new
-// browser would otherwise start from.
+// it pulls this agent's real data down from the backend — game state,
+// badges, the full event history, Rocky's name, whether they finished the
+// intro, and Rocky the pet — and seeds this browser's copy with it. That is
+// what makes progress follow the agent to any device: nothing the agent
+// sees is only in one browser anymore.
 //
-// Deliberately fails open: any network problem here (backend briefly down,
-// CORS misconfigured, agent not in the pilot roster yet) is logged and
-// swallowed, and the app falls back to whatever's already in this
-// browser's localStorage — never a blank screen. This mirrors Home.tsx's
-// own "Rocky couldn't save that action" philosophy: a demo an agent is
-// about to be shown must never hard-fail.
-import { apiClient, isRemoteModeEnabled } from './apiClient'
+// If this browser last held a DIFFERENT agent's data (a shared PC), that
+// copy is wiped first so two agents never mix.
+//
+// Fails open on network trouble (the app keeps this browser's last copy),
+// but a 401 means "sign in again" and is reported to the app.
+import { AuthRequiredError, apiClient, isRemoteModeEnabled } from './apiClient'
 import { captureIdentityFromUrl, setAgentRole } from './identityService'
+import { completeOnboarding, hasCompletedOnboarding } from './onboardingService'
 import { repository } from '../repository/localStorageRepository'
+import { fromView, savePetCache } from '../game/petClient'
+
+let loginRequired = false
+
+/** True when the backend rejected this browser's identity during start-up sync. */
+export function isLoginRequired(): boolean {
+  return loginRequired
+}
 
 export async function initializeIdentityAndSync(): Promise<void> {
   captureIdentityFromUrl()
+  loginRequired = false
 
   if (!isRemoteModeEnabled()) {
     setAgentRole(null)
@@ -29,26 +37,47 @@ export async function initializeIdentityAndSync(): Promise<void> {
   setAgentRole(null)
 
   try {
-    const [agent, gameState, achievements] = await Promise.all([
+    const [agent, gameState, achievements, history, pet] = await Promise.all([
       apiClient.getAgent(),
       apiClient.getGameState(),
       apiClient.getAchievements(),
+      apiClient.getEvents(),
+      apiClient.getPet(),
     ])
 
-    // Keep whatever Rocky name this browser already chose during onboarding
-    // (see onboardingService.ts) rather than overwriting it with the
-    // backend's generic default — naming is a local-only, one-time choice
-    // in this prototype (see README) and isn't pushed to the backend yet.
-    const { role, ...remoteAgent } = agent
-    setAgentRole(role)
-    const localAgent = repository.getAgent()
-    repository.saveAgent({ ...remoteAgent, rockyName: localAgent.rockyName !== 'Rocky' ? localAgent.rockyName : remoteAgent.rockyName })
+    const local = repository.getAgent()
+    const sameAgent = local.id === agent.id
+    const locallyOnboarded = sameAgent && hasCompletedOnboarding()
+    if (!sameAgent) repository.resetAll()
 
+    const { role, via: _via, ...remoteAgent } = agent
+    setAgentRole(role)
+
+    // Rocky's name lives on the server. A name chosen in this browser before
+    // names were synced is carried up once.
+    let rockyName = remoteAgent.rockyName
+    if (sameAgent && remoteAgent.rockyName === 'Rocky' && local.rockyName !== 'Rocky') {
+      rockyName = local.rockyName
+      apiClient.renameRocky(rockyName).catch(() => {})
+    }
+    repository.saveAgent({ ...remoteAgent, rockyName })
     repository.saveGameState(gameState)
-    for (const achievement of achievements.unlocked) {
-      repository.saveAchievement(achievement)
+    repository.replaceEvents(history.events)
+    repository.replaceAchievements(achievements.unlocked)
+    savePetCache(fromView(pet))
+
+    // The intro is shown once per agent, not once per browser.
+    if (pet.state.onboardedAt || history.events.length > 0 || locallyOnboarded) {
+      completeOnboarding()
+      if (!pet.state.onboardedAt) apiClient.markOnboarded().catch(() => {})
+    } else if (!sameAgent) {
+      window.localStorage.removeItem('rocky.onboarding.completed')
     }
   } catch (err) {
+    if (err instanceof AuthRequiredError) {
+      loginRequired = true
+      return
+    }
     console.warn('[rocky] Could not sync with the backend, continuing with local data:', err)
   }
 }

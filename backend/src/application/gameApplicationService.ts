@@ -9,7 +9,7 @@
 // in one transaction, so a failure partway through can't leave a partial
 // state (Phase 13 §7).
 import type { PersistenceContext } from '../infrastructure/persistenceContext'
-import { GameService, systemClock, type Agent, type Clock } from '../domain/rockyEngine'
+import { GameService, systemClock, type Agent, type Clock, type GameEvent } from '../domain/rockyEngine'
 import type { AchievementsResponse, CheckInResponse, GameStateResponse } from '../types/dto'
 
 export interface GameApplicationServiceDeps {
@@ -25,6 +25,19 @@ export function createGameApplicationService({ persistence, clock = systemClock 
   return {
     getAgent(agentId: string): Agent {
       return serviceFor(agentId).getSnapshot().agent
+    },
+
+    renameRocky(agentId: string, rockyName: string): Agent {
+      return persistence.withTransaction(() => {
+        const repo = persistence.repoStore.forAgent(agentId)
+        const agent = { ...repo.getAgent(), rockyName }
+        repo.saveAgent(agent)
+        return agent
+      })
+    },
+
+    getEvents(agentId: string): GameEvent[] {
+      return persistence.repoStore.forAgent(agentId).getEvents()
     },
 
     getGameState(agentId: string): GameStateResponse {

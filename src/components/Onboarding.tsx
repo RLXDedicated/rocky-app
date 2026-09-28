@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { repository } from '../repository/localStorageRepository'
-import { completeOnboarding } from '../services/onboardingService'
+import { finishOnboarding } from '../services/agentProfile'
 import styles from './Onboarding.module.css'
 import { RockyAvatar } from './RockyAvatar'
 
@@ -19,10 +18,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [name, setName] = useState('Rocky')
 
   function handleConfirmName() {
-    const trimmed = name.trim() || 'Rocky'
-    const agent = repository.getAgent()
-    repository.saveAgent({ ...agent, rockyName: trimmed })
-    completeOnboarding()
+    finishOnboarding(name.trim() || 'Rocky')
     onComplete()
   }
 
@@ -30,7 +26,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">R</span>
+          <span className={styles.brandMark} aria-hidden="true">
+            R
+          </span>
           Rocky <span className={styles.brandBy}>by RLX</span>
         </div>
         <div className={styles.avatarRow}>
@@ -43,8 +41,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               Meet Rocky<span className={styles.dot}>.</span>
             </h1>
             <p className={styles.tagline}>
-              Your documentation buddy. Check in every day and Rocky gains XP, grows a streak and evolves from Baby all the
-              way to Elite.
+              Your documentation buddy. Check in every day and Rocky gains XP, grows a streak and evolves from Baby all the way to Elite.
             </p>
             <ul className={styles.howList}>
               <li>

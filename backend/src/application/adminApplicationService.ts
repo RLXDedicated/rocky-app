@@ -16,6 +16,7 @@ import {
   countEffectiveAlerts,
   countEffectiveQaPasses,
   daysBetweenKeys,
+  missedWorkingDays,
   systemClock,
   todayKey,
   type Clock,
@@ -31,6 +32,7 @@ import type {
   AdminOverviewResponse,
   AdminSystemResponse,
 } from '../types/dto'
+import { initialPetState } from '../../../src/game/pet'
 
 export interface AdminApplicationServiceDeps {
   persistence: PersistenceContext
@@ -56,21 +58,23 @@ function shiftDay(key: string, days: number): string {
 
 function metricsFor(agentId: string, state: GameState, events: GameEvent[], achievementCount: number, today: string): AdminAgentMetrics {
   const daysSinceCheckIn = state.lastCheckInDate ? daysBetweenKeys(state.lastCheckInDate, today) : null
-  // Operational signals only. Mood is deliberately NOT one: the engine
-  // resolves a 1-2 day streak to 'Worried' by design, so it would flag
-  // nearly every new agent.
+  // Operational signals only. Mood is deliberately NOT one: it already
+  // derives from these same signals (low energy, unanswered alerts).
   const riskReasons: string[] = []
   const correctionMap = buildCorrectionMap(events)
   const weekAgo = shiftDay(today, -(RECENT_ALERT_WINDOW_DAYS - 1))
   const recentAlerts = events.filter(
     (e) =>
       e.date >= weekAgo &&
-      ((e.type === 'DOCUMENTATION_ALERT' && (correctionMap.get(e.id) ?? 'ALERT') === 'ALERT') || (e.type === 'QA_PASS' && correctionMap.get(e.id) === 'ALERT')),
+      ((e.type === 'DOCUMENTATION_ALERT' && (correctionMap.get(e.id) ?? 'ALERT') === 'ALERT') ||
+        (e.type === 'QA_PASS' && correctionMap.get(e.id) === 'ALERT')),
   ).length
   if (state.energy < AT_RISK_ENERGY) riskReasons.push(`Energía < ${AT_RISK_ENERGY}`)
   if (recentAlerts >= AT_RISK_RECENT_ALERTS) riskReasons.push(`${recentAlerts} alertas en ${RECENT_ALERT_WINDOW_DAYS} días`)
+  // Counted in working days: a Friday check-in is not "3 days ago" on Monday.
+  const missed = state.lastCheckInDate ? missedWorkingDays(state.lastCheckInDate, today) : null
   if (daysSinceCheckIn === null) riskReasons.push('Nunca ha hecho check-in')
-  else if (daysSinceCheckIn >= AT_RISK_DAYS_WITHOUT_CHECKIN) riskReasons.push(`${daysSinceCheckIn} días sin check-in`)
+  else if (missed !== null && missed >= AT_RISK_DAYS_WITHOUT_CHECKIN) riskReasons.push(`${missed} días hábiles sin check-in`)
 
   return {
     checkIns: countCheckIns(events, agentId),
@@ -118,7 +122,15 @@ export function createAdminApplicationService({ persistence, config, clock = sys
         const state = repo.getGameState()
         const events = repo.getEvents()
         const achievements = repo.getAchievements()
-        return { agentId, agent, state, events, achievements, reminders: repo.getReminders(), metrics: metricsFor(agentId, state, events, achievements.length, today) }
+        return {
+          agentId,
+          agent,
+          state,
+          events,
+          achievements,
+          reminders: repo.getReminders(),
+          metrics: metricsFor(agentId, state, events, achievements.length, today),
+        }
       }),
     }
   }
@@ -143,6 +155,10 @@ export function createAdminApplicationService({ persistence, config, clock = sys
         achievements: [...a.achievements].sort((x, y) => y.unlockedAt.localeCompare(x.unlockedAt)),
         reminders: [...a.reminders].sort((x, y) => y.timestamp.localeCompare(x.timestamp)),
       }
+    },
+
+    hasAgent(agentId: string): boolean {
+      return store.hasAgent(agentId)
     },
 
     renameAgent(agentId: string, name: string): AdminAgentSummary {
@@ -171,13 +187,21 @@ export function createAdminApplicationService({ persistence, config, clock = sys
         store.forAgent(agentId).resetAll()
         // A fresh view: the in-memory store replaces the record object on reset.
         store.forAgent(agentId).saveAgent(agent)
+        // The pet starts over too (coins are earned from progress, which is
+        // now zero). The intro flag, ledger and audit history are kept.
+        const pet = persistence.accounts.getPetProfile(agentId)
+        const onboardedAt = (pet?.state as { onboardedAt?: string | null } | undefined)?.onboardedAt ?? null
+        persistence.accounts.savePetProfile(agentId, { ...initialPetState(clock.now()), onboardedAt }, clock.now().toISOString())
       })
       return { id: agentId, reset: true }
     },
 
     deleteAgent(agentId: string): { id: string; deleted: true } {
       requireKnownAgent(agentId)
-      persistence.withTransaction(() => store.deleteAgent(agentId))
+      persistence.withTransaction(() => {
+        store.deleteAgent(agentId)
+        persistence.accounts.deleteAgentData(agentId)
+      })
       return { id: agentId, deleted: true }
     },
 

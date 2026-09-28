@@ -73,9 +73,8 @@ so Rocky stays visible while trying things on).
   hats, places (incl. Sunset route), decor, ambience (falling leaves,
   fireflies, confetti) and treat bags (+3 treats).
 - Coins never change XP, Energy, Streak or Mood.
-- Today the wallet lives in the browser per agent. Next step: move it to
-  the backend (`GET/POST /api/wallet`) so purchases follow the agent across
-  PCs and admins can see coin activity.
+- The pet (needs, outfit, purchases, wallet) now lives on the backend and
+  follows the agent to any device — see `docs/PET_AND_ACCOUNTS.md`.
 
 ## 3D Rocky — preview (Baby stage)
 

@@ -137,6 +137,99 @@ export const HAT_ART: Record<string, HatArt> = {
       </>
     ),
   },
+  'hat-vueltiao': {
+    width: 1.12,
+    sink: 0.42,
+    svg: (
+      <>
+        <ellipse cx="50" cy="50" rx="49" ry="9" fill="#f3e6c4" />
+        <ellipse cx="50" cy="50" rx="49" ry="9" fill="none" stroke="#1e1a16" strokeWidth="2" strokeDasharray="4 3" />
+        <ellipse cx="50" cy="50" rx="38" ry="6" fill="none" stroke="#1e1a16" strokeWidth="2" strokeDasharray="3 3" />
+        <path d="M28 50 C28 20 36 10 50 10 C64 10 72 20 72 50 Z" fill="#f3e6c4" />
+        {[18, 26, 34, 42].map((y) => (
+          <path key={y} d={`M${29 + (y - 10) * 0.1} ${y} L${71 - (y - 10) * 0.1} ${y}`} stroke="#1e1a16" strokeWidth="3" strokeDasharray="3 2.5" />
+        ))}
+      </>
+    ),
+  },
+  'hat-chef': {
+    width: 0.78,
+    sink: 0.4,
+    svg: (
+      <>
+        <circle cx="30" cy="22" r="17" fill={WHITE} />
+        <circle cx="50" cy="15" r="19" fill={WHITE} />
+        <circle cx="70" cy="22" r="17" fill={WHITE} />
+        <rect x="22" y="22" width="56" height="26" fill={WHITE} />
+        <path d="M34 22 C36 30 36 38 34 46 M50 18 L50 46 M66 22 C64 30 64 38 66 46" stroke="#e3e8ee" strokeWidth="2" fill="none" />
+        <rect x="18" y="44" width="64" height="12" rx="4" fill="#eef2f6" stroke="#d7dee6" />
+        <rect x="18" y="47" width="64" height="3" fill={GREEN} opacity="0.8" />
+      </>
+    ),
+  },
+  'hat-cowboy': {
+    width: 1.02,
+    sink: 0.4,
+    svg: (
+      <>
+        <path d="M2 44 C14 56 86 56 98 44 C90 50 70 54 50 54 C30 54 10 50 2 44 Z" fill="#8a5a2b" />
+        <path d="M4 42 C20 50 80 50 96 42 C94 47 80 52 50 52 C20 52 6 47 4 42 Z" fill="#a8703a" />
+        <path d="M26 46 C24 30 28 12 40 10 C46 16 54 16 60 10 C72 12 76 30 74 46 Z" fill="#a8703a" />
+        <path d="M26 40 C40 44 60 44 74 40 L74 46 C60 50 40 50 26 46 Z" fill={NAVY} />
+        <circle cx="50" cy="44" r="3" fill={GOLD} />
+      </>
+    ),
+  },
+  'hat-flowers': {
+    width: 0.86,
+    sink: 0.3,
+    svg: (
+      <>
+        <path d="M6 48 C24 38 76 38 94 48" stroke="#3aa14c" strokeWidth="5" fill="none" strokeLinecap="round" />
+        {[
+          [12, 44, '#f5b82e'],
+          [30, 38, '#ff8fa3'],
+          [50, 36, WHITE],
+          [70, 38, '#ff8fa3'],
+          [88, 44, '#f5b82e'],
+        ].map(([x, y, c], i) => (
+          <g key={i} transform={`translate(${x} ${y})`}>
+            {[0, 72, 144, 216, 288].map((a) => (
+              <ellipse key={a} cx="0" cy="-6" rx="4.5" ry="6.5" fill={c as string} transform={`rotate(${a})`} />
+            ))}
+            <circle r="3.5" fill={i === 2 ? GOLD : '#fff3c9'} />
+          </g>
+        ))}
+        <path d="M20 42 l-4 -8 l8 3 z M80 42 l4 -8 l-8 3 z" fill="#3aa14c" />
+      </>
+    ),
+  },
+  'hat-santa': {
+    width: 0.86,
+    sink: 0.4,
+    svg: (
+      <>
+        <path d="M16 48 C18 22 36 8 58 10 C74 12 88 22 92 34 C84 28 76 28 72 34 C70 40 72 46 74 48 Z" fill="#d6333a" />
+        <circle cx="92" cy="36" r="8" fill={WHITE} />
+        <rect x="10" y="42" width="70" height="14" rx="7" fill={WHITE} />
+        <path d="M40 16 C48 12 60 12 68 18" stroke="#ff6b70" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.6" />
+      </>
+    ),
+  },
+  'hat-wizard': {
+    width: 0.9,
+    sink: 0.34,
+    svg: (
+      <>
+        <path d="M30 50 C40 36 46 18 62 2 C60 18 64 34 72 50 Z" fill="#2b3f8f" />
+        <ellipse cx="50" cy="50" rx="46" ry="8" fill="#23357a" />
+        <path d="M34 44 C44 40 58 40 70 44 L70 49 C58 46 44 46 34 49 Z" fill={GOLD} />
+        <polygon points="52,22 54,27 59,27 55,30 57,35 52,32 47,35 49,30 45,27 50,27" fill={GOLD} />
+        <circle cx="61" cy="36" r="2" fill="#ffe28a" />
+        <circle cx="44" cy="33" r="1.5" fill="#ffe28a" />
+      </>
+    ),
+  },
   'hat-crown': {
     width: 0.62,
     sink: 0.3,
@@ -238,6 +331,77 @@ export const DECOR_ART: Record<string, DecorArt> = {
         <circle cx="36" cy="72" r="4" fill="#cfd8e3" />
         <circle cx="128" cy="72" r="11" fill={NAVY2} />
         <circle cx="128" cy="72" r="4" fill="#cfd8e3" />
+      </>
+    ),
+  },
+  'decor-balloons': {
+    viewBox: '0 0 90 170',
+    left: 33,
+    width: 7,
+    svg: (
+      <>
+        <path
+          d="M30 70 C32 110 42 140 46 168 M60 64 C56 110 50 140 46 168 M46 58 C44 110 46 140 46 168"
+          stroke="#9aa6b2"
+          strokeWidth="1.5"
+          fill="none"
+        />
+        <ellipse cx="28" cy="44" rx="20" ry="25" fill={GREEN} />
+        <ellipse cx="62" cy="40" rx="20" ry="25" fill={GOLD} />
+        <ellipse cx="45" cy="30" rx="21" ry="26" fill={NAVY} />
+        <text x="34" y="36" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="10" fill={WHITE}>
+          RLX
+        </text>
+        <ellipse cx="20" cy="34" rx="5" ry="8" fill={WHITE} opacity="0.35" />
+        <ellipse cx="55" cy="30" rx="5" ry="8" fill={WHITE} opacity="0.35" />
+      </>
+    ),
+  },
+  'decor-lamp': {
+    viewBox: '0 0 60 220',
+    left: 26,
+    width: 4,
+    svg: (
+      <>
+        <ellipse cx="30" cy="216" rx="22" ry="4" fill="#000" opacity="0.08" />
+        <rect x="26" y="40" width="8" height="176" rx="3" fill={NAVY2} />
+        <rect x="18" y="200" width="24" height="14" rx="4" fill={NAVY} />
+        <path d="M12 40 L48 40 L42 18 L18 18 Z" fill={NAVY} />
+        <rect x="20" y="40" width="20" height="10" rx="3" fill="#fff4c9" />
+        <circle cx="30" cy="46" r="26" fill="#fff4c9" opacity="0.18" />
+      </>
+    ),
+  },
+  'decor-bench': {
+    viewBox: '0 0 160 80',
+    left: 60,
+    width: 12,
+    svg: (
+      <>
+        <ellipse cx="80" cy="76" rx="74" ry="4" fill="#000" opacity="0.08" />
+        <rect x="10" y="10" width="140" height="10" rx="3" fill="#b88650" />
+        <rect x="10" y="24" width="140" height="10" rx="3" fill="#c99a63" />
+        <rect x="6" y="42" width="148" height="10" rx="3" fill="#d6a86f" />
+        <path d="M20 20 L20 74 M140 20 L140 74 M30 52 L24 74 M130 52 L136 74" stroke={NAVY} strokeWidth="6" strokeLinecap="round" />
+      </>
+    ),
+  },
+  'decor-barn': {
+    viewBox: '0 0 160 140',
+    left: 78,
+    width: 16,
+    svg: (
+      <>
+        <ellipse cx="80" cy="136" rx="76" ry="5" fill="#000" opacity="0.08" />
+        <path d="M12 60 L80 12 L148 60 L148 134 L12 134 Z" fill="#c9463d" />
+        <path d="M4 62 L80 6 L156 62 L148 66 L80 18 L12 66 Z" fill={WHITE} />
+        <rect x="52" y="74" width="56" height="60" fill="#a8372f" />
+        <path d="M52 74 L108 134 M108 74 L52 134" stroke={WHITE} strokeWidth="5" />
+        <rect x="52" y="74" width="56" height="60" fill="none" stroke={WHITE} strokeWidth="5" />
+        <circle cx="80" cy="44" r="11" fill={WHITE} />
+        <text x="72" y="48" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="10" fill={NAVY}>
+          R
+        </text>
       </>
     ),
   },
@@ -526,6 +690,101 @@ function BallparkScene({ live = false }: { live?: boolean }) {
   )
 }
 
+function OfficeScene() {
+  return (
+    <>
+      <defs>
+        <linearGradient id="office-wall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#eaf1f4" />
+          <stop offset="1" stopColor="#f7fafb" />
+        </linearGradient>
+      </defs>
+      <rect width="1000" height="400" fill="url(#office-wall)" />
+      {/* Windows onto the city. */}
+      {[80, 380, 680].map((x) => (
+        <g key={x} transform={`translate(${x} 50)`}>
+          <rect width="240" height="150" rx="10" fill="#bfe3f6" />
+          <path d="M0 120 L30 90 L60 110 L100 70 L150 100 L190 60 L240 90 L240 150 L0 150 Z" fill="#9fc6e8" />
+          <rect x="116" width="8" height="150" fill={WHITE} />
+          <rect width="240" height="150" rx="10" fill="none" stroke={WHITE} strokeWidth="8" />
+        </g>
+      ))}
+      <rect y="230" width="1000" height="10" fill={GREEN} />
+      <text x="470" y="30" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="20" fill={NAVY} opacity="0.2">
+        RLX
+      </text>
+      {/* Floor and a desk row. */}
+      <rect y="240" width="1000" height="160" fill="#dfe7ec" />
+      {Array.from({ length: 11 }, (_, i) => (
+        <rect key={i} x={i * 100} y="240" width="2" height="160" fill="#cfd9e0" />
+      ))}
+      {[120, 780].map((x) => (
+        <g key={x} transform={`translate(${x} 196)`}>
+          <rect x="0" y="40" width="130" height="10" rx="3" fill="#c99a63" />
+          <rect x="8" y="50" width="6" height="48" fill={NAVY2} />
+          <rect x="116" y="50" width="6" height="48" fill={NAVY2} />
+          <rect x="40" y="4" width="54" height="34" rx="3" fill={NAVY} />
+          <rect x="44" y="8" width="46" height="24" rx="2" fill={GREEN2} opacity="0.8" />
+          <rect x="62" y="38" width="10" height="4" fill={NAVY} />
+        </g>
+      ))}
+      <ellipse cx="500" cy="350" rx="240" ry="26" fill={WHITE} opacity="0.5" />
+    </>
+  )
+}
+
+function BeachScene({ live = false }: { live?: boolean }) {
+  return (
+    <>
+      <defs>
+        <linearGradient id="beach-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#7fd0f2" />
+          <stop offset="1" stopColor="#e6f7fc" />
+        </linearGradient>
+        <linearGradient id="beach-sea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#2aa7c9" />
+          <stop offset="1" stopColor="#6fd3e0" />
+        </linearGradient>
+      </defs>
+      <rect width="1000" height="400" fill="url(#beach-sky)" />
+      <circle cx="820" cy="80" r="40" fill="#fff4c9" />
+      <g className={live ? 'rocky-drift' : undefined}>
+        <Cloud x={220} y={70} s={0.9} />
+        <Cloud x={600} y={50} s={0.7} opacity={0.8} />
+      </g>
+      <rect y="200" width="1000" height="80" fill="url(#beach-sea)" />
+      {[210, 232, 256].map((y, i) => (
+        <path
+          key={y}
+          d={`M0 ${y} q25 -6 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0`}
+          stroke={WHITE}
+          strokeWidth="2"
+          fill="none"
+          opacity={0.5 - i * 0.12}
+        />
+      ))}
+      <path d="M0 272 C200 262 400 280 600 270 C780 262 900 274 1000 268 L1000 400 L0 400 Z" fill="#f3dfae" />
+      <path d="M0 282 C200 272 400 290 600 280 C780 272 900 284 1000 278" stroke={WHITE} strokeWidth="6" fill="none" opacity="0.7" />
+      {/* Palm tree */}
+      <g transform="translate(900 300)">
+        <path d="M0 40 C-6 0 -4 -60 10 -120" stroke="#8a5a2b" strokeWidth="12" fill="none" strokeLinecap="round" />
+        {[-150, -110, -60, -20, 20].map((a) => (
+          <path key={a} d="M10 -120 C40 -140 80 -130 100 -100 C70 -118 40 -118 10 -120 Z" fill="#2e8b3e" transform={`rotate(${a + 60} 10 -120)`} />
+        ))}
+        <circle cx="4" cy="-112" r="6" fill="#6b4a2f" />
+        <circle cx="16" cy="-110" r="6" fill="#6b4a2f" />
+      </g>
+      {/* Umbrella and towel */}
+      <g transform="translate(90 300)">
+        <path d="M40 60 L52 -20" stroke={NAVY} strokeWidth="4" />
+        <path d="M-10 -10 C10 -50 90 -50 110 -24 Z" fill={GREEN} />
+        <path d="M24 -24 C30 -40 60 -44 76 -30 Z" fill={WHITE} opacity="0.9" />
+        <rect x="0" y="50" width="90" height="20" rx="4" fill={GOLD} transform="skewX(-20)" />
+      </g>
+    </>
+  )
+}
+
 export function SceneArt({ id, live = false }: { id: string; live?: boolean }) {
   return (
     <svg viewBox="0 0 1000 400" preserveAspectRatio="xMidYMax slice" width="100%" height="100%" aria-hidden="true">
@@ -535,6 +794,10 @@ export function SceneArt({ id, live = false }: { id: string; live?: boolean }) {
         <BallparkScene live={live} />
       ) : id === 'scene-night' ? (
         <RouteScene time="night" live={live} />
+      ) : id === 'scene-office' ? (
+        <OfficeScene />
+      ) : id === 'scene-beach' ? (
+        <BeachScene live={live} />
       ) : id === 'scene-sunset' ? (
         <RouteScene time="sunset" live={live} />
       ) : (
@@ -578,6 +841,29 @@ export const FX_ART: Record<string, ReactElement> = {
           <circle cx={x} cy={y} r="7" fill="#fff3a6" opacity="0.25" />
           <circle cx={x} cy={y} r="2.6" fill="#fff6c2" />
         </g>
+      ))}
+    </>
+  ),
+  'fx-snow': (
+    <>
+      {Array.from({ length: 16 }, (_, i) => (
+        <circle key={i} cx={6 + ((i * 37) % 90)} cy={6 + ((i * 23) % 64)} r={1.5 + (i % 3)} fill={WHITE} opacity="0.9" />
+      ))}
+    </>
+  ),
+  'fx-hearts': (
+    <>
+      {[
+        [26, 44, 1.1],
+        [56, 26, 1.4],
+        [76, 50, 0.9],
+      ].map(([x, y, k], i) => (
+        <path
+          key={i}
+          d="M0 4 C0 -2 -8 -3 -8 3 C-8 8 0 12 0 14 C0 12 8 8 8 3 C8 -3 0 -2 0 4 Z"
+          fill="#ff8fa3"
+          transform={`translate(${x} ${y}) scale(${k})`}
+        />
       ))}
     </>
   ),

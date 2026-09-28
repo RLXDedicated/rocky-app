@@ -10,7 +10,16 @@ import { gameService } from './gameService'
 import { apiClient, isRemoteModeEnabled } from './apiClient'
 import { repository } from '../repository/localStorageRepository'
 
+/** Fired on window after every successful check-in, wherever it came from (Home, a reminder). */
+export const CHECKED_IN_EVENT = 'rocky:checked-in'
+
 export async function performCheckIn(): Promise<CheckInResult> {
+  const result = await checkInNow()
+  if (!result.alreadyCheckedInToday) window.dispatchEvent(new CustomEvent<CheckInResult>(CHECKED_IN_EVENT, { detail: result }))
+  return result
+}
+
+async function checkInNow(): Promise<CheckInResult> {
   if (!isRemoteModeEnabled()) {
     return gameService.checkIn()
   }

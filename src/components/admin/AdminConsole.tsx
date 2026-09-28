@@ -4,6 +4,7 @@ import { getAgentEmail } from '../../services/identityService'
 import styles from './AdminConsole.module.css'
 import { BarList, ColumnChart, SERIES_ALERT, SERIES_GREEN } from './AdminCharts'
 import { AgentDrawer } from './AgentDrawer'
+import { AuditTab, EconomyTab, ShopTab } from './AdminEconomy'
 import {
   EVENT_TYPE_ES,
   MOOD_ES,
@@ -23,7 +24,7 @@ import {
 // same QA event endpoints an audit integration would use (never a direct
 // XP/Energy edit). See backend/src/application/adminApplicationService.ts.
 
-type Tab = 'overview' | 'agents' | 'activity' | 'system'
+type Tab = 'overview' | 'agents' | 'economy' | 'shop' | 'audit' | 'activity' | 'system'
 type SortKey = 'id' | 'level' | 'xp' | 'energy' | 'streak' | 'lastCheckIn' | 'checkIns' | 'qaPasses' | 'alerts'
 type Filter = 'all' | 'atRisk' | 'checkedIn' | 'notCheckedIn'
 
@@ -105,11 +106,20 @@ export function AdminConsole() {
             [
               ['overview', 'Resumen'],
               ['agents', `Agentes${agents ? ` (${agents.length})` : ''}`],
+              ['economy', 'Economía'],
+              ['shop', 'Tienda'],
+              ['audit', 'Auditoría'],
               ['activity', 'Actividad'],
               ['system', 'Sistema'],
             ] as const
           ).map(([key, label]) => (
-            <button key={key} role="tab" aria-selected={tab === key} className={`${styles.tab} ${tab === key ? styles.tabActive : ''}`} onClick={() => setTab(key)}>
+            <button
+              key={key}
+              role="tab"
+              aria-selected={tab === key}
+              className={`${styles.tab} ${tab === key ? styles.tabActive : ''}`}
+              onClick={() => setTab(key)}
+            >
               {label}
             </button>
           ))}
@@ -118,7 +128,9 @@ export function AdminConsole() {
         {toast && (
           <div className={toast.kind === 'ok' ? styles.toastOk : styles.toastError} role="status">
             {toast.text}
-            <button className={styles.linkBtn} onClick={() => setToast(null)}>cerrar</button>
+            <button className={styles.linkBtn} onClick={() => setToast(null)}>
+              cerrar
+            </button>
           </div>
         )}
 
@@ -131,6 +143,9 @@ export function AdminConsole() {
           ))}
         {tab === 'activity' && (overview ? <ActivityTab overview={overview} onOpen={setSelected} /> : <p className={styles.muted}>Cargando…</p>)}
         {tab === 'system' && (system ? <SystemTab system={system} /> : <p className={styles.muted}>Cargando…</p>)}
+        {tab === 'economy' && <EconomyTab onOpen={setSelected} onError={onError} />}
+        {tab === 'shop' && <ShopTab onChanged={onChanged} onError={onError} />}
+        {tab === 'audit' && <AuditTab onOpen={setSelected} onError={onError} />}
       </div>
 
       {selected && <AgentDrawer agentId={selected} selfEmail={selfEmail} onClose={closeDrawer} onChanged={onChanged} onError={onError} />}
@@ -141,7 +156,7 @@ export function AdminConsole() {
 // ---------------------------------------------------------------------------
 // Resumen
 // ---------------------------------------------------------------------------
-function Kpi({ label, value, hint, tone }: { label: string; value: string | number; hint?: string; tone?: 'good' | 'warn' }) {
+export function Kpi({ label, value, hint, tone }: { label: string; value: string | number; hint?: string; tone?: 'good' | 'warn' }) {
   return (
     <div className={styles.kpi}>
       <span className={styles.kpiLabel}>{label}</span>
@@ -151,7 +166,17 @@ function Kpi({ label, value, hint, tone }: { label: string; value: string | numb
   )
 }
 
-function AgentChipList({ agents, onOpen, empty, extra }: { agents: AdminAgentSummary[]; onOpen: (id: string) => void; empty: string; extra: (a: AdminAgentSummary) => string }) {
+function AgentChipList({
+  agents,
+  onOpen,
+  empty,
+  extra,
+}: {
+  agents: AdminAgentSummary[]
+  onOpen: (id: string) => void
+  empty: string
+  extra: (a: AdminAgentSummary) => string
+}) {
   if (agents.length === 0) return <p className={styles.muted}>{empty}</p>
   return (
     <ul className={styles.agentList}>
@@ -174,28 +199,50 @@ function OverviewTab({ overview, onOpen }: { overview: AdminOverview; onOpen: (i
     title: `${fmtDayKey(d.date)} (${d.date})`,
     values: { checkIns: d.checkIns, activeAgents: d.activeAgents, qaPasses: d.qaPasses, alerts: d.alerts },
   }))
-  const hourly = overview.hourlyCheckIns.map((h) => ({ label: String(h.hour), title: `${h.hour}:00 – ${h.hour}:59`, values: { checkIns: h.checkIns } }))
+  const hourly = overview.hourlyCheckIns.map((h) => ({
+    label: String(h.hour),
+    title: `${h.hour}:00 – ${h.hour}:59`,
+    values: { checkIns: h.checkIns },
+  }))
   // Monday-first for a work week.
   const weekday = [1, 2, 3, 4, 5, 6, 0].map((d) => ({ label: WEEKDAY_ES[d]!, values: { checkIns: overview.weekdayCheckIns[d]?.checkIns ?? 0 } }))
 
   return (
     <div className={styles.stack}>
       <div className={styles.kpiGrid}>
-        <Kpi label="Check-in hoy" value={`${k.checkedInToday}/${k.totalAgents}`} hint={`${k.checkInRateToday}% del pilot`} tone={k.checkInRateToday >= 70 ? 'good' : undefined} />
+        <Kpi
+          label="Check-in hoy"
+          value={`${k.checkedInToday}/${k.totalAgents}`}
+          hint={`${k.checkInRateToday}% del pilot`}
+          tone={k.checkInRateToday >= 70 ? 'good' : undefined}
+        />
         <Kpi label="Activos (7 días)" value={k.active7d} hint={`de ${k.totalAgents} agentes`} />
         <Kpi label="En riesgo" value={k.atRisk} hint="poca energía, alertas repetidas o sin check-in" tone={k.atRisk > 0 ? 'warn' : 'good'} />
-        <Kpi label="Tasa QA Pass" value={k.qaPassRate === null ? '—' : `${k.qaPassRate}%`} hint={`${k.totalQaPasses} pass · ${k.totalAlerts} alertas`} />
+        <Kpi
+          label="Tasa QA Pass"
+          value={k.qaPassRate === null ? '—' : `${k.qaPassRate}%`}
+          hint={`${k.totalQaPasses} pass · ${k.totalAlerts} alertas`}
+        />
         <Kpi label="Check-ins totales" value={k.totalCheckIns} />
         <Kpi label="Nivel promedio" value={k.avgLevel} hint={`${k.avgXp} XP promedio`} />
         <Kpi label="Energía promedio" value={k.avgEnergy} />
-        <Kpi label="Racha promedio" value={k.avgStreak} hint={k.bestStreak ? `mejor: ${k.bestStreak.days} días (${k.bestStreak.agentId.split('@')[0]})` : undefined} />
+        <Kpi
+          label="Racha promedio"
+          value={k.avgStreak}
+          hint={k.bestStreak ? `mejor: ${k.bestStreak.days} días (${k.bestStreak.agentId.split('@')[0]})` : undefined}
+        />
       </div>
 
       <div className={styles.grid2}>
         <section className={styles.card}>
           <h3>Check-ins por día</h3>
           <p className={styles.cardSub}>Últimos 30 días</p>
-          <ColumnChart data={daily} series={[{ key: 'checkIns', label: 'Check-ins', color: SERIES_GREEN }]} labelEvery={5} ariaLabel="Check-ins por día, últimos 30 días" />
+          <ColumnChart
+            data={daily}
+            series={[{ key: 'checkIns', label: 'Check-ins', color: SERIES_GREEN }]}
+            labelEvery={5}
+            ariaLabel="Check-ins por día, últimos 30 días"
+          />
         </section>
         <section className={styles.card}>
           <h3>Resultados de QA por día</h3>
@@ -213,12 +260,21 @@ function OverviewTab({ overview, onOpen }: { overview: AdminOverview; onOpen: (i
         <section className={styles.card}>
           <h3>Uso por hora del día</h3>
           <p className={styles.cardSub}>Check-ins históricos, hora {overview.timezone}</p>
-          <ColumnChart data={hourly} series={[{ key: 'checkIns', label: 'Check-ins', color: SERIES_GREEN }]} labelEvery={3} ariaLabel="Check-ins por hora del día" />
+          <ColumnChart
+            data={hourly}
+            series={[{ key: 'checkIns', label: 'Check-ins', color: SERIES_GREEN }]}
+            labelEvery={3}
+            ariaLabel="Check-ins por hora del día"
+          />
         </section>
         <section className={styles.card}>
           <h3>Uso por día de la semana</h3>
           <p className={styles.cardSub}>Check-ins históricos</p>
-          <ColumnChart data={weekday} series={[{ key: 'checkIns', label: 'Check-ins', color: SERIES_GREEN }]} ariaLabel="Check-ins por día de la semana" />
+          <ColumnChart
+            data={weekday}
+            series={[{ key: 'checkIns', label: 'Check-ins', color: SERIES_GREEN }]}
+            ariaLabel="Check-ins por día de la semana"
+          />
         </section>
         <section className={styles.card}>
           <h3>Ánimo de los Rockys</h3>
@@ -230,11 +286,21 @@ function OverviewTab({ overview, onOpen }: { overview: AdminOverview; onOpen: (i
         </section>
         <section className={styles.card}>
           <h3>Top 5 por XP</h3>
-          <AgentChipList agents={overview.topAgents} onOpen={onOpen} empty="Sin agentes." extra={(a) => `Nivel ${a.state.level} · ${a.state.xp} XP`} />
+          <AgentChipList
+            agents={overview.topAgents}
+            onOpen={onOpen}
+            empty="Sin agentes."
+            extra={(a) => `Nivel ${a.state.level} · ${a.state.xp} XP`}
+          />
         </section>
         <section className={styles.card}>
           <h3>Agentes en riesgo ({overview.atRiskAgents.length})</h3>
-          <AgentChipList agents={overview.atRiskAgents.slice(0, 12)} onOpen={onOpen} empty="Nadie en riesgo. 🎉" extra={(a) => a.metrics.riskReasons.join(' · ')} />
+          <AgentChipList
+            agents={overview.atRiskAgents.slice(0, 12)}
+            onOpen={onOpen}
+            empty="Nadie en riesgo. 🎉"
+            extra={(a) => a.metrics.riskReasons.join(' · ')}
+          />
         </section>
       </div>
     </div>
@@ -246,15 +312,24 @@ function OverviewTab({ overview, onOpen }: { overview: AdminOverview; onOpen: (i
 // ---------------------------------------------------------------------------
 function sortValue(a: AdminAgentSummary, key: SortKey): number | string {
   switch (key) {
-    case 'id': return a.id
-    case 'level': return a.state.level
-    case 'xp': return a.state.xp
-    case 'energy': return a.state.energy
-    case 'streak': return a.state.currentStreak
-    case 'lastCheckIn': return a.metrics.daysSinceCheckIn ?? Number.MAX_SAFE_INTEGER
-    case 'checkIns': return a.metrics.checkIns
-    case 'qaPasses': return a.metrics.qaPasses
-    case 'alerts': return a.metrics.alerts
+    case 'id':
+      return a.id
+    case 'level':
+      return a.state.level
+    case 'xp':
+      return a.state.xp
+    case 'energy':
+      return a.state.energy
+    case 'streak':
+      return a.state.currentStreak
+    case 'lastCheckIn':
+      return a.metrics.daysSinceCheckIn ?? Number.MAX_SAFE_INTEGER
+    case 'checkIns':
+      return a.metrics.checkIns
+    case 'qaPasses':
+      return a.metrics.qaPasses
+    case 'alerts':
+      return a.metrics.alerts
   }
 }
 
@@ -285,7 +360,13 @@ function AgentsTab({
     return agents
       .filter((a) => !q || a.id.includes(q) || a.name.toLowerCase().includes(q))
       .filter((a) =>
-        filter === 'atRisk' ? a.metrics.atRisk : filter === 'checkedIn' ? a.metrics.checkedInToday : filter === 'notCheckedIn' ? !a.metrics.checkedInToday : true,
+        filter === 'atRisk'
+          ? a.metrics.atRisk
+          : filter === 'checkedIn'
+            ? a.metrics.checkedInToday
+            : filter === 'notCheckedIn'
+              ? !a.metrics.checkedInToday
+              : true,
       )
       .filter((a) => stage === 'all' || a.state.evolutionStage === stage)
       .sort((x, y) => {
@@ -308,7 +389,11 @@ function AgentsTab({
 
   function Th({ k, children }: { k: SortKey; children: string }) {
     return (
-      <th className={styles.sortable} onClick={() => toggleSort(k)} aria-sort={sort.key === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
+      <th
+        className={styles.sortable}
+        onClick={() => toggleSort(k)}
+        aria-sort={sort.key === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}
+      >
         {children} {sort.key === k ? (sort.dir === 1 ? '▲' : '▼') : ''}
       </th>
     )
@@ -318,7 +403,9 @@ function AgentsTab({
     if (ids.length === 0) return
     const label = kind === 'qa-pass' ? 'QA Pass' : kind === 'alert' ? 'Alerta de Documentación' : 'ELIMINAR'
     if (kind === 'delete') {
-      const typed = window.prompt(`Vas a ELIMINAR ${ids.length} agente(s) con todo su historial:\n${ids.join('\n')}\n\nEscribe ELIMINAR para confirmar:`)
+      const typed = window.prompt(
+        `Vas a ELIMINAR ${ids.length} agente(s) con todo su historial:\n${ids.join('\n')}\n\nEscribe ELIMINAR para confirmar:`,
+      )
       if (typed?.trim().toUpperCase() !== 'ELIMINAR') return
     } else if (!window.confirm(`¿Registrar ${label} (fecha ${auditDate}) para ${ids.length} agente(s)?\n${ids.join('\n')}`)) {
       return
@@ -347,7 +434,13 @@ function AgentsTab({
   return (
     <div className={styles.stack}>
       <div className={styles.toolbar}>
-        <input className={styles.search} type="search" placeholder="Buscar por correo o nombre…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input
+          className={styles.search}
+          type="search"
+          placeholder="Buscar por correo o nombre…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
         <select className={styles.select} value={filter} onChange={(e) => setFilter(e.target.value as Filter)} aria-label="Filtro de estado">
           <option value="all">Todos</option>
           <option value="atRisk">En riesgo</option>
@@ -357,7 +450,9 @@ function AgentsTab({
         <select className={styles.select} value={stage} onChange={(e) => setStage(e.target.value)} aria-label="Filtro de etapa">
           <option value="all">Todas las etapas</option>
           {['Baby', 'Young', 'Advanced', 'Elite'].map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
         </select>
         <label className={styles.field}>
@@ -372,10 +467,18 @@ function AgentsTab({
       {picked.size > 0 && (
         <div className={styles.bulkBar}>
           <b>{picked.size} seleccionado(s)</b>
-          <button className={styles.btnPass} disabled={busy} onClick={() => void bulk('qa-pass', [...picked])}>QA Pass</button>
-          <button className={styles.btnAlert} disabled={busy} onClick={() => void bulk('alert', [...picked])}>Alerta</button>
-          <button className={styles.btnDanger} disabled={busy} onClick={() => void bulk('delete', [...picked])}>Eliminar</button>
-          <button className={styles.linkBtn} onClick={() => setPicked(new Set())}>limpiar selección</button>
+          <button className={styles.btnPass} disabled={busy} onClick={() => void bulk('qa-pass', [...picked])}>
+            QA Pass
+          </button>
+          <button className={styles.btnAlert} disabled={busy} onClick={() => void bulk('alert', [...picked])}>
+            Alerta
+          </button>
+          <button className={styles.btnDanger} disabled={busy} onClick={() => void bulk('delete', [...picked])}>
+            Eliminar
+          </button>
+          <button className={styles.linkBtn} onClick={() => setPicked(new Set())}>
+            limpiar selección
+          </button>
         </div>
       )}
 
@@ -447,7 +550,9 @@ function AgentsTab({
                 <td>{a.metrics.alerts}</td>
                 <td>
                   {a.metrics.atRisk ? (
-                    <span className={styles.statusWarn} title={a.metrics.riskReasons.join(' · ')}>⚠ En riesgo</span>
+                    <span className={styles.statusWarn} title={a.metrics.riskReasons.join(' · ')}>
+                      ⚠ En riesgo
+                    </span>
                   ) : (
                     <span className={styles.statusOk}>✓ Al día</span>
                   )}
@@ -472,9 +577,19 @@ function AgentsTab({
         <h3>Registrar evento para un agente que aún no aparece</h3>
         <p className={styles.cardSub}>Un agente aparece en la lista cuando abre Rocky desde su link de Teams por primera vez.</p>
         <div className={styles.actionRow}>
-          <input className={styles.search} type="email" placeholder="nombre.apellido@rlx.us" value={manualEmail} onChange={(e) => setManualEmail(e.target.value)} />
-          <button className={styles.btnPass} disabled={!manualValid || busy} onClick={() => void bulk('qa-pass', [manual])}>QA Pass</button>
-          <button className={styles.btnAlert} disabled={!manualValid || busy} onClick={() => void bulk('alert', [manual])}>Alerta</button>
+          <input
+            className={styles.search}
+            type="email"
+            placeholder="nombre.apellido@rlx.us"
+            value={manualEmail}
+            onChange={(e) => setManualEmail(e.target.value)}
+          />
+          <button className={styles.btnPass} disabled={!manualValid || busy} onClick={() => void bulk('qa-pass', [manual])}>
+            QA Pass
+          </button>
+          <button className={styles.btnAlert} disabled={!manualValid || busy} onClick={() => void bulk('alert', [manual])}>
+            Alerta
+          </button>
         </div>
       </section>
     </div>
@@ -493,7 +608,9 @@ function ActivityTab({ overview, onOpen }: { overview: AdminOverview; onOpen: (i
       <div className={styles.toolbar}>
         <select className={styles.select} value={type} onChange={(e) => setType(e.target.value)} aria-label="Tipo de evento">
           {types.map((t) => (
-            <option key={t} value={t}>{t === 'ALL' ? 'Todos los eventos' : EVENT_TYPE_ES[t] ?? t}</option>
+            <option key={t} value={t}>
+              {t === 'ALL' ? 'Todos los eventos' : (EVENT_TYPE_ES[t] ?? t)}
+            </option>
           ))}
         </select>
         <span className={styles.muted}>Últimos {overview.recentActivity.length} eventos de todo el pilot</span>
@@ -514,7 +631,9 @@ function ActivityTab({ overview, onOpen }: { overview: AdminOverview; onOpen: (i
                 <td>{fmtDateTime(e.timestamp)}</td>
                 <td>{e.agentId}</td>
                 <td>
-                  <span className={styles.eventTag} data-type={e.type}>{EVENT_TYPE_ES[e.type] ?? e.type}</span>
+                  <span className={styles.eventTag} data-type={e.type}>
+                    {EVENT_TYPE_ES[e.type] ?? e.type}
+                  </span>
                   {e.correctedTo && <span className={styles.chip}>corregido</span>}
                 </td>
                 <td className={styles.muted}>{eventDetail(e)}</td>
@@ -522,7 +641,9 @@ function ActivityTab({ overview, onOpen }: { overview: AdminOverview; onOpen: (i
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={4} className={styles.empty}>Sin actividad.</td>
+                <td colSpan={4} className={styles.empty}>
+                  Sin actividad.
+                </td>
               </tr>
             )}
           </tbody>
@@ -537,7 +658,12 @@ function ActivityTab({ overview, onOpen }: { overview: AdminOverview; onOpen: (i
 // ---------------------------------------------------------------------------
 function SystemTab({ system }: { system: AdminSystem }) {
   const up = system.uptimeSeconds
-  const uptime = up > 86400 ? `${Math.floor(up / 86400)} d ${Math.floor((up % 86400) / 3600)} h` : up > 3600 ? `${Math.floor(up / 3600)} h ${Math.floor((up % 3600) / 60)} min` : `${Math.floor(up / 60)} min`
+  const uptime =
+    up > 86400
+      ? `${Math.floor(up / 86400)} d ${Math.floor((up % 86400) / 3600)} h`
+      : up > 3600
+        ? `${Math.floor(up / 3600)} h ${Math.floor((up % 3600) / 60)} min`
+        : `${Math.floor(up / 60)} min`
   const rows: [string, React.ReactNode][] = [
     ['Zona horaria del pilot', `${system.timezone} (proceso: ${system.processTz ?? 'sin TZ'})`],
     ['Hora del servidor', system.serverLocalTime],
@@ -548,7 +674,12 @@ function SystemTab({ system }: { system: AdminSystem }) {
     ['Persistencia', system.persistenceDriver],
     ['Agentes en la base de datos', system.agentCount],
     ['Entorno', `${system.nodeEnv} · Node ${system.nodeVersion}`],
-    ['Deploy', system.deployment.commitSha ? `${system.deployment.commitSha.slice(0, 7)} · ${system.deployment.branch ?? ''} · ${(system.deployment.commitMessage ?? '').split('\n')[0]}` : 'desconocido'],
+    [
+      'Deploy',
+      system.deployment.commitSha
+        ? `${system.deployment.commitSha.slice(0, 7)} · ${system.deployment.branch ?? ''} · ${(system.deployment.commitMessage ?? '').split('\n')[0]}`
+        : 'desconocido',
+    ],
     ['Tiempo en línea', uptime],
     ['Frontend', `${window.location.origin} · build ${import.meta.env.MODE}`],
   ]
@@ -568,11 +699,24 @@ function SystemTab({ system }: { system: AdminSystem }) {
       <section className={styles.card}>
         <h3>Cómo administrar</h3>
         <ul className={styles.plainList}>
-          <li><b>Agregar/quitar administradores:</b> en Railway → servicio <code>rocky-backend</code> → Variables → <code>ROCKY_ADMIN_EMAILS</code> (correos separados por coma). Se aplica al redeploy.</li>
-          <li><b>Cambiar la zona horaria del pilot:</b> variable <code>ROCKY_TIMEZONE</code> (por defecto <code>America/Bogota</code>).</li>
-          <li><b>Corregir una auditoría:</b> abre el agente → Historial → “Corregir a Pass/Alerta”. El motor recalcula el efecto; nunca se edita el XP a mano.</li>
-          <li><b>Limpiar agentes de prueba:</b> pestaña Agentes → selecciónalos → Eliminar.</li>
-          <li><b>Seguridad:</b> la identidad es el correo del link de Teams, sin contraseña. Antes de salir del pilot cerrado hay que migrar a SSO (Entra ID).</li>
+          <li>
+            <b>Agregar/quitar administradores:</b> en Railway → servicio <code>rocky-backend</code> → Variables → <code>ROCKY_ADMIN_EMAILS</code>{' '}
+            (correos separados por coma). Se aplica al redeploy.
+          </li>
+          <li>
+            <b>Cambiar la zona horaria del pilot:</b> variable <code>ROCKY_TIMEZONE</code> (por defecto <code>America/Bogota</code>).
+          </li>
+          <li>
+            <b>Corregir una auditoría:</b> abre el agente → Historial → “Corregir a Pass/Alerta”. El motor recalcula el efecto; nunca se edita el XP a
+            mano.
+          </li>
+          <li>
+            <b>Limpiar agentes de prueba:</b> pestaña Agentes → selecciónalos → Eliminar.
+          </li>
+          <li>
+            <b>Seguridad:</b> la identidad es el correo del link de Teams, sin contraseña. Antes de salir del pilot cerrado hay que migrar a SSO
+            (Entra ID).
+          </li>
         </ul>
       </section>
     </div>

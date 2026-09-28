@@ -12,7 +12,11 @@ import { QASimulator } from './components/QASimulator'
 import { ReminderHost } from './components/ReminderHost'
 import { TeamLeaderboard } from './components/TeamLeaderboard'
 import { TeamPage } from './components/TeamPage'
-import { isRemoteModeEnabled } from './services/apiClient'
+import { apiClient, isBackendConfigured, isRemoteModeEnabled } from './services/apiClient'
+import { Login } from './components/Login'
+import { endSession, getAgentEmail, getSessionToken } from './services/identityService'
+import { isLoginRequired } from './services/remoteSync'
+import { repository } from './repository/localStorageRepository'
 import { isQaModeEnabled, setQaModeEnabled } from './services/appModeService'
 import { isQaStaff } from './services/identityService'
 import { hasCompletedOnboarding } from './services/onboardingService'
@@ -31,6 +35,12 @@ type View = 'home' | 'progress' | 'qa-simulator' | 'admin' | 'achievements' | 'l
 // browser still has the toggle switched on in localStorage.
 function App() {
   const [view, setView] = useState<View>('home')
+  // With a backend, every agent signs in (email + PIN) so their Rocky loads
+  // from the server on any device — never a fresh local-only Rocky.
+  const [needsLogin, setNeedsLogin] = useState(() => isBackendConfigured() && (!getAgentEmail() || isLoginRequired()))
+  const [loginNotice, setLoginNotice] = useState<string | undefined>(() =>
+    isLoginRequired() ? 'Please sign in to keep your progress in sync.' : undefined,
+  )
   const [onboarded, setOnboarded] = useState(() => hasCompletedOnboarding())
   const [staff] = useState(() => isQaStaff())
   const canUseQaTools = staff || import.meta.env.DEV
@@ -42,8 +52,32 @@ function App() {
     if (!qaMode && view === 'qa-simulator') setView('home')
   }, [qaMode, view])
 
+  // Any API call that comes back 401 (session expired, PIN reset by QA)
+  // sends the agent to the sign-in screen.
+  useEffect(() => {
+    const onAuth = (e: Event) => {
+      setLoginNotice((e as CustomEvent<string>).detail || 'Your session ended. Please sign in again.')
+      setNeedsLogin(true)
+    }
+    window.addEventListener('rocky:auth-required', onAuth)
+    return () => window.removeEventListener('rocky:auth-required', onAuth)
+  }, [])
+
+  if (needsLogin) {
+    return <Login initialEmail={getAgentEmail() ?? ''} notice={loginNotice} onSignedIn={() => window.location.reload()} />
+  }
+
   if (!onboarded) {
     return <Onboarding onComplete={() => setOnboarded(true)} />
+  }
+
+  async function signOut() {
+    if (getSessionToken()) await apiClient.logout().catch(() => {})
+    // Shared PCs: nothing of this agent stays in the browser after signing out.
+    endSession()
+    repository.resetAll()
+    window.localStorage.removeItem('rocky.onboarding.completed')
+    window.location.assign(window.location.pathname)
   }
 
   function toggleQaMode() {
@@ -57,8 +91,14 @@ function App() {
     { view: 'progress', label: 'Progress', icon: 'chart' },
     { view: 'achievements', label: 'Badges', icon: 'medal' },
     { view: 'leaderboard', label: 'Ranking', icon: 'podium' },
-    { view: 'team', label: 'My team', icon: 'team' },
-    { view: 'team-leaderboard', label: 'Teams', icon: 'teams' },
+    // Teams are still a demo roster (no real team assignments yet), so they
+    // are only shown offline — never presented to pilot agents as real.
+    ...(isRemoteModeEnabled()
+      ? []
+      : [
+          { view: 'team' as View, label: 'My team', icon: 'team' as NavIconName },
+          { view: 'team-leaderboard' as View, label: 'Teams', icon: 'teams' as NavIconName },
+        ]),
     ...(canUseAdmin ? [{ view: 'admin' as View, label: 'Admin', icon: 'admin' as NavIconName, internal: true }] : []),
     ...(qaMode ? [{ view: 'qa-simulator' as View, label: 'QA sim', icon: 'flask' as NavIconName, internal: true }] : []),
     ...(import.meta.env.DEV ? [{ view: 'dev-controls' as View, label: 'Dev', icon: 'wrench' as NavIconName, internal: true }] : []),
@@ -68,7 +108,9 @@ function App() {
     <div className={styles.shell}>
       <header className={styles.topBar}>
         <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">R</span>
+          <span className={styles.brandMark} aria-hidden="true">
+            R
+          </span>
           <span className={styles.brandName}>Rocky</span>
           <span className={styles.brandBy}>by RLX</span>
         </div>
@@ -85,6 +127,16 @@ function App() {
             </button>
           ))}
         </nav>
+        {isBackendConfigured() && getAgentEmail() && (
+          <div className={styles.account}>
+            <span className={styles.accountEmail} title={getAgentEmail() ?? ''}>
+              {getAgentEmail()}
+            </span>
+            <button type="button" className={styles.signOut} onClick={() => void signOut()}>
+              Sign out
+            </button>
+          </div>
+        )}
       </header>
 
       {view === 'home' && <Home onOpenProgress={() => setView('progress')} />}

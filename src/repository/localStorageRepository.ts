@@ -1,11 +1,4 @@
-import {
-  DEFAULT_AGENT_ID,
-  INITIAL_GAME_STATE,
-  type Achievement,
-  type Agent,
-  type GameEvent,
-  type GameState,
-} from '../types/domain'
+import { DEFAULT_AGENT_ID, INITIAL_GAME_STATE, type Achievement, type Agent, type GameEvent, type GameState } from '../types/domain'
 import type { ReminderRecord, ReminderStatus } from '../types/reminder'
 import type { Repository } from './repository'
 import { isValidAgent, sanitizeAchievements, sanitizeEvents, sanitizeGameState, sanitizeReminders } from './sanitize'
@@ -144,6 +137,16 @@ export class LocalStorageRepository implements Repository {
     if (reminders[index].status === 'acted' || reminders[index].status === 'dismissed') return
     reminders[index] = { ...reminders[index], status }
     writeJson(KEYS.reminders, reminders)
+  }
+
+  /** Remote mode: the server's full history replaces this browser's copy (see remoteSync). */
+  replaceEvents(events: GameEvent[]): void {
+    writeJson(KEYS.events, sanitizeEvents(events))
+  }
+
+  /** Remote mode: the server's badges replace this browser's copy (see remoteSync). */
+  replaceAchievements(achievements: Achievement[]): void {
+    writeJson(KEYS.achievements, sanitizeAchievements(achievements))
   }
 
   resetReminders(): void {

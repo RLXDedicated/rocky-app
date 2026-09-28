@@ -16,12 +16,35 @@ export function captureIdentityFromUrl(location: Pick<Location, 'search'> = wind
   const params = new URLSearchParams(location.search)
   const email = params.get('agente')?.trim().toLowerCase()
   if (email && email.length > 0) {
+    // A link for a different agent ends the previous agent's session here.
+    if (window.localStorage.getItem(AGENT_EMAIL_KEY) !== email) window.localStorage.removeItem(SESSION_TOKEN_KEY)
     window.localStorage.setItem(AGENT_EMAIL_KEY, email)
   }
 }
 
 export function getAgentEmail(): string | null {
   return window.localStorage.getItem(AGENT_EMAIL_KEY)
+}
+
+// PIN sign-in session (see backend authApplicationService). The token is
+// sent as `Authorization: Bearer` and takes precedence over the pilot's
+// X-Agent-Email header, so the same progress loads on any device.
+const SESSION_TOKEN_KEY = 'rocky.session.token'
+
+export function getSessionToken(): string | null {
+  return window.localStorage.getItem(SESSION_TOKEN_KEY)
+}
+
+export function startSession(email: string, token: string): void {
+  window.localStorage.setItem(AGENT_EMAIL_KEY, email.trim().toLowerCase())
+  window.localStorage.setItem(SESSION_TOKEN_KEY, token)
+}
+
+/** Forgets who is signed in on this browser (the agent's data stays safe on the server). */
+export function endSession(): void {
+  window.localStorage.removeItem(SESSION_TOKEN_KEY)
+  window.localStorage.removeItem(AGENT_EMAIL_KEY)
+  window.localStorage.removeItem('rocky.identity.role')
 }
 
 // The role the backend reported for this agent on the last successful sync

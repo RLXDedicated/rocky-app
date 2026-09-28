@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import request from 'supertest'
 import type { PersistenceContext } from '../src/infrastructure/persistenceContext'
 import { AGENT_HEADER, buildTestApp } from './testApp'
+import { InMemoryAccountStore } from '../src/infrastructure/accounts/InMemoryAccountStore'
 
 /** A persistence context whose repository always throws — simulates a durable-store outage. */
 function brokenPersistence(): PersistenceContext {
@@ -27,6 +28,7 @@ function brokenPersistence(): PersistenceContext {
       check: () => ({ kind: 'new' }),
       record: () => {},
     },
+    accounts: new InMemoryAccountStore(),
     withTransaction<T>(fn: () => T): T {
       return fn()
     },

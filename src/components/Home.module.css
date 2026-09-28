@@ -192,8 +192,6 @@
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--rlx-green);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .coinBurst {

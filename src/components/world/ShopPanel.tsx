@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { isUsable, itemsFor, type ItemSlot, type Outfit, type ProgressFacts } from '../../game/closet'
+import { isUsable, itemsFor, MAX_DECOR, type ClosetItem, type ItemSlot, type Outfit, type ProgressFacts } from '../../game/closet'
 import { TREAT_BAG } from '../../game/economy'
 import { DECOR_ART, FX_ART, HAT_ART, SceneArt } from './art'
 import { Coin } from './Coin'
@@ -15,14 +15,16 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'treats', label: 'Treats' },
 ]
 
-const MAX_DECOR = 3
-
 interface Props {
   open: boolean
   onClose: () => void
   outfit: Outfit
   facts: ProgressFacts
   owned: readonly string[]
+  /** Items an admin gifted (usable regardless of progress). */
+  granted: readonly string[]
+  /** The shop with any admin price/availability edits. */
+  catalog: ClosetItem[]
   coins: number
   treats: number
   onChange: (outfit: Outfit) => void
@@ -37,7 +39,7 @@ interface Props {
  * coins earned by the same work. Rocky stays visible while shopping so every
  * item can be tried on.
  */
-export function ShopPanel({ open, onClose, outfit, facts, owned, coins, treats, onChange, onBuy, onBuyTreats }: Props) {
+export function ShopPanel({ open, onClose, outfit, facts, owned, granted, catalog, coins, treats, onChange, onBuy, onBuyTreats }: Props) {
   const [tab, setTab] = useState<Tab>('hat')
   const closeRef = useRef<HTMLButtonElement>(null)
 
@@ -69,7 +71,8 @@ export function ShopPanel({ open, onClose, outfit, facts, owned, coins, treats, 
     }
   }
 
-  const items = tab === 'treats' ? [] : itemsFor(tab)
+  // Items taken out of the shop by an admin stay visible only to agents who already have them.
+  const items = tab === 'treats' ? [] : itemsFor(tab, catalog).filter((i) => i.enabled !== false || isUsable(i, facts, owned, granted))
 
   return (
     <div className={styles.backdrop} onClick={onClose}>
@@ -122,19 +125,19 @@ export function ShopPanel({ open, onClose, outfit, facts, owned, coins, treats, 
         ) : (
           <>
             <p className={styles.count}>
-              {items.filter((i) => isUsable(i, facts, owned)).length} of {items.length} owned
+              {items.filter((i) => isUsable(i, facts, owned, granted)).length} of {items.length} owned
               {tab === 'decor' ? ` · place up to ${MAX_DECOR}` : ''}
             </p>
             <ul className={styles.grid}>
               {items.map((item) => {
-                const unlocked = item.isUnlocked(facts)
-                const usable = isUsable(item, facts, owned)
+                const usable = isUsable(item, facts, owned, granted)
+                const unlocked = usable || item.isUnlocked(facts)
                 const on = usable && isEquipped(item.slot, item.id)
                 const short = item.price - coins
                 let state: string
                 if (!unlocked) state = item.requirement
                 else if (!usable) state = short > 0 ? `${short} more coins` : 'Tap to buy'
-                else state = on ? (item.slot === 'hat' ? 'Wearing' : 'In use') : 'Tap to use'
+                else state = on ? (item.slot === 'hat' ? 'Wearing' : 'In use') : granted.includes(item.id) ? 'Gift · tap to use' : 'Tap to use'
                 return (
                   <li key={item.id}>
                     <button

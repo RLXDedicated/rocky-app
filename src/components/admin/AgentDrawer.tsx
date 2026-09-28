@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { apiClient, type AdminAgentDetail } from '../../services/apiClient'
 import type { EvolutionStage, Mood } from '../../types/domain'
 import { RockyAvatar } from '../RockyAvatar'
+import { AgentPetPanel } from './AgentPetPanel'
 import styles from './AdminConsole.module.css'
 import { EVENT_TYPE_ES, MOOD_ES, displayName, eventDetail, fmtDateTime, relativeDays, todayIso } from './adminFormat'
 
-type Tab = 'timeline' | 'achievements' | 'reminders'
+type Tab = 'timeline' | 'achievements' | 'reminders' | 'pet' | 'audit' | 'access'
 
 interface Props {
   agentId: string
@@ -89,12 +90,18 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
                   e.preventDefault()
                   const name = editingName.trim()
                   if (!name) return
-                  void run(() => apiClient.renameAgent(agent.id, name), `Nombre actualizado para ${agent.id}.`).then((ok) => ok && setEditingName(null))
+                  void run(() => apiClient.renameAgent(agent.id, name), `Nombre actualizado para ${agent.id}.`).then(
+                    (ok) => ok && setEditingName(null),
+                  )
                 }}
               >
                 <input autoFocus value={editingName} maxLength={80} onChange={(e) => setEditingName(e.target.value)} />
-                <button className={styles.btnPrimary} disabled={busy}>Guardar</button>
-                <button type="button" className={styles.btnGhost} onClick={() => setEditingName(null)}>Cancelar</button>
+                <button className={styles.btnPrimary} disabled={busy}>
+                  Guardar
+                </button>
+                <button type="button" className={styles.btnGhost} onClick={() => setEditingName(null)}>
+                  Cancelar
+                </button>
               </form>
             ) : (
               <h2>
@@ -107,11 +114,7 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
             <p className={styles.muted}>
               {agent.id} {isSelf && <span className={styles.chip}>tú</span>} · Rocky “{agent.rockyName}”
             </p>
-            {m.atRisk ? (
-              <p className={styles.riskLine}>⚠ En riesgo: {m.riskReasons.join(' · ')}</p>
-            ) : (
-              <p className={styles.okLine}>✓ Al día</p>
-            )}
+            {m.atRisk ? <p className={styles.riskLine}>⚠ En riesgo: {m.riskReasons.join(' · ')}</p> : <p className={styles.okLine}>✓ Al día</p>}
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Cerrar">
             ✕
@@ -119,18 +122,56 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
         </header>
 
         <div className={styles.miniStats}>
-          <div><span>Nivel</span><b>{s.level}</b></div>
-          <div><span>XP</span><b>{s.xp}</b></div>
-          <div><span>Energía</span><b>{s.energy}</b></div>
-          <div><span>Ánimo</span><b>{MOOD_ES[s.mood] ?? s.mood}</b></div>
-          <div><span>Etapa</span><b>{s.evolutionStage}</b></div>
-          <div><span>Racha</span><b>{s.currentStreak} <small>(mejor {s.bestStreak})</small></b></div>
-          <div><span>Último check-in</span><b>{relativeDays(m.daysSinceCheckIn)}</b></div>
-          <div><span>Check-ins</span><b>{m.checkIns}</b></div>
-          <div><span>QA Pass</span><b>{m.qaPasses}</b></div>
-          <div><span>Alertas</span><b>{m.alerts}</b></div>
-          <div><span>Correcciones</span><b>{m.corrections}</b></div>
-          <div><span>Logros</span><b>{m.achievements}</b></div>
+          <div>
+            <span>Nivel</span>
+            <b>{s.level}</b>
+          </div>
+          <div>
+            <span>XP</span>
+            <b>{s.xp}</b>
+          </div>
+          <div>
+            <span>Energía</span>
+            <b>{s.energy}</b>
+          </div>
+          <div>
+            <span>Ánimo</span>
+            <b>{MOOD_ES[s.mood] ?? s.mood}</b>
+          </div>
+          <div>
+            <span>Etapa</span>
+            <b>{s.evolutionStage}</b>
+          </div>
+          <div>
+            <span>Racha</span>
+            <b>
+              {s.currentStreak} <small>(mejor {s.bestStreak})</small>
+            </b>
+          </div>
+          <div>
+            <span>Último check-in</span>
+            <b>{relativeDays(m.daysSinceCheckIn)}</b>
+          </div>
+          <div>
+            <span>Check-ins</span>
+            <b>{m.checkIns}</b>
+          </div>
+          <div>
+            <span>QA Pass</span>
+            <b>{m.qaPasses}</b>
+          </div>
+          <div>
+            <span>Alertas</span>
+            <b>{m.alerts}</b>
+          </div>
+          <div>
+            <span>Correcciones</span>
+            <b>{m.corrections}</b>
+          </div>
+          <div>
+            <span>Logros</span>
+            <b>{m.achievements}</b>
+          </div>
         </div>
 
         <section className={styles.drawerSection}>
@@ -167,6 +208,9 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
           {(
             [
               ['timeline', `Historial (${events.length})`],
+              ['pet', 'Mascota y coins'],
+              ['audit', 'Trazabilidad'],
+              ['access', 'Acceso'],
               ['achievements', `Logros (${achievements.length})`],
               ['reminders', `Recordatorios (${reminders.length})`],
             ] as const
@@ -182,7 +226,7 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
             <select className={styles.select} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
               {eventTypes.map((t) => (
                 <option key={t} value={t}>
-                  {t === 'ALL' ? 'Todos los eventos' : EVENT_TYPE_ES[t] ?? t}
+                  {t === 'ALL' ? 'Todos los eventos' : (EVENT_TYPE_ES[t] ?? t)}
                 </option>
               ))}
             </select>
@@ -215,10 +259,7 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
                             '',
                           )
                           if (reason === null) return
-                          void run(
-                            () => apiClient.correction(agent.id, e.id, flipTo, reason || undefined),
-                            `Corrección registrada para ${agent.id}.`,
-                          )
+                          void run(() => apiClient.correction(agent.id, e.id, flipTo, reason || undefined), `Corrección registrada para ${agent.id}.`)
                         }}
                       >
                         Corregir a {flipTo === 'PASS' ? 'Pass' : 'Alerta'}
@@ -263,6 +304,10 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
           </section>
         )}
 
+        {(tab === 'pet' || tab === 'audit' || tab === 'access') && (
+          <AgentPetPanel agentId={agent.id} tab={tab} onChanged={onChanged} onError={onError} />
+        )}
+
         <section className={`${styles.drawerSection} ${styles.dangerZone}`}>
           <h3>Zona de riesgo</h3>
           <p className={styles.muted}>Estas acciones no se pueden deshacer.</p>
@@ -271,7 +316,9 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
               className={styles.btnDangerOutline}
               disabled={busy}
               onClick={() => {
-                const ok = window.prompt(`Esto borra TODO el progreso de ${agent.id} (XP, eventos, logros, racha) y le deja un Rocky nuevo.\nEscribe RESETEAR para confirmar:`)
+                const ok = window.prompt(
+                  `Esto borra TODO el progreso de ${agent.id} (XP, eventos, logros, racha) y le deja un Rocky nuevo.\nEscribe RESETEAR para confirmar:`,
+                )
                 if (ok?.trim().toUpperCase() !== 'RESETEAR') return
                 void run(() => apiClient.resetAgent(agent.id), `Progreso de ${agent.id} reseteado.`)
               }}

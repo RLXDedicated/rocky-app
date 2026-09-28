@@ -83,7 +83,7 @@
   border-radius: 24px;
 }
 
-.body > span {
+.body > span:first-child {
   position: relative;
   display: block;
   width: 100%;
@@ -291,36 +291,6 @@
   }
 }
 
-.ball {
-  position: absolute;
-  z-index: 2;
-  width: 30px;
-  height: 30px;
-  margin-left: -15px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ffffff 0 30%, transparent 31%), var(--rlx-green);
-  border: 3px solid #ffffff;
-  box-shadow: 0 3px 0 rgba(15, 35, 65, 0.2);
-  animation: drop 0.45s cubic-bezier(0.5, 0, 0.8, 1);
-}
-
-@keyframes drop {
-  from {
-    transform: translateY(-220px);
-  }
-}
-
-.ballKicked {
-  animation: kick 1s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
-}
-
-@keyframes kick {
-  to {
-    transform: translate(180px, -320px) rotate(540deg);
-    opacity: 0;
-  }
-}
-
 /* Bottom dock: care actions and the primary check-in. */
 .dock {
   position: absolute;
@@ -343,31 +313,86 @@
 .care {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 12px 14px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 6px 20px rgba(15, 35, 65, 0.1);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(15, 35, 65, 0.12);
   backdrop-filter: blur(6px);
 }
 
-.heartsMeter {
+.meters {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.meter {
   display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 96px;
+  --meter: var(--rlx-green);
+  color: var(--meter);
+}
+
+.meter[data-level='mid'] {
+  --meter: #e0a21a;
+}
+
+.meter[data-level='low'] {
+  --meter: #e2574c;
+}
+
+.meter[data-level='low'] > svg {
+  animation: needPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes needPulse {
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+.meterBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
-  font-size: 1.05rem;
+  min-width: 0;
+}
+
+.meterLabel {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--navy);
+  font-size: 0.74rem;
+  font-weight: 600;
   line-height: 1;
 }
 
-.heartSlot {
-  color: #dfe5ea;
+.meterLabel b {
+  color: var(--meter);
+  font-weight: 800;
 }
 
-.heartSlot[data-fill='1'] {
-  color: #f2a3ae;
+.meterTrack {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--track-bg);
+  overflow: hidden;
 }
 
-.heartSlot[data-fill='2'] {
-  color: #e2445c;
+.meterTrack > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--meter);
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.3s ease;
 }
 
 .careButtons {
@@ -384,10 +409,12 @@
   border: 1px solid var(--card-border);
   background: #ffffff;
   color: var(--navy);
+  font: inherit;
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
   white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 
 .careBtn:hover:not(:disabled) {
@@ -395,14 +422,54 @@
   color: var(--rlx-green);
 }
 
+.careBtn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
 .careBtn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.careBtn b {
-  font-weight: 800;
+.careBtn:focus-visible,
+.sound:focus-visible {
+  outline: 3px solid var(--rlx-green);
+  outline-offset: 2px;
+}
+
+.count {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--mint);
   color: var(--rlx-green);
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+/* When Rocky is muddy, the Bath button gently asks for attention. */
+.careBtnNudge {
+  border-color: #6fb6e8;
+  color: #1d5f8f;
+  animation: nudge 2.4s ease-in-out infinite;
+}
+
+@keyframes nudge {
+  0%,
+  80%,
+  100% {
+    transform: none;
+  }
+  85% {
+    transform: rotate(-4deg);
+  }
+  90% {
+    transform: rotate(4deg);
+  }
+  95% {
+    transform: rotate(-2deg);
+  }
 }
 
 .primary {
@@ -450,7 +517,7 @@
   }
 
   .care {
-    align-items: center;
+    align-items: stretch;
     box-shadow: none;
     background: var(--bg);
   }
@@ -553,7 +620,9 @@
 
 .fxLeaf,
 .fxFirefly,
-.fxConfetti {
+.fxConfetti,
+.fxSnow,
+.fxHeart {
   position: absolute;
   left: var(--x);
   top: -20px;
@@ -635,6 +704,60 @@
   }
 }
 
+.fxSnow {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
+  animation-name: snow;
+}
+
+@keyframes snow {
+  0% {
+    transform: translate(0, 0) scale(var(--s));
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.95;
+  }
+  50% {
+    transform: translate(18px, 260px) scale(var(--s));
+  }
+  100% {
+    transform: translate(-10px, 540px) scale(var(--s));
+    opacity: 0.8;
+  }
+}
+
+.fxHeart {
+  top: auto;
+  bottom: -20px;
+  width: 16px;
+  height: 16px;
+  background: #ff8fa3;
+  clip-path: path('M8 15 C8 15 1 10 1 5.5 C1 2.5 3.5 1 5.5 1 C7 1 8 2.2 8 3 C8 2.2 9 1 10.5 1 C12.5 1 15 2.5 15 5.5 C15 10 8 15 8 15 Z');
+  animation-name: heartRise;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes heartRise {
+  0% {
+    transform: translate(0, 0) scale(var(--s));
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(16px, -220px) scale(var(--s));
+  }
+  100% {
+    transform: translate(-8px, -460px) scale(var(--s));
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :global(.rocky-drift),
   :global(.rocky-twinkle) {
@@ -643,5 +766,315 @@
 
   .fx {
     display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Play: the soccer ball (positions are driven by Ball.tsx's physics).
+   ------------------------------------------------------------------------- */
+.ball,
+.ballShadow {
+  position: absolute;
+  left: 0;
+  z-index: 2;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.ball > svg {
+  display: block;
+  filter: drop-shadow(0 2px 1px rgba(15, 35, 65, 0.2));
+}
+
+.ballShadow {
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(15, 35, 65, 0.9);
+  filter: blur(2px);
+  transform-origin: 50% 50%;
+}
+
+/* ---------------------------------------------------------------------------
+   Needs made visible: mud, flies, the bath.
+   ------------------------------------------------------------------------- */
+.mud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+
+.mud i {
+  position: absolute;
+  border-radius: 48% 52% 60% 40% / 55% 45% 55% 45%;
+  background: radial-gradient(circle at 40% 35%, #8a6440, #5e4128 70%);
+  opacity: 0.78;
+  mix-blend-mode: multiply;
+}
+
+.flies {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  pointer-events: none;
+}
+
+.flies i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #243042;
+  box-shadow: -3px -2px 0 -1px rgba(255, 255, 255, 0.8), 3px -2px 0 -1px rgba(255, 255, 255, 0.8);
+  animation: fly 2.2s linear infinite;
+}
+
+.flies i:last-child {
+  animation-duration: 1.7s;
+  animation-direction: reverse;
+}
+
+@keyframes fly {
+  from {
+    transform: rotate(0deg) translateX(46px) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(46px) rotate(-360deg);
+  }
+}
+
+.bath {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.showerHead {
+  position: absolute;
+  left: 50%;
+  top: -16%;
+  width: 34%;
+  height: 7%;
+  margin-left: -17%;
+  border-radius: 50% 50% 12px 12px;
+  background: linear-gradient(#cfd9e3, #9fb0c1);
+  box-shadow: inset 0 -3px 0 rgba(15, 35, 65, 0.15);
+  animation: showerIn 0.3s ease-out;
+}
+
+.showerHead::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 6px;
+  height: 60px;
+  margin-left: -3px;
+  background: #9fb0c1;
+}
+
+.water {
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  top: -9%;
+  bottom: 8%;
+  background: repeating-linear-gradient(92deg, rgba(120, 190, 240, 0) 0 9px, rgba(120, 190, 240, 0.55) 9px 11px, rgba(120, 190, 240, 0) 11px 19px);
+  background-size: 100% 40px;
+  mask-image: linear-gradient(to bottom, #000 60%, transparent);
+  animation: rain 0.35s linear infinite, fadeWater 2.6s ease forwards;
+}
+
+@keyframes rain {
+  to {
+    background-position: 0 40px;
+  }
+}
+
+@keyframes fadeWater {
+  0%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes showerIn {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+}
+
+.foam i {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0 35%, #e7f3fc 70%, #cfe6f7);
+  box-shadow: 0 1px 2px rgba(15, 35, 65, 0.1);
+  animation: foam 2.6s ease both;
+}
+
+.foam i:nth-child(1) { left: 30%; top: 12%; width: 16%; height: 12%; }
+.foam i:nth-child(2) { left: 50%; top: 8%; width: 18%; height: 14%; animation-delay: 0.15s; }
+.foam i:nth-child(3) { left: 40%; top: 45%; width: 20%; height: 15%; animation-delay: 0.3s; }
+.foam i:nth-child(4) { left: 25%; top: 62%; width: 14%; height: 11%; animation-delay: 0.45s; }
+.foam i:nth-child(5) { left: 58%; top: 60%; width: 15%; height: 12%; animation-delay: 0.6s; }
+.foam i:nth-child(6) { left: 44%; top: 78%; width: 18%; height: 10%; animation-delay: 0.75s; }
+
+@keyframes foam {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  25%,
+  70% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3) translateY(8px);
+    opacity: 0;
+  }
+}
+
+.pose-bath {
+  animation: shiver 0.28s ease-in-out 8;
+}
+
+@keyframes shiver {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1.5%) rotate(-1deg);
+  }
+  75% {
+    transform: translateX(1.5%) rotate(1deg);
+  }
+}
+
+.bubble,
+.sparkle {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.bubble {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(120, 190, 240, 0.9);
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95) 0 20%, rgba(200, 230, 250, 0.35) 40%, transparent 70%);
+  animation: bubbleUp 2.4s ease-out forwards;
+}
+
+.bubble:nth-child(odd) {
+  width: 9px;
+  height: 9px;
+  animation-duration: 1.9s;
+}
+
+@keyframes bubbleUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.4);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + 18px), -150px) scale(1.1);
+  }
+}
+
+.sparkle {
+  width: 16px;
+  height: 16px;
+  background: #ffe28a;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  animation: sparkle 1.3s ease-out forwards;
+}
+
+@keyframes sparkle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.2) rotate(0deg);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(-50%, -30px) scale(1.1) rotate(45deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -60px) scale(0.6) rotate(90deg);
+  }
+}
+
+/* Sound on/off, tucked into the stage's top-right corner below the HUD. */
+.sound {
+  position: absolute;
+  z-index: 5;
+  right: 16px;
+  top: 118px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--navy);
+  box-shadow: 0 4px 14px rgba(15, 35, 65, 0.12);
+  cursor: pointer;
+}
+
+.sound[aria-pressed='false'] {
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .sound {
+    top: 10px;
+    right: 10px;
+  }
+
+  .meters {
+    gap: 8px;
+  }
+
+  .meter {
+    min-width: 0;
+    gap: 4px;
+  }
+
+  .meterLabel {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 420px) {
+  /* Narrow phones: the bar colour carries the level; icons make room for the numbers. */
+  .meter > svg {
+    display: none;
+  }
+
+  .careButtons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meter[data-level='low'] > svg,
+  .careBtnNudge,
+  .water,
+  .foam i,
+  .pose-bath {
+    animation: none;
   }
 }

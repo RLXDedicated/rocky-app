@@ -70,7 +70,11 @@ export function resetLeaderboardTracking(): void {
  * solely by Energy/Streak/Alerts per the Game Engine.
  */
 export function getIndividualLeaderboardWithRankChange(repo: Repository = repository): LeaderboardResult {
-  const entries = getIndividualLeaderboard(repo)
+  return withRankChange(getIndividualLeaderboard(repo))
+}
+
+/** Adds this browser's "moved up / down" signal to a ranked list (local or from the pilot backend). */
+export function withRankChange(entries: LeaderboardEntry[]): LeaderboardResult {
   const currentUser = entries.find((e) => e.isCurrentUser)
 
   let rankChange: RankChange = 'first-time'

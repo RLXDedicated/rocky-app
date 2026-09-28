@@ -47,7 +47,7 @@ export function createPilotIdentity(config: Pick<AppConfig, 'adminEmails'>) {
     // explicit ROCKY_ADMIN_EMAILS allowlist (see AppConfig.adminEmails),
     // which acts as ADMIN — the pilot's QA coordinators. With no allowlist
     // configured, QA/ADMIN-only routes stay unreachable, as before.
-    req.identity = { agentId: email, role: adminEmails.has(email) ? 'ADMIN' : 'AGENT' }
+    req.identity = { agentId: email, role: adminEmails.has(email) ? 'ADMIN' : 'AGENT', via: 'pilot-link' }
     next()
   }
 }

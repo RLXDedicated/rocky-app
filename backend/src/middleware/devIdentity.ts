@@ -36,6 +36,8 @@ const VALID_ROLES: readonly DevRole[] = ['AGENT', 'QA', 'SUPERVISOR', 'ADMIN']
 export interface DevIdentity {
   agentId: string
   role: DevRole
+  /** How this request was identified — recorded in the audit trail. */
+  via?: 'session' | 'pilot-link' | 'dev'
 }
 
 declare module 'express-serve-static-core' {
@@ -68,7 +70,7 @@ export function devIdentity(req: Request, _res: Response, next: NextFunction): v
     return
   }
 
-  req.identity = { agentId: agentId.trim(), role: roleHeader }
+  req.identity = { agentId: agentId.trim(), role: roleHeader, via: 'dev' }
   next()
 }
 

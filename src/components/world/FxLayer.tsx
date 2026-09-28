@@ -5,6 +5,8 @@ const KIND: Record<string, { className: string; count: number }> = {
   'fx-leaves': { className: styles.fxLeaf!, count: 12 },
   'fx-fireflies': { className: styles.fxFirefly!, count: 16 },
   'fx-confetti': { className: styles.fxConfetti!, count: 26 },
+  'fx-snow': { className: styles.fxSnow!, count: 40 },
+  'fx-hearts': { className: styles.fxHeart!, count: 12 },
 }
 
 const COLORS = ['#1fbf68', '#f5b82e', '#ffffff', '#e2445c', '#9fc6e8']

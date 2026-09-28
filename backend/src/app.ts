@@ -21,6 +21,10 @@ import { createReminderApplicationService } from './application/reminderApplicat
 import { createLeaderboardApplicationService } from './application/leaderboardApplicationService'
 import { createTeamApplicationService } from './application/teamApplicationService'
 import { createAdminApplicationService } from './application/adminApplicationService'
+import { createPetApplicationService } from './application/petApplicationService'
+import { createAuthApplicationService } from './application/authApplicationService'
+import { createSessionIdentity } from './middleware/sessionIdentity'
+import { parseJsonBody } from './api/validation'
 import { todayKey, type Clock } from './domain/rockyEngine'
 
 // Reusing teamService/leaderboardService/reminderService UNCHANGED (see
@@ -51,11 +55,28 @@ export function createApp(options: CreateAppOptions = {}): Express {
   app.use(requestId)
 
   const api = express.Router()
+  const auth = createAuthApplicationService({ persistence, config, clock: options.clock })
+
+  // Sign-in routes come before identity: they are how an identity is obtained.
+  api.post('/auth/status', (req, res) => {
+    res.json(auth.status(parseJsonBody(req.body).email))
+  })
+  api.post('/auth/login', (req, res) => {
+    const body = parseJsonBody(req.body)
+    const result = auth.login({ email: body.email, pin: body.pin, userAgent: req.header('User-Agent') })
+    if ('error' in result) {
+      res.status(401).json({ error: { code: 'WRONG_PIN', message: result.error, requestId: req.requestId } })
+      return
+    }
+    res.json(result)
+  })
+
   // See config/env.ts's AuthMode: 'pilot-header' is an explicit opt-in for
   // the Teams-reminder pilot only — every other configuration (including
   // an unconfigured production deployment) keeps the fail-closed devIdentity
   // behavior, which 401s every request when devIdentityEnabled is false.
-  api.use(config.authMode === 'pilot-header' ? createPilotIdentity(config) : devIdentity)
+  // A PIN sign-in session (Authorization: Bearer) always takes precedence.
+  api.use(createSessionIdentity(auth, config.authMode === 'pilot-header' ? createPilotIdentity(config) : devIdentity, config.requireLogin))
   api.use(
     createApiRouter({
       game: createGameApplicationService({ persistence, clock: options.clock }),
@@ -64,6 +85,8 @@ export function createApp(options: CreateAppOptions = {}): Express {
       leaderboard: createLeaderboardApplicationService({ persistence }),
       team: createTeamApplicationService({ persistence }),
       admin: createAdminApplicationService({ persistence, config, clock: options.clock }),
+      pet: createPetApplicationService({ persistence, clock: options.clock }),
+      auth,
       clock: options.clock,
     }),
   )

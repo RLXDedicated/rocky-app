@@ -3,9 +3,8 @@ import { calculateMood } from '../engine/gameEngine'
 import { achievementReaction, checkInReaction, evolutionReaction, levelUpReaction, moodMessage } from '../engine/moodMessages'
 import { levelProgress } from '../engine/petProgress'
 import type { CheckInResult } from '../engine/gameEngine'
-import { repository } from '../repository/localStorageRepository'
 import { gameService } from '../services/gameService'
-import { performCheckIn } from '../services/checkInAction'
+import { CHECKED_IN_EVENT, performCheckIn } from '../services/checkInAction'
 import type { Agent, GameState } from '../types/domain'
 import styles from './Home.module.css'
 import { LoadingRocky } from './LoadingRocky'
@@ -15,10 +14,12 @@ import { type RockyReactionKey } from './rockyVisuals'
 import { Coin } from './world/Coin'
 import { RockyWorld } from './world/RockyWorld'
 import { ShopPanel } from './world/ShopPanel'
-import { loadOutfit, sanitizeOutfit, saveOutfit, type Outfit, type ProgressFacts } from '../game/closet'
-import { MAX_HEARTS, feed, loadCare, pet, play, treatsAvailable, type CareState } from '../game/care'
-import { balance, buyItem, buyTreatBag, loadWallet, type Wallet } from '../game/economy'
+import type { Outfit, ProgressFacts } from '../game/closet'
+import { canUse, coinBalance, refreshPetState, treatsAvailable, type PetAction } from '../game/pet'
+import { catalogFor, fetchPet, loadPetCache, performPetAction, type PetCache } from '../game/petClient'
+import { play as playSfx } from '../game/sfx'
 import { buildProgressFacts } from '../game/progressFacts'
+import { saveRockyName } from '../services/agentProfile'
 
 function isToday(dateKey: string | null): boolean {
   if (!dateKey) return false
@@ -44,21 +45,24 @@ export function Home({ onOpenProgress }: Props) {
   const [xpBurst, setXpBurst] = useState<number | null>(null)
   const [celebration, setCelebration] = useState<CelebrationData | null>(null)
   const [facts, setFacts] = useState<ProgressFacts | null>(null)
-  const [outfit, setOutfit] = useState<Outfit>(() => loadOutfit())
-  const [care, setCare] = useState<CareState>(() => loadCare())
-  const [wallet, setWallet] = useState<Wallet>(() => loadWallet())
+  const [pet, setPet] = useState<PetCache>(() => loadPetCache())
   const [shopOpen, setShopOpen] = useState(false)
   const [coinBurst, setCoinBurst] = useState<number | null>(null)
 
   function refreshFacts(state: GameState) {
-    const next = buildProgressFacts(state)
-    setFacts(next)
-    setOutfit((o) => sanitizeOutfit(o, next, loadWallet().owned))
+    setFacts(buildProgressFacts(state))
+  }
+
+  /** Runs a care/shop action: applied instantly, confirmed by the server in remote mode. */
+  function act(action: PetAction): boolean {
+    if (!facts) return false
+    const result = performPetAction(pet, action, facts, setPet)
+    if (result.ok) setPet((p) => ({ ...p, state: result.state }))
+    return result.ok
   }
 
   function changeOutfit(next: Outfit) {
-    setOutfit(next)
-    saveOutfit(next)
+    act({ type: 'equip', outfit: next })
   }
 
   useEffect(() => {
@@ -66,6 +70,25 @@ export function Home({ onOpenProgress }: Props) {
     setAgent(snapshot.agent)
     setGameState(snapshot.gameState)
     refreshFacts(snapshot.gameState)
+    // The server's copy of Rocky wins (another device may have changed him).
+    void fetchPet().then((fresh) => fresh && setPet(fresh))
+  }, [])
+
+  // A check-in made elsewhere (the reminder card) updates this screen too.
+  useEffect(() => {
+    const onCheckedIn = () => {
+      const snapshot = gameService.getSnapshot()
+      setGameState(snapshot.gameState)
+      refreshFacts(snapshot.gameState)
+    }
+    window.addEventListener(CHECKED_IN_EVENT, onCheckedIn)
+    return () => window.removeEventListener(CHECKED_IN_EVENT, onCheckedIn)
+  }, [])
+
+  // Needs drift with real time: bring them up to date every minute.
+  useEffect(() => {
+    const t = window.setInterval(() => setPet((p) => ({ ...p, state: refreshPetState(p.state, new Date()) })), 60_000)
+    return () => window.clearInterval(t)
   }, [])
 
   const alreadyCheckedInToday = useMemo(() => (gameState ? isToday(gameState.lastCheckInDate) : false), [gameState])
@@ -81,10 +104,7 @@ export function Home({ onOpenProgress }: Props) {
   if (!agent || !gameState || !facts) return <LoadingRocky />
 
   function handleRename(name: string) {
-    const current = repository.getAgent()
-    const next = { ...current, rockyName: name }
-    repository.saveAgent(next)
-    setAgent(next)
+    setAgent(saveRockyName(name))
   }
 
   function handleCheckIn() {
@@ -96,7 +116,7 @@ export function Home({ onOpenProgress }: Props) {
     const previousStage = gameState.evolutionStage
     const previousMood = mood
     const previousXp = gameState.xp
-    const previousCoins = facts ? balance(wallet, facts) : 0
+    const previousCoins = facts ? coinBalance(pet.state, facts) : 0
 
     // Small delay so the check-in reads as a moment shared with Rocky,
     // not an instant state flip.
@@ -121,9 +141,10 @@ export function Home({ onOpenProgress }: Props) {
         setXpBurst(gained)
         window.setTimeout(() => setXpBurst(null), 1800)
       }
-      const coinsGained = balance(wallet, buildProgressFacts(result.state)) - previousCoins
+      const coinsGained = coinBalance(loadPetCache().state, buildProgressFacts(result.state)) - previousCoins
       if (coinsGained > 0) {
         setCoinBurst(coinsGained)
+        window.setTimeout(() => playSfx('coin'), 600)
         window.setTimeout(() => setCoinBurst(null), 2000)
       }
 
@@ -175,18 +196,26 @@ export function Home({ onOpenProgress }: Props) {
 
   const buttonLabel = alreadyCheckedInToday ? 'Checked in today' : isCheckingIn ? 'Checking in…' : 'Check in with Rocky'
   const progress = levelProgress(gameState.xp, gameState.level)
-  const treats = treatsAvailable(care, facts.checkIns, facts.qaPasses, wallet.bonusTreats)
-  const coins = balance(wallet, facts)
+  const treats = treatsAvailable(pet.state, facts)
+  const coins = coinBalance(pet.state, facts)
+  const catalog = catalogFor(pet)
+  // Only what the agent can actually use is shown on Rocky.
+  const outfit = pet.state.outfit
+  const visibleOutfit: Outfit = {
+    hat: catalog.some((i) => i.id === outfit.hat && canUse(pet.state, i, facts)) ? outfit.hat : null,
+    scene: catalog.some((i) => i.id === outfit.scene && canUse(pet.state, i, facts)) ? outfit.scene : 'scene-route',
+    decor: outfit.decor.filter((d) => catalog.some((i) => i.id === d && canUse(pet.state, i, facts))),
+    fx: catalog.some((i) => i.id === outfit.fx && canUse(pet.state, i, facts)) ? outfit.fx : null,
+  }
 
   function handleBuy(id: string): boolean {
-    const r = buyItem(wallet, facts!, id)
-    if (r.ok) setWallet(r.wallet)
-    return r.ok
+    const ok = act({ type: 'buy', itemId: id })
+    playSfx(ok ? 'coin' : 'nope')
+    return ok
   }
 
   function handleBuyTreats() {
-    const r = buyTreatBag(wallet, facts!)
-    if (r.ok) setWallet(r.wallet)
+    playSfx(act({ type: 'buyTreats' }) ? 'coin' : 'nope')
   }
 
   return (
@@ -196,14 +225,14 @@ export function Home({ onOpenProgress }: Props) {
           mood={mood}
           stage={gameState.evolutionStage}
           reaction={rockyReaction}
-          outfit={outfit}
+          outfit={visibleOutfit}
           speech={reaction ?? moodLine}
           treats={treats}
-          hearts={care.hearts}
-          maxHearts={MAX_HEARTS}
-          onPet={() => setCare((c) => pet(c))}
-          onFeed={() => setCare((c) => feed(c, treats))}
-          onPlay={() => setCare((c) => play(c))}
+          needs={pet.state.needs}
+          onPet={() => act({ type: 'pet' })}
+          onFeed={() => act({ type: 'feed' })}
+          onPlay={() => act({ type: 'play' })}
+          onBath={() => act({ type: 'bath' })}
           hud={
             <>
               <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} />
@@ -267,7 +296,9 @@ export function Home({ onOpenProgress }: Props) {
         onClose={closeShop}
         outfit={outfit}
         facts={facts}
-        owned={wallet.owned}
+        owned={pet.state.owned}
+        granted={pet.state.granted}
+        catalog={catalog}
         coins={coins}
         treats={treats}
         onChange={changeOutfit}

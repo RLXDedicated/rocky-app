@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { calculateMood } from '../engine/gameEngine'
 import { xpGapToNextRank } from '../engine/leaderboard'
 import { gameService } from '../services/gameService'
-import { getIndividualLeaderboardWithRankChange, type RankChange } from '../services/leaderboardService'
+import { getIndividualLeaderboardWithRankChange, withRankChange, type RankChange } from '../services/leaderboardService'
+import { apiClient, isRemoteModeEnabled } from '../services/apiClient'
 import type { GameState, Mood } from '../types/domain'
 import type { LeaderboardEntry } from '../types/leaderboard'
 import styles from './Leaderboard.module.css'
@@ -22,7 +23,7 @@ function approximateMoodForDisplay(currentStreak: number): Mood {
 function rockyReactionFor(rankChange: RankChange): string {
   switch (rankChange) {
     case 'up':
-      return "🔼 Rocky moved up! Great progress."
+      return '🔼 Rocky moved up! Great progress.'
     case 'down':
       // Never punitive — a lower rank is framed as "keep going", not "you fell".
       return "Let's keep building."
@@ -60,7 +61,15 @@ export function Leaderboard() {
     setGameState(gameService.getSnapshot().gameState)
     if (hasReadRankRef.current) return
     hasReadRankRef.current = true
-    setResult(getIndividualLeaderboardWithRankChange())
+    if (!isRemoteModeEnabled()) {
+      setResult(getIndividualLeaderboardWithRankChange())
+      return
+    }
+    // Remote mode: the real pilot ranking; offline demo ranking if the backend can't be reached.
+    apiClient
+      .getLeaderboard()
+      .then((res) => setResult(withRankChange(res.entries)))
+      .catch(() => setResult(getIndividualLeaderboardWithRankChange()))
   }, [])
 
   if (!result || !result.currentUser || !gameState) return <LoadingRocky />
@@ -86,7 +95,10 @@ export function Leaderboard() {
 
         <section className={styles.podium} aria-label="Top 3">
           {podiumOrder.map((entry) => (
-            <div key={entry.agentId} className={`${styles.podiumSpot} ${styles[`place${entry.rank}`] ?? ''} ${entry.isCurrentUser ? styles.podiumYou : ''}`}>
+            <div
+              key={entry.agentId}
+              className={`${styles.podiumSpot} ${styles[`place${entry.rank}`] ?? ''} ${entry.isCurrentUser ? styles.podiumYou : ''}`}
+            >
               <RockyAvatar
                 mood={entry.isCurrentUser ? liveMood : approximateMoodForDisplay(entry.currentStreak)}
                 evolutionStage={entry.evolutionStage}

@@ -7,34 +7,60 @@
 // default — see README "What this is (and isn't)"), isRemoteModeEnabled()
 // is always false and nothing here is ever called. Set at build time by
 // the deployment that wires this frontend to a live backend.
-import { getAgentEmail } from './identityService'
+import { getAgentEmail, getSessionToken } from './identityService'
+import type { PetAction, PetFailure, PetState } from '../game/pet'
+import type { CatalogOverrides, ProgressFacts } from '../game/closet'
+import type { CoinBreakdown } from '../game/economy'
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '')
+// Read defensively: the backend's type-check also compiles this file (via
+// shared services) outside Vite, where import.meta.env does not exist.
+const API_BASE_URL = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_API_URL?.replace(/\/+$/, '')
+
+/** Whether this build talks to a backend at all (sign-in is offered only then). */
+export function isBackendConfigured(): boolean {
+  return Boolean(API_BASE_URL)
+}
 
 export function isRemoteModeEnabled(): boolean {
   return Boolean(API_BASE_URL) && Boolean(getAgentEmail())
 }
 
+/** Thrown for 401s so the app can send the agent back to the sign-in screen. */
+export class AuthRequiredError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'AuthRequiredError'
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const email = getAgentEmail()
+  const token = getSessionToken()
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
       'X-Agent-Email': email ?? '',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init.headers,
     },
   })
   if (!res.ok) {
     // Surface the backend's own message (see backend/src/api/errors.ts) when there is one.
-    let detail = ''
+    let message = ''
     try {
       const body = (await res.json()) as { error?: { message?: string } }
-      detail = body.error?.message ? `: ${body.error.message}` : ''
+      message = body.error?.message ?? ''
     } catch {
       // non-JSON error body — keep the status-only message
     }
-    throw new Error(`Rocky API ${init.method ?? 'GET'} ${path} failed with ${res.status}${detail}`)
+    if (res.status === 401 && !path.startsWith('/api/auth/')) {
+      window.dispatchEvent(new CustomEvent('rocky:auth-required', { detail: message }))
+      throw new AuthRequiredError(message || 'Please sign in again.')
+    }
+    const error = new Error(message || `Rocky API ${init.method ?? 'GET'} ${path} failed with ${res.status}`)
+    ;(error as Error & { status?: number }).status = res.status
+    throw error
   }
   // 204s and similar never occur on this API today, but guard anyway rather
   // than call res.json() on an empty body.
@@ -47,6 +73,86 @@ export interface RemoteAgent {
   name: string
   rockyName: string
   role: import('./identityService').AgentRole
+  via?: 'session' | 'pilot-link' | 'dev' | null
+}
+
+/** Rocky the pet as the server sees it — mirrors backend petApplicationService PetView. */
+export interface PetView {
+  state: PetState
+  coins: number
+  treats: number
+  earned: CoinBreakdown
+  facts: ProgressFacts
+  catalog: CatalogOverrides
+  revision: number
+  serverTime: string
+}
+
+export interface PetActionResponse extends PetView {
+  ok: boolean
+  reason: PetFailure | null
+}
+
+export interface LoginResponse {
+  token: string
+  expiresAt: string
+  firstLogin: boolean
+  agent: RemoteAgent
+}
+
+export interface LedgerRow {
+  id: number
+  agentId: string
+  delta: number
+  kind: string
+  itemId: string | null
+  note: string | null
+  actor: string
+  balanceAfter: number
+  createdAt: string
+}
+
+export interface AuditRow {
+  id: number
+  agentId: string | null
+  actor: string
+  action: string
+  detail: Record<string, unknown> | null
+  source: string | null
+  createdAt: string
+}
+
+export interface AdminPetDetail {
+  pet: PetView
+  ledger: LedgerRow[]
+  audit: AuditRow[]
+  sessions: { createdAt: string; lastSeenAt: string; expiresAt: string; userAgent: string | null; revokedAt: string | null; active: boolean }[]
+  hasPin: boolean
+}
+
+export interface AdminCatalogItem {
+  id: string
+  slot: string
+  name: string
+  requirement: string
+  price: number
+  basePrice: number
+  enabled: boolean
+}
+
+export interface AdminEconomy {
+  totals: { earned: number; spent: number; adjustments: number; balance: number }
+  needs: { health: number; happiness: number; dirt: number }
+  agents: {
+    agentId: string
+    earned: number
+    spent: number
+    adjust: number
+    balance: number
+    items: number
+    needs: { health: number; happiness: number; dirt: number }
+  }[]
+  ledger: LedgerRow[]
 }
 
 // Admin console shapes — mirror backend/src/types/dto.ts (Admin section).
@@ -145,19 +251,49 @@ export interface AdminSystem {
 }
 
 function newIdempotencyKey(): string {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 // Shapes intentionally left as `unknown`-adjacent (import type from the
 // domain where it matters) rather than redeclared here — see
 // backend/src/types/dto.ts, which these responses match field-for-field.
+const post = (body: unknown = {}): RequestInit => ({ method: 'POST', body: JSON.stringify(body) })
+const agentPath = (agentId: string, rest = '') => `/api/admin/agents/${encodeURIComponent(agentId)}${rest}`
+
 export const apiClient = {
+  // Sign-in (no identity needed).
+  authStatus: (email: string) => request<{ email: string; hasPin: boolean }>('/api/auth/status', post({ email })),
+  login: (email: string, pin: string) => request<LoginResponse>('/api/auth/login', post({ email, pin })),
+  logout: () => request<{ ok: boolean }>('/api/auth/logout', post()),
+
   getAgent: () => request<RemoteAgent>('/api/agent/me'),
+  renameRocky: (rockyName: string) => request<RemoteAgent>('/api/agent/me', { method: 'PATCH', body: JSON.stringify({ rockyName }) }),
+  markOnboarded: () => request<PetView>('/api/agent/onboarded', post()),
+  getEvents: () => request<{ events: import('../types/domain').GameEvent[] }>('/api/events'),
+  getPet: () => request<PetView>('/api/pet'),
+  getLeaderboard: () => request<{ entries: import('../types/leaderboard').LeaderboardEntry[] }>('/api/leaderboard'),
+  petAction: (action: PetAction) => request<PetActionResponse>('/api/pet/actions', post(action)),
+
+  // Admin: pet, coins, items, sign-in, catalogue, economy, audit.
+  getAdminPet: (agentId: string) => request<AdminPetDetail>(agentPath(agentId, '/pet')),
+  adjustCoins: (agentId: string, delta: number, note: string) => request<PetView>(agentPath(agentId, '/coins'), post({ delta, note })),
+  adjustTreats: (agentId: string, delta: number) => request<PetView>(agentPath(agentId, '/treats'), post({ delta })),
+  setItem: (agentId: string, itemId: string, action: 'grant' | 'revoke') => request<PetView>(agentPath(agentId, '/items'), post({ itemId, action })),
+  restoreNeeds: (agentId: string) => request<PetView>(agentPath(agentId, '/needs/restore'), post()),
+  resetPet: (agentId: string) => request<PetView>(agentPath(agentId, '/pet/reset'), post()),
+  resetPin: (agentId: string) => request<{ ok: boolean; sessionsRevoked: number }>(agentPath(agentId, '/pin-reset'), post()),
+  revokeSessions: (agentId: string) => request<{ ok: boolean; sessionsRevoked: number }>(agentPath(agentId, '/sessions/revoke'), post()),
+  getCatalog: () => request<{ items: AdminCatalogItem[]; overrides: CatalogOverrides }>('/api/admin/catalog'),
+  setCatalogItem: (itemId: string, value: { price?: number | null; enabled?: boolean | null }) =>
+    request<{ items: AdminCatalogItem[]; overrides: CatalogOverrides }>(`/api/admin/catalog/${encodeURIComponent(itemId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(value),
+    }),
+  getEconomy: () => request<AdminEconomy>('/api/admin/economy'),
+  getAudit: () => request<{ entries: AuditRow[] }>('/api/admin/audit'),
+
   getGameState: () => request<import('../types/domain').GameState>('/api/game-state'),
-  getAchievements: () =>
-    request<{ unlocked: import('../types/domain').Achievement[] }>('/api/achievements'),
+  getAchievements: () => request<{ unlocked: import('../types/domain').Achievement[] }>('/api/achievements'),
   checkIn: () =>
     request<import('../engine/gameEngine').CheckInResult>('/api/events/check-in', {
       method: 'POST',
@@ -173,10 +309,8 @@ export const apiClient = {
       method: 'PATCH',
       body: JSON.stringify({ name }),
     }),
-  resetAgent: (agentId: string) =>
-    request<unknown>(`/api/admin/agents/${encodeURIComponent(agentId)}/reset`, { method: 'POST', body: '{}' }),
-  deleteAgent: (agentId: string) =>
-    request<unknown>(`/api/admin/agents/${encodeURIComponent(agentId)}`, { method: 'DELETE' }),
+  resetAgent: (agentId: string) => request<unknown>(`/api/admin/agents/${encodeURIComponent(agentId)}/reset`, { method: 'POST', body: '{}' }),
+  deleteAgent: (agentId: string) => request<unknown>(`/api/admin/agents/${encodeURIComponent(agentId)}`, { method: 'DELETE' }),
   correction: (agentId: string, originalEventId: string, correctedTo: 'PASS' | 'ALERT', reason?: string) =>
     request<unknown>('/api/events/correction', {
       method: 'POST',

@@ -1,7 +1,8 @@
 .toast {
   position: fixed;
   right: 20px;
-  bottom: 20px;
+  /* Sits above the pet screen's bottom row so it never covers the check-in button. */
+  bottom: 150px;
   z-index: 100;
   width: min(360px, calc(100vw - 32px));
   display: flex;
@@ -27,9 +28,11 @@
 }
 
 @media (max-width: 760px) {
+  /* Phones: under the top bar, clear of Rocky's controls and the bottom nav. */
   .toast {
     right: 16px;
-    bottom: 88px;
+    top: 64px;
+    bottom: auto;
   }
 }
 

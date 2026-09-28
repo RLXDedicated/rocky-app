@@ -102,3 +102,77 @@ export const MIGRATION_002_IDEMPOTENCY = `
 // inventing a parallel model Phase 13 explicitly says not to (§4). If a
 // future phase needs real team rosters, that decision is made in the
 // frontend/domain layer first, then reflected here — not the reverse.
+
+// Accounts, the pet and traceability (migration 3):
+//  - pet_profiles: Rocky the pet per agent (needs, outfit, items, wallet
+//    counters) as one JSON document, validated by src/game/pet.ts.
+//  - coin_ledger: every coin movement that isn't derived from progress
+//    (purchases, treat bags, admin grants/deductions), with who did it and
+//    the balance right after.
+//  - audit_log: who did what, when and from where — logins, care actions,
+//    purchases, admin changes. Append-only; survives agent resets.
+//  - catalog_overrides: admin edits to the shop (price, availability).
+//  - agent_credentials / sessions: PIN sign-in so an agent's progress
+//    follows them to any device. Only salted scrypt hashes of PINs and
+//    SHA-256 hashes of session tokens are stored.
+export const MIGRATION_003_ACCOUNTS = `
+  CREATE TABLE pet_profiles (
+    agent_id   TEXT PRIMARY KEY,
+    state_json TEXT NOT NULL,
+    revision   INTEGER NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE coin_ledger (
+    entry_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id      TEXT NOT NULL,
+    delta         INTEGER NOT NULL,
+    kind          TEXT NOT NULL,
+    item_id       TEXT,
+    note          TEXT,
+    actor         TEXT NOT NULL,
+    balance_after INTEGER NOT NULL,
+    created_at    TEXT NOT NULL
+  );
+  CREATE INDEX idx_ledger_agent ON coin_ledger(agent_id, entry_id);
+
+  CREATE TABLE audit_log (
+    entry_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id    TEXT,
+    actor       TEXT NOT NULL,
+    action      TEXT NOT NULL,
+    detail_json TEXT,
+    source      TEXT,
+    created_at  TEXT NOT NULL
+  );
+  CREATE INDEX idx_audit_agent ON audit_log(agent_id, entry_id);
+
+  CREATE TABLE catalog_overrides (
+    item_id    TEXT PRIMARY KEY,
+    price      INTEGER,
+    enabled    INTEGER,
+    updated_by TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE agent_credentials (
+    agent_id        TEXT PRIMARY KEY,
+    pin_hash        TEXT NOT NULL,
+    salt            TEXT NOT NULL,
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    locked_until    TEXT,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+  );
+
+  CREATE TABLE sessions (
+    token_hash   TEXT PRIMARY KEY,
+    agent_id     TEXT NOT NULL,
+    created_at   TEXT NOT NULL,
+    expires_at   TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    user_agent   TEXT,
+    revoked_at   TEXT
+  );
+  CREATE INDEX idx_sessions_agent ON sessions(agent_id);
+`

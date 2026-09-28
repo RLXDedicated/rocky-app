@@ -82,6 +82,15 @@ export interface AppConfig {
    * process.env.TZ at startup. ROCKY_TIMEZONE, default America/Bogota.
    */
   timezone: string
+  /**
+   * When true, every API request must carry a session from the PIN
+   * sign-in (Authorization: Bearer) — the pilot's X-Agent-Email links stop
+   * working on their own. ROCKY_REQUIRE_LOGIN=true. Off by default so the
+   * existing Teams links keep working while agents create their PINs.
+   */
+  requireLogin: boolean
+  /** Email domains allowed to sign in (e.g. rlx.us). Empty = any. ROCKY_LOGIN_DOMAINS, comma-separated. */
+  loginDomains: string[]
 }
 
 function readNodeEnv(env: NodeJS.ProcessEnv): NodeEnv {
@@ -183,6 +192,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowedOrigins: readAllowedOrigins(env),
     adminEmails: readAdminEmails(env),
     timezone: readTimezone(env),
+    requireLogin: env.ROCKY_REQUIRE_LOGIN === 'true',
+    loginDomains: (env.ROCKY_LOGIN_DOMAINS ?? '')
+      .split(',')
+      .map((d) => d.trim().toLowerCase().replace(/^@/, ''))
+      .filter((d) => d.length > 0),
   }
 
   assertProductionSafety(config)

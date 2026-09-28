@@ -16,6 +16,8 @@ import type { TeamMember } from '../../../src/services/teamService'
 export type AgentResponse = Agent & {
   /** The caller's role for this request — lets the frontend decide whether to show QA/admin tooling. Server-decided; never trusted back from a client. */
   role: 'AGENT' | 'QA' | 'SUPERVISOR' | 'ADMIN'
+  /** How this request was identified: a PIN sign-in session, a pilot Teams link, or dev headers. */
+  via?: 'session' | 'pilot-link' | 'dev' | null
 }
 
 // ---------------------------------------------------------------------------
