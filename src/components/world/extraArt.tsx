@@ -1667,3 +1667,142 @@ export const EXTRA_FOOD_ART: Record<string, ReactElement> = {
     </>
   ),
 };
+
+// ---------------------------------------------------------------------------
+// Rocky admins only (ClosetItem.staff): never sold, granted by the server.
+// ---------------------------------------------------------------------------
+/** Sovereign wings: three tiers of gold feathers over royal purple, with a moving shine and sparkles. */
+const sovereignHalf = (
+  <>
+    {/* Back tier: royal purple */}
+    <path
+      d="M47 30 C36 8 16 -6 2 2 C8 8 6 16 1 22 C9 23 11 30 5 37 C13 38 15 45 9 52 C17 52 20 59 15 66 C24 64 29 70 26 78 C34 73 41 70 47 60 Z"
+      fill="url(#sov-purple)"
+      stroke="#3a1a6b"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    {/* Middle tier: gold feathers */}
+    <path
+      d="M47 34 C38 16 22 6 10 10 C15 15 13 21 9 26 C16 27 18 33 13 39 C20 40 22 46 17 52 C25 51 28 57 25 63 C33 60 40 58 47 52 Z"
+      fill="url(#sov-gold)"
+      stroke="#9a6a08"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+    />
+    {/* Front tier: bright tips */}
+    <path
+      d="M47 38 C40 26 30 20 22 22 C26 26 25 30 22 34 C28 35 29 40 26 44 C32 44 34 49 32 53 C38 51 43 49 47 46 Z"
+      fill="url(#sov-light)"
+      stroke="#b8860b"
+      strokeWidth="1.2"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M46 34 C34 22 20 14 8 12 M46 42 C36 34 24 30 14 30 M46 48 C38 44 28 44 20 48"
+      stroke="#fff6c2"
+      strokeWidth="1.1"
+      fill="none"
+      opacity="0.8"
+    />
+    {/* A shine sweeping across the feathers */}
+    <path d="M47 30 C36 8 16 -6 2 2 C8 30 20 60 47 60 Z" fill="url(#sov-shine)" opacity="0.7" />
+    {/* Jewel at the wing root */}
+    <circle cx="45" cy="44" r="3.4" fill="#e2445c" stroke="#fff3c9" strokeWidth="1.2" />
+    {[
+      [6, 6],
+      [4, 30],
+      [14, 58],
+      [30, 12],
+    ].map(([x, y]) => (
+      <path
+        key={`${x}-${y}`}
+        className="rocky-twinkle"
+        d={`M${x} ${y - 4} L${x + 1.2} ${y - 1.2} L${x + 4} ${y} L${x + 1.2} ${y + 1.2} L${x} ${y + 4} L${x - 1.2} ${y + 1.2} L${x - 4} ${y} L${x - 1.2} ${y - 1.2} Z`}
+        fill="#fffbe0"
+      />
+    ))}
+  </>
+);
+
+export const STAFF_BACK: Record<string, ReactElement> = {
+  "back-sovereign-wings": (
+    <>
+      <defs>
+        <linearGradient id="sov-purple" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#8b5cf6" />
+          <stop offset="1" stopColor="#4c1d95" />
+        </linearGradient>
+        <linearGradient id="sov-gold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fff1a8" />
+          <stop offset="0.45" stopColor="#f5b82e" />
+          <stop offset="1" stopColor="#c07a0c" />
+        </linearGradient>
+        <linearGradient id="sov-light" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#ffd66b" />
+        </linearGradient>
+        <linearGradient id="sov-shine" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0" />
+          <stop offset="0.5" stopColor="#ffffff" stopOpacity="0.9">
+            <animate attributeName="offset" values="-0.3;1.3" dur="2.6s" repeatCount="indefinite" />
+          </stop>
+          <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* Taller than the box they were drawn in: they rise above the shoulders and sweep down to the hips. */}
+      <g transform="translate(0 -6) scale(1 1.45)">{pair(sovereignHalf)}</g>
+    </>
+  ),
+};
+
+export const STAFF_BACK_WIDTH: Record<string, number> = { "back-sovereign-wings": 2.5 };
+
+export const STAFF_HATS: Record<string, HatArt> = {
+  /** A chunky pixel-style crown with a VIP band (inspired by classic VIP badges). */
+  "hat-vip-crown": {
+    width: 0.7,
+    sink: 0.34,
+    svg: (
+      <>
+        <defs>
+          <linearGradient id="vip-gold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fff3a0" />
+            <stop offset="0.5" stopColor="#f5c233" />
+            <stop offset="1" stopColor="#c98a0a" />
+          </linearGradient>
+        </defs>
+        {/* Stepped crown silhouette */}
+        <path
+          d="M10 44 L10 20 L18 20 L18 12 L26 12 L26 26 L34 26 L34 8 L42 8 L42 2 L58 2 L58 8 L66 8 L66 26 L74 26 L74 12 L82 12 L82 20 L90 20 L90 44 Z"
+          fill="url(#vip-gold)"
+          stroke="#3a2200"
+          strokeWidth="3"
+          strokeLinejoin="miter"
+        />
+        <rect x="46" y="10" width="8" height="8" fill="#e2445c" stroke="#3a2200" strokeWidth="1.5" />
+        <rect x="20" y="22" width="5" height="5" fill="#4aa3ff" />
+        <rect x="75" y="22" width="5" height="5" fill="#1fbf68" />
+        {/* VIP band */}
+        <rect x="4" y="38" width="92" height="20" fill="url(#vip-gold)" stroke="#3a2200" strokeWidth="3" />
+        <text
+          x="50"
+          y="54"
+          textAnchor="middle"
+          fontFamily="'Courier New', monospace"
+          fontWeight="900"
+          fontSize="17"
+          fill="#fff8d6"
+          stroke="#3a2200"
+          strokeWidth="3"
+          paintOrder="stroke"
+          letterSpacing="2"
+        >
+          VIP
+        </text>
+        <rect x="8" y="41" width="30" height="3" fill="#ffffff" opacity="0.55" />
+        <path className="rocky-twinkle" d="M88 4 L90 9 L95 11 L90 13 L88 18 L86 13 L81 11 L86 9 Z" fill="#ffffff" />
+      </>
+    ),
+  },
+};

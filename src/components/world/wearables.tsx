@@ -14,6 +14,8 @@ import {
   EXTRA_BACK_WIDTH,
   EXTRA_GLASSES,
   EXTRA_NECK,
+  STAFF_BACK,
+  STAFF_BACK_WIDTH,
 } from "./extraArt";
 
 const NAVY = "#0f2341";
@@ -619,6 +621,7 @@ export const BACK_ART: Record<string, ReactElement> = {
     </>
   ),
   ...EXTRA_BACK,
+  ...STAFF_BACK,
 };
 
 /** How wide each back item is relative to the face (wings spread past the body). */
@@ -629,6 +632,7 @@ const BACK_WIDTH: Record<string, number> = {
   "back-bat-wings": 2.1,
   "back-gift-sack": 1.2,
   ...EXTRA_BACK_WIDTH,
+  ...STAFF_BACK_WIDTH,
 };
 
 // ---------------------------------------------------------------------------

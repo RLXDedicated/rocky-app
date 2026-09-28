@@ -3,6 +3,7 @@ import { chatApi, type ChatMessage } from '../../services/apiClient'
 import { live, useLiveEvent } from '../../services/liveClient'
 import { chatState } from './chatState'
 import styles from './Chat.module.css'
+import { VipBadge } from '../VipBadge'
 
 const MAX = 1000
 
@@ -167,8 +168,12 @@ export function ChatThread({
           const prev = messages[i - 1]
           const grouped = prev && prev.from === m.from && Date.parse(m.at) - Date.parse(prev.at) < 5 * 60_000
           return (
-            <div key={m.id} className={`${styles.msg} ${m.mine ? styles.mine : ''} ${grouped ? styles.grouped : ''}`}>
-              {!grouped && !m.mine && <span className={styles.author}>{m.name}</span>}
+            <div key={m.id} className={`${styles.msg} ${m.mine ? styles.mine : ''} ${grouped ? styles.grouped : ''} ${m.staff && !m.hidden ? styles.vip : ''}`}>
+              {!grouped && (!m.mine || m.staff) && (
+                <span className={styles.author}>
+                  {m.mine ? 'You' : m.name} {m.staff && <VipBadge size="sm" />}
+                </span>
+              )}
               <div className={styles.bubbleRow}>
                 <p className={`${styles.bubble} ${m.hidden ? styles.hidden : ''}`}>{m.hidden ? 'Message hidden by the QA team' : m.body}</p>
                 {!m.mine && !m.hidden && (

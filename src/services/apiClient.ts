@@ -96,6 +96,8 @@ export interface FriendSummary {
   id: string
   name: string
   rockyName: string
+  /** A Rocky admin (VIP badge). */
+  staff?: boolean
   level: number
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -110,6 +112,7 @@ export interface FriendDetail {
   id: string
   name: string
   rockyName: string
+  staff?: boolean
   level: number
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -335,6 +338,7 @@ export function apiBaseUrl(): string | null {
 export interface ChatPerson {
   id: string
   name: string
+  staff?: boolean
   rockyName: string
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -352,6 +356,7 @@ export interface ChatMessage {
   channel: string
   from: string
   name: string
+  staff?: boolean
   mine: boolean
   body: string
   hidden: boolean

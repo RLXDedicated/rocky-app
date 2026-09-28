@@ -18,6 +18,7 @@ import { RockyWorld } from './world/RockyWorld'
 import { useLiveRoom } from './live/useLiveRoom'
 import { LivePanel } from './chat/LivePanel'
 import { isRemoteModeEnabled } from '../services/apiClient'
+import { getAgentRole } from '../services/identityService'
 import { ShopPanel, type ShopTab } from './world/ShopPanel'
 import type { Outfit, ProgressFacts } from '../game/closet'
 import { canUse, coinBalance, refreshPetState, treatsAvailable, unreadInbox, type PetAction, type PetResult } from '../game/pet'
@@ -50,6 +51,8 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
   // Live: friends visiting my Rocky right now appear in my world.
   const [liveHome] = useState(() => (isRemoteModeEnabled() ? 'me' : null))
   const room = useLiveRoom(liveHome)
+  // Rocky admins: VIP badge and a golden aura.
+  const [vip] = useState(() => isRemoteModeEnabled() && getAgentRole() === 'ADMIN')
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [isCheckingIn, setIsCheckingIn] = useState(false)
   const [reaction, setReaction] = useState<string | null>(null)
@@ -327,6 +330,7 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
     <div className={styles.page}>
       <div className={styles.layout}>
         <RockyWorld
+          vip={vip}
           guests={room.guests}
           floatReacts={room.floatReacts}
           onRockyMove={liveHome ? room.move : undefined}
@@ -364,7 +368,7 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
           hud={
             <>
               <div className={styles.hudLeft}>
-                <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} />
+                <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} vip={vip} />
                 {onOpenNotes && !(pet.state.quiz.date === todayKey() && pet.state.quiz.rewarded) && (
                   <button type="button" className={styles.notesChip} onClick={onOpenNotes}>
                     <span aria-hidden="true">📝</span> Today’s Note Check

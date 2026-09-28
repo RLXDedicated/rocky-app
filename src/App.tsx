@@ -8,6 +8,8 @@ import { NavIcon, type NavIconName } from "./components/NavIcon";
 import { Friends } from "./components/Friends";
 import { Arcade } from "./components/Arcade";
 import { Chat } from "./components/chat/Chat";
+import { VipBadge } from "./components/VipBadge";
+import { getAgentRole } from "./services/identityService";
 import { startChatBadge, useChatUnread } from "./components/chat/chatState";
 import { live, useLiveEvent } from "./services/liveClient";
 import { Leaderboard } from "./components/Leaderboard";
@@ -239,6 +241,7 @@ function App() {
         </nav>
         {isBackendConfigured() && getAgentEmail() && (
           <div className={styles.account}>
+            {getAgentRole() === "ADMIN" && <VipBadge size="sm" />}
             <span className={styles.accountEmail} title={getAgentEmail() ?? ""}>
               {getAgentEmail()}
             </span>

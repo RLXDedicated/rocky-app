@@ -221,3 +221,36 @@ describe('admin copy, retention and backups', () => {
     }
   })
 })
+
+describe('admin perks', () => {
+  it('admins get the VIP flag and the staff-only items; nobody else can have them', async () => {
+    const { app } = build()
+    await enroll(app, ANA, ADMIN)
+    const adminPet = await request(app).get('/api/pet').set(as(ADMIN))
+    expect(adminPet.body.state.granted).toEqual(expect.arrayContaining(['back-sovereign-wings', 'hat-vip-crown', 'fx-royal-aura']))
+    const worn = await request(app)
+      .post('/api/pet/actions')
+      .set(as(ADMIN))
+      .send({ type: 'equip', outfit: { ...adminPet.body.state.outfit, back: 'back-sovereign-wings', hat: 'hat-vip-crown', fx: 'fx-royal-aura' } })
+    expect(worn.body.state.outfit).toMatchObject({ back: 'back-sovereign-wings', hat: 'hat-vip-crown', fx: 'fx-royal-aura' })
+    // Someone else trying to wear them gets nothing.
+    const sneaky = await request(app)
+      .post('/api/pet/actions')
+      .set(as(ANA))
+      .send({ type: 'equip', outfit: { ...adminPet.body.state.outfit, back: 'back-sovereign-wings', hat: 'hat-vip-crown' } })
+    expect(sneaky.body.state.outfit.back).toBeNull()
+
+    const anaPet = await request(app).get('/api/pet').set(as(ANA))
+    expect(anaPet.body.state.granted).not.toContain('back-sovereign-wings')
+    // Buying a staff item is impossible.
+    const buy = await request(app).post('/api/pet/actions').set(as(ANA)).send({ type: 'buy', itemId: 'back-sovereign-wings' })
+    expect(buy.body.ok ?? false).toBe(false)
+
+    const friends = await request(app).get('/api/friends').set(as(ANA))
+    expect(friends.body.friends.find((f: { name: string }) => f.name === 'Qa Lead')).toMatchObject({ staff: true })
+    const sent = await request(app).post('/api/chat/channels/general/messages').set(as(ADMIN)).send({ text: 'Hola equipo 👑' })
+    expect(sent.body.staff).toBe(true)
+    const fromAna = await request(app).post('/api/chat/channels/general/messages').set(as(ANA)).send({ text: 'hola' })
+    expect(fromAna.body.staff).toBe(false)
+  })
+})

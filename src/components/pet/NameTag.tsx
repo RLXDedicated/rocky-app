@@ -1,17 +1,20 @@
 import { useState } from 'react'
 import styles from './Pet.module.css'
+import { VipBadge } from '../VipBadge'
 
 interface NameTagProps {
   name: string
   subtitle: string
   onRename: (name: string) => void
+  /** Rocky admins wear the VIP badge. */
+  vip?: boolean
 }
 
 /**
  * Rocky's name, printed on an RLX shipping tag that hangs off the habitat.
  * Tapping it renames the pet — the name only lives on this device.
  */
-export function NameTag({ name, subtitle, onRename }: NameTagProps) {
+export function NameTag({ name, subtitle, onRename, vip = false }: NameTagProps) {
   const [draft, setDraft] = useState<string | null>(null)
 
   if (draft !== null) {
@@ -56,7 +59,9 @@ export function NameTag({ name, subtitle, onRename }: NameTagProps) {
   return (
     <button className={styles.tag} onClick={() => setDraft(name)} aria-label={`${name}. Rename your Rocky`}>
       <span className={styles.tagHole} aria-hidden="true" />
-      <span className={styles.tagName}>{name}</span>
+      <span className={styles.tagName}>
+        {name} {vip && <VipBadge size="md" />}
+      </span>
       <span className={styles.tagSub}>{subtitle}</span>
       <span className={styles.tagEdit}>Rename</span>
     </button>

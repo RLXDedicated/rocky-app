@@ -71,6 +71,8 @@ export interface ClosetItem {
   enabled?: boolean;
   /** Limited collection this item belongs to (see COLLECTIONS): buyable only while an admin has it open. */
   season?: Collection;
+  /** Rocky admins only: never sold; the server grants it to admins and strips it from everyone else. */
+  staff?: true;
 }
 
 /** Admin edits to the shop, per item id (see backend /api/admin/catalog). */
@@ -885,6 +887,25 @@ export const CLOSET: ClosetItem[] = [
     price: 160,
   },
 
+  // Rocky admins only (ROCKY_ADMIN_EMAILS): granted by the server, never sold.
+  ...(
+    [
+      ["back-sovereign-wings", "back", "Sovereign wings"],
+      ["hat-vip-crown", "hat", "VIP crown"],
+      ["fx-royal-aura", "fx", "Royal aura"],
+    ] as const
+  ).map(
+    ([id, slot, name]): ClosetItem => ({
+      id,
+      slot,
+      name,
+      requirement: "Rocky admins only",
+      isUnlocked: () => false,
+      price: 0,
+      staff: true,
+    }),
+  ),
+
   // Seasonal specials — exclusive: buyable only while an admin has the collection open.
   ...seasonal("spooky", [
     ["hat-witch", "hat", "Witch hat", 90],
@@ -1020,6 +1041,40 @@ export const SIZE_LABELS = ["S", "M", "L", "XL", "XXL"] as const;
  * Items taken out of the game (e.g. the striped jersey, until Rocky's layered
  * art lets clothes fit properly). Agents who bought one get the coins back.
  */
+/** Items only Rocky admins can have (see ClosetItem.staff). */
+export const STAFF_ITEMS: readonly string[] = [
+  "back-sovereign-wings",
+  "hat-vip-crown",
+  "fx-royal-aura",
+];
+
+/**
+ * Admin perks: admins always hold the staff items; anyone else loses them
+ * (and stops wearing them) — e.g. an admin removed from ROCKY_ADMIN_EMAILS.
+ */
+export function withStaffPerks<
+  S extends { granted: string[]; owned: string[]; outfit: Outfit },
+>(state: S, staff: boolean): S {
+  if (staff) {
+    const missing = STAFF_ITEMS.filter((id) => !state.granted.includes(id));
+    return missing.length ? { ...state, granted: [...state.granted, ...missing] } : state;
+  }
+  const has = (id: string) => STAFF_ITEMS.includes(id);
+  if (!state.granted.some(has) && !state.owned.some(has)) return state;
+  const o = state.outfit;
+  return {
+    ...state,
+    granted: state.granted.filter((id) => !has(id)),
+    owned: state.owned.filter((id) => !has(id)),
+    outfit: {
+      ...o,
+      hat: o.hat && has(o.hat) ? null : o.hat,
+      back: o.back && has(o.back) ? null : o.back,
+      fx: o.fx && has(o.fx) ? null : o.fx,
+    },
+  };
+}
+
 export const RETIRED_ITEMS: Record<string, number> = { "body-jr-jersey": 180 };
 
 /** Keeps only sizes of placed items, snapped to the allowed steps (the default size is not stored). */
@@ -1141,6 +1196,8 @@ export function sanitizeOutfit(
 export function itemsFor(
   slot: ItemSlot,
   catalog: ClosetItem[] = CLOSET,
+  granted: readonly string[] = [],
 ): ClosetItem[] {
-  return catalog.filter((i) => i.slot === slot);
+  // Staff items only show in the closet of someone who holds them.
+  return catalog.filter((i) => i.slot === slot && (!i.staff || granted.includes(i.id)));
 }

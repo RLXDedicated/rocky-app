@@ -97,8 +97,10 @@ export function createApp(options: CreateAppOptions = {}): Express {
   // A PIN sign-in session (Authorization: Bearer) always takes precedence.
   api.use(createSessionIdentity(auth, config.authMode === 'pilot-header' ? createPilotIdentity(config) : devIdentity, config.requireLogin))
   const bus = createLiveBus()
-  const pet = createPetApplicationService({ persistence, clock: options.clock })
-  const chat = createChatApplicationService({ persistence, bus, clock: options.clock })
+  const admins = new Set(config.adminEmails)
+  const isStaff = (agentId: string) => admins.has(agentId.toLowerCase())
+  const pet = createPetApplicationService({ persistence, clock: options.clock, isStaff })
+  const chat = createChatApplicationService({ persistence, bus, clock: options.clock, isStaff })
   const jobs = createChatJobs(chat, options.backupTarget ?? backupTargetFromEnv(process.env, config.persistenceDriver === 'sqlite' ? config.dbPath : null), options.clock)
   const live: LiveContext = { auth, pet, chat, bus, jobs, persistence }
   app.locals.live = live

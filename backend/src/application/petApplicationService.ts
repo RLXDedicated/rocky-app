@@ -4,6 +4,7 @@
 // every change is saved together with its coin-ledger entry and audit-trail
 // entry in one transaction.
 import { ApiError } from "../api/errors";
+import { withStaffPerks } from "../../../src/game/closet";
 import type { PersistenceContext } from "../infrastructure/persistenceContext";
 import type {
   AuditRow,
@@ -89,6 +90,8 @@ export interface Actor {
 export interface PetApplicationServiceDeps {
   persistence: PersistenceContext;
   clock?: Clock;
+  /** Rocky admins (ROCKY_ADMIN_EMAILS): they get the VIP badge and the staff-only items. */
+  isStaff?: (agentId: string) => boolean;
 }
 
 /** A stable, opaque id for a friend (never the email). */
@@ -118,6 +121,7 @@ const AUDIT_LIMIT = 300;
 export function createPetApplicationService({
   persistence,
   clock = systemClock,
+  isStaff = () => false,
 }: PetApplicationServiceDeps) {
   const accounts = persistence.accounts;
 
@@ -141,7 +145,7 @@ export function createPetApplicationService({
       ? normalizePetState(record.state, now)
       : initialPetState(now);
     return {
-      state: refreshPetState(state, now),
+      state: withStaffPerks(refreshPetState(state, now), isStaff(agentId)),
       revision: record?.revision ?? 0,
     };
   }
@@ -637,6 +641,7 @@ export function createPetApplicationService({
             id: key,
             name: publicName(id, agent.name),
             rockyName: agent.rockyName,
+            staff: isStaff(id),
             level: game.level,
             stage: game.evolutionStage,
             mood: game.mood,
@@ -686,6 +691,7 @@ export function createPetApplicationService({
         id: key,
         name: publicName(agentId, agent.name),
         rockyName: agent.rockyName,
+        staff: isStaff(agentId),
         level: game.level,
         stage: game.evolutionStage,
         mood: game.mood,

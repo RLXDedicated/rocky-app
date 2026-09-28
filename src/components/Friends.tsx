@@ -11,6 +11,8 @@ import type { Guest } from './world/GuestRocky'
 import { usePresence, type Presence } from '../services/liveClient'
 import { useLiveRoom } from './live/useLiveRoom'
 import { LivePanel } from './chat/LivePanel'
+import { VipBadge } from './VipBadge'
+import { getAgentRole } from '../services/identityService'
 import styles from './Friends.module.css'
 
 const FEELING: Record<FriendSummary['feeling'], string> = {
@@ -134,7 +136,9 @@ export function Friends({ onChat }: { onChat?: (friendId: string) => void } = {}
               </span>
               <div className={styles.info}>
                 <strong>{f.rockyName}</strong>
-                <span>{f.name}</span>
+                <span>
+                  {f.name} {f.staff && <VipBadge size="sm" />}
+                </span>
                 <small>
                   Level {f.level} · {f.stage} · 🔥 {f.streak}
                 </small>
@@ -180,6 +184,7 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
     outfit: mine.state.outfit,
     x: 22,
     hop: 0,
+    staff: getAgentRole() === 'ADMIN',
   }
   useEffect(() => {
     const t = window.setTimeout(() => room.move(22), 800)
@@ -237,6 +242,7 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
           treats={myTreats}
           needs={needs}
           visitor
+          vip={!!friend.staff}
           guests={[self, ...room.guests]}
           floatReacts={room.floatReacts}
           onPet={() => send('pet')}
@@ -249,7 +255,9 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
                 ← Friends
               </button>
               <div className={styles.visitTag}>
-                <strong>{friend.rockyName}</strong>
+                <strong>
+                  {friend.rockyName} {friend.staff && <VipBadge size="sm" />}
+                </strong>
                 <span>
                   {friend.name} · Level {friend.level} {friend.stage} · 🔥 {friend.streak} · 🏅 {friend.badges}
                   {room.hostHere ? ' · ● here live' : presenceOf(friend.id) ? ' · ● online' : ''}

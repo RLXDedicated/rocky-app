@@ -634,3 +634,55 @@
     max-width: 88%;
   }
 }
+
+/* Rocky admins: VIP badge and a golden, glowing bubble with a moving shine. */
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vip .author {
+  color: #b07a00;
+}
+
+.vip .bubble,
+.vip.mine .bubble {
+  position: relative;
+  overflow: hidden;
+  border: 1.5px solid #f5c233;
+  background: linear-gradient(135deg, #fffaf0 0%, #fff1c7 55%, #ffe39a 100%);
+  box-shadow: 0 0 0 1px rgba(255, 210, 80, 0.35), 0 0 14px rgba(255, 196, 60, 0.45);
+  color: #3a2600;
+  animation: vipBubbleGlow 2.8s ease-in-out infinite;
+}
+
+.vip .bubble::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.75) 48%, transparent 66%);
+  transform: translateX(-120%);
+  animation: vipBubbleShine 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes vipBubbleGlow {
+  50% {
+    box-shadow: 0 0 0 1px rgba(255, 210, 80, 0.5), 0 0 22px rgba(255, 196, 60, 0.7);
+  }
+}
+
+@keyframes vipBubbleShine {
+  60%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vip .bubble,
+  .vip .bubble::after {
+    animation: none;
+  }
+}

@@ -2,7 +2,7 @@
 // Rocky himself is NEVER drawn here — the approved 2.5D artwork is the only
 // Rocky. These are accessories and environments layered around it.
 import type { ReactElement } from "react";
-import { EXTRA_DECOR, EXTRA_HATS } from "./extraArt";
+import { EXTRA_DECOR, EXTRA_HATS, STAFF_HATS } from "./extraArt";
 import type { HeadAnchor } from "../rockyAnchors";
 
 const NAVY = "#0f2341";
@@ -527,6 +527,7 @@ export const HAT_ART: Record<string, HatArt> = {
     ),
   },
   ...EXTRA_HATS,
+  ...STAFF_HATS,
 };
 
 // ---------------------------------------------------------------------------

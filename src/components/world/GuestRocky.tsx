@@ -6,6 +6,7 @@ import { ROCKY_RIG } from '../rockyRig'
 import { HAT_ART, hatPlacement } from './art'
 import { backPlacement, BACK_ART, GLASSES_ART, glassesPlacement, NECK_ART, neckPlacement, WEAR_VIEWBOX } from './wearables'
 import styles from './World.module.css'
+import { VipBadge } from '../VipBadge'
 
 export interface Guest {
   id: string
@@ -16,6 +17,8 @@ export interface Guest {
   outfit: Outfit
   x: number
   host?: boolean
+  /** A Rocky admin: golden aura and VIP badge. */
+  staff?: boolean
   /** A reaction or line shown over this Rocky for a moment. */
   bubble?: string | null
   /** Bumps to replay the little hop when they act. */
@@ -43,6 +46,13 @@ export function GuestRocky({ guest, size, floor }: { guest: Guest; size: number;
         <p key={guest.bubble + (guest.hop ?? 0)} className={styles.guestBubble}>
           {guest.bubble}
         </p>
+      )}
+      {guest.staff && (
+        <div className={styles.vipAura} aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
       )}
       <span className={styles.shadow} style={{ bottom: feetGap - 6 }} aria-hidden="true" />
       <div key={guest.hop ?? 0} className={`${styles.guestBody} ${guest.hop ? styles.guestHop : ''}`}>
@@ -77,6 +87,7 @@ export function GuestRocky({ guest, size, floor }: { guest: Guest; size: number;
       <span className={styles.guestTag}>
         {guest.host ? '🏠 ' : ''}
         {guest.name}
+        {guest.staff && <VipBadge size="sm" />}
         <i aria-label="live" />
       </span>
     </div>

@@ -18,7 +18,7 @@ type Motion =
   | "haunt";
 
 /** Extra layers that give an effect weight: settled snow, a spooky tint. */
-type Overlay = "snow-ground" | "haunt" | "warm";
+type Overlay = "snow-ground" | "haunt" | "warm" | "royal";
 
 interface ParticleFx {
   kind: "particles";
@@ -267,6 +267,17 @@ const star = (c: string) => (
 );
 
 const FX: Record<string, ParticleFx | SpecialFx> = {
+  // Rocky admins only: golden sparkles and crowns rising through light rays.
+  "fx-royal-aura": {
+    kind: "particles",
+    count: 34,
+    motion: "rise",
+    shapes: [star("#f5b82e"), star("#fff6c2"), star("#ffd66b"), star("#c9a8ff")],
+    size: [8, 20],
+    dur: [5, 9],
+    overlay: "royal",
+    depth: true,
+  },
   "fx-spooky-leaves": {
     kind: "particles",
     count: 30,
@@ -523,6 +534,12 @@ function OverlayLayer({ kind }: { kind: Overlay | undefined }) {
         className={`${styles.fxTint} ${styles.fxTintWarm}`}
         aria-hidden="true"
       />
+    );
+  if (kind === "royal")
+    return (
+      <div className={`${styles.fxTint} ${styles.fxRoyal}`} aria-hidden="true">
+        <i />
+      </div>
     );
   return null;
 }

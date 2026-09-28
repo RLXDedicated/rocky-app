@@ -6,6 +6,7 @@ import { ChatThread } from './ChatThread'
 import { RulesGate } from './ChatRules'
 import { chatState } from './chatState'
 import styles from './Chat.module.css'
+import { VipBadge } from '../VipBadge'
 
 function ago(at: string): string {
   const mins = Math.round((Date.now() - Date.parse(at)) / 60_000)
@@ -178,7 +179,9 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
                       {online && <i className={styles.dot} aria-label="online" />}
                     </span>
                     <span className={styles.channelText}>
-                      <strong>{c.kind === 'general' ? 'General — everyone' : c.title}</strong>
+                      <strong>
+                        {c.kind === 'general' ? 'General — everyone' : c.title} {c.with?.staff && <VipBadge size="sm" />}
+                      </strong>
                       <small>{c.last ? `${c.last.mine ? 'You' : c.last.name}: ${c.last.body || 'message hidden'}` : 'No messages yet'}</small>
                     </span>
                     <span className={styles.channelMeta}>
@@ -199,7 +202,9 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
                 <button type="button" className={styles.back} onClick={() => setActive(null)} aria-label="Back to conversations">
                   ←
                 </button>
-                <strong>{current.kind === 'general' ? 'General — everyone in the pilot' : current.title}</strong>
+                <strong>
+                  {current.kind === 'general' ? 'General — everyone in the pilot' : current.title} {current.with?.staff && <VipBadge size="sm" />}
+                </strong>
                 {current.with && <small>{presenceOf(current.with.id) ? '● Online now' : `${current.with.rockyName}’s human`}</small>}
               </header>
               <ChatThread

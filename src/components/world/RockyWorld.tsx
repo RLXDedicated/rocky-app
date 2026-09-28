@@ -140,6 +140,8 @@ interface Props {
   guests?: Guest[];
   /** Emoji reactions floating up from the main Rocky (sent live by others). */
   floatReacts?: { id: number; emoji: string }[];
+  /** A Rocky admin's Rocky: golden aura. */
+  vip?: boolean;
   /** Called when Rocky walks somewhere (to mirror him to live visitors). */
   onRockyMove?: (x: number) => void;
   /** Top overlay (name tag, level, shop). */
@@ -318,6 +320,7 @@ export function RockyWorld({
   guests = [],
   floatReacts = [],
   onRockyMove,
+  vip = false,
 }: Props) {
   const [x, setX] = useState(50);
   const onRockyMoveRef = useRef(onRockyMove);
@@ -1444,6 +1447,13 @@ export function RockyWorld({
             transitionDuration: `${walkMs}ms`,
           }}
         >
+          {vip && (
+            <div className={styles.vipAura} aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </div>
+          )}
           {/* Out of the way while playing ball: the bubble covered the ball. */}
           {!playing && (
             <p key={line} className={styles.speech} aria-live="polite">
