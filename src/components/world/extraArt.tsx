@@ -1759,49 +1759,83 @@ export const STAFF_BACK: Record<string, ReactElement> = {
 export const STAFF_BACK_WIDTH: Record<string, number> = { "back-sovereign-wings": 2.5 };
 
 export const STAFF_HATS: Record<string, HatArt> = {
-  /** A chunky pixel-style crown with a VIP band (inspired by classic VIP badges). */
+  /** The royal crown: velvet cap, jewelled gold band and arches, a moving shine and sparkles. */
   "hat-vip-crown": {
-    width: 0.7,
+    width: 0.74,
     sink: 0.34,
     svg: (
       <>
         <defs>
-          <linearGradient id="vip-gold" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#fff3a0" />
-            <stop offset="0.5" stopColor="#f5c233" />
-            <stop offset="1" stopColor="#c98a0a" />
+          <linearGradient id="crown-gold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fff6b8" />
+            <stop offset="0.45" stopColor="#f7c531" />
+            <stop offset="1" stopColor="#b8780a" />
           </linearGradient>
+          <radialGradient id="crown-velvet" cx="0.5" cy="0.35" r="0.7">
+            <stop offset="0" stopColor="#9b5cf6" />
+            <stop offset="1" stopColor="#3b1476" />
+          </radialGradient>
+          <linearGradient id="crown-shine" x1="0" y1="0" x2="1" y2="0.2">
+            <stop offset="0" stopColor="#fff" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#fff" stopOpacity="0.9">
+              <animate attributeName="offset" values="-0.4;1.4" dur="2.8s" repeatCount="indefinite" />
+            </stop>
+            <stop offset="1" stopColor="#fff" stopOpacity="0" />
+          </linearGradient>
+          <clipPath id="crown-clip">
+            <path d="M8 58 L8 40 L4 16 L22 30 L32 8 L42 26 L50 2 L58 26 L68 8 L78 30 L96 16 L92 40 L92 58 Z" />
+          </clipPath>
         </defs>
-        {/* Stepped crown silhouette */}
+        {/* Velvet cap showing between the points */}
+        <path d="M14 44 C14 20 34 12 50 12 C66 12 86 20 86 44 Z" fill="url(#crown-velvet)" />
+        {/* Points and arches */}
         <path
-          d="M10 44 L10 20 L18 20 L18 12 L26 12 L26 26 L34 26 L34 8 L42 8 L42 2 L58 2 L58 8 L66 8 L66 26 L74 26 L74 12 L82 12 L82 20 L90 20 L90 44 Z"
-          fill="url(#vip-gold)"
-          stroke="#3a2200"
-          strokeWidth="3"
-          strokeLinejoin="miter"
+          d="M8 44 L4 16 L22 30 L32 8 L42 26 L50 2 L58 26 L68 8 L78 30 L96 16 L92 44 Z"
+          fill="url(#crown-gold)"
+          stroke="#7a4b00"
+          strokeWidth="2"
+          strokeLinejoin="round"
         />
-        <rect x="46" y="10" width="8" height="8" fill="#e2445c" stroke="#3a2200" strokeWidth="1.5" />
-        <rect x="20" y="22" width="5" height="5" fill="#4aa3ff" />
-        <rect x="75" y="22" width="5" height="5" fill="#1fbf68" />
-        {/* VIP band */}
-        <rect x="4" y="38" width="92" height="20" fill="url(#vip-gold)" stroke="#3a2200" strokeWidth="3" />
-        <text
-          x="50"
-          y="54"
-          textAnchor="middle"
-          fontFamily="'Courier New', monospace"
-          fontWeight="900"
-          fontSize="17"
-          fill="#fff8d6"
-          stroke="#3a2200"
-          strokeWidth="3"
-          paintOrder="stroke"
-          letterSpacing="2"
-        >
-          VIP
-        </text>
-        <rect x="8" y="41" width="30" height="3" fill="#ffffff" opacity="0.55" />
-        <path className="rocky-twinkle" d="M88 4 L90 9 L95 11 L90 13 L88 18 L86 13 L81 11 L86 9 Z" fill="#ffffff" />
+        {/* Pearls on every tip */}
+        {[
+          [4, 16],
+          [32, 8],
+          [50, 2],
+          [68, 8],
+          [96, 16],
+        ].map(([x, y]) => (
+          <circle key={x} cx={x} cy={y} r="3.6" fill="#fffdf2" stroke="#c9a14a" strokeWidth="1" />
+        ))}
+        {/* Jewelled band */}
+        <rect x="6" y="42" width="88" height="16" rx="3" fill="url(#crown-gold)" stroke="#7a4b00" strokeWidth="2" />
+        <path d="M8 46 L92 46" stroke="#fff3b0" strokeWidth="1.4" opacity="0.8" />
+        <ellipse cx="50" cy="50" rx="7" ry="6" fill="#e2445c" stroke="#fff3b0" strokeWidth="1.4" />
+        <ellipse cx="48" cy="48" rx="2" ry="1.5" fill="#fff" opacity="0.8" />
+        {[
+          [24, "#4aa3ff"],
+          [76, "#1fbf68"],
+        ].map(([x, c]) => (
+          <path key={x as number} d={`M${x} 44 L${(x as number) + 5} 50 L${x} 56 L${(x as number) - 5} 50 Z`} fill={c as string} stroke="#fff3b0" strokeWidth="1.2" />
+        ))}
+        {[12, 37, 63, 88].map((x) => (
+          <circle key={x} cx={x} cy="50" r="2" fill="#fffdf2" />
+        ))}
+        <path d="M50 12 L50 30 M42 21 L58 21" stroke="#fff3b0" strokeWidth="2.4" strokeLinecap="round" />
+        {/* Moving shine */}
+        <rect x="0" y="0" width="100" height="60" fill="url(#crown-shine)" clipPath="url(#crown-clip)" />
+        {[
+          [18, 6],
+          [84, 4],
+          [96, 36],
+        ].map(([x, y], i) => (
+          <path
+            key={i}
+            className="rocky-twinkle"
+            style={{ animationDelay: `${i * 0.6}s` }}
+            d={`M${x} ${y - 5} L${x + 1.5} ${y - 1.5} L${x + 5} ${y} L${x + 1.5} ${y + 1.5} L${x} ${y + 5} L${x - 1.5} ${y + 1.5} L${x - 5} ${y} L${x - 1.5} ${y - 1.5} Z`}
+            fill="#ffffff"
+          />
+        ))}
       </>
     ),
   },

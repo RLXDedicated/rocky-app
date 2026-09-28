@@ -1,8 +1,8 @@
 import styles from './VipBadge.module.css'
 
 /**
- * The Rocky admin distinction: a pixel-style golden crown with "VIP", a
- * shine sweeping across it and twinkling sparkles. Shown next to an admin's
+ * The Rocky admin distinction: a pixel-style golden crown with a jewelled
+ * band, a shine sweeping across it and twinkling sparkles. Shown next to an admin's
  * name everywhere (home, Friends, chat, live visits).
  */
 export function VipBadge({ size = 'md', title = 'Rocky admin' }: { size?: 'sm' | 'md' | 'lg'; title?: string }) {
@@ -38,21 +38,12 @@ export function VipBadge({ size = 'md', title = 'Rocky admin' }: { size?: 'sm' |
         <rect x="9" y="11" width="3" height="3" fill="#4aa3ff" />
         <rect x="52" y="11" width="3" height="3" fill="#1fbf68" />
         <path d="M2 22 L62 22" stroke="#2b1600" strokeWidth="2" />
-        <text
-          x="32"
-          y="36.5"
-          textAnchor="middle"
-          fontFamily="'Courier New', monospace"
-          fontWeight="900"
-          fontSize="15"
-          letterSpacing="1.5"
-          fill="#fff9dc"
-          stroke="#2b1600"
-          strokeWidth="3"
-          paintOrder="stroke"
-        >
-          VIP
-        </text>
+        {/* Jewelled band instead of a word */}
+        <rect x="27" y="26" width="10" height="10" fill="#e2445c" stroke="#2b1600" strokeWidth="1.6" />
+        <rect x="29" y="28" width="3" height="3" fill="#fff" opacity="0.8" />
+        <rect x="11" y="28" width="7" height="7" fill="#4aa3ff" stroke="#2b1600" strokeWidth="1.4" />
+        <rect x="46" y="28" width="7" height="7" fill="#1fbf68" stroke="#2b1600" strokeWidth="1.4" />
+        <rect x="6" y="25" width="16" height="2.5" fill="#fff6c2" opacity="0.7" />
         <rect x="0" y="0" width="64" height="44" fill="url(#vipb-shine)" clipPath="url(#vipb-clip)" />
       </svg>
       <i className={styles.spark} />

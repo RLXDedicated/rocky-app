@@ -68,6 +68,7 @@ import { ROCKY_3D_MODELS, rocky3dEnabled } from "./rocky3dModels";
 import type { RockyClip } from "./rocky3dRuntime";
 import styles from "./World.module.css";
 import { GuestRocky, type Guest } from "./GuestRocky";
+import { VipAura } from "./VipAura";
 
 type Pose = "idle" | "walk" | "run" | "pet" | "eat" | "hop" | "bath";
 
@@ -1447,13 +1448,7 @@ export function RockyWorld({
             transitionDuration: `${walkMs}ms`,
           }}
         >
-          {vip && (
-            <div className={styles.vipAura} aria-hidden="true">
-              <i />
-              <i />
-              <i />
-            </div>
-          )}
+          {vip && <VipAura feet={feetGap} />}
           {/* Out of the way while playing ball: the bubble covered the ball. */}
           {!playing && (
             <p key={line} className={styles.speech} aria-live="polite">

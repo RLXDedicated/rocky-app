@@ -7,6 +7,7 @@ import { HAT_ART, hatPlacement } from './art'
 import { backPlacement, BACK_ART, GLASSES_ART, glassesPlacement, NECK_ART, neckPlacement, WEAR_VIEWBOX } from './wearables'
 import styles from './World.module.css'
 import { VipBadge } from '../VipBadge'
+import { VipAura } from './VipAura'
 
 export interface Guest {
   id: string
@@ -47,13 +48,7 @@ export function GuestRocky({ guest, size, floor }: { guest: Guest; size: number;
           {guest.bubble}
         </p>
       )}
-      {guest.staff && (
-        <div className={styles.vipAura} aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </div>
-      )}
+      {guest.staff && <VipAura feet={feetGap} />}
       <span className={styles.shadow} style={{ bottom: feetGap - 6 }} aria-hidden="true" />
       <div key={guest.hop ?? 0} className={`${styles.guestBody} ${guest.hop ? styles.guestHop : ''}`}>
         {back && (

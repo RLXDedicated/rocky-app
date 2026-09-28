@@ -891,7 +891,7 @@ export const CLOSET: ClosetItem[] = [
   ...(
     [
       ["back-sovereign-wings", "back", "Sovereign wings"],
-      ["hat-vip-crown", "hat", "VIP crown"],
+      ["hat-vip-crown", "hat", "Royal crown"],
       ["fx-royal-aura", "fx", "Royal aura"],
     ] as const
   ).map(

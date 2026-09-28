@@ -1,0 +1,208 @@
+.aura {
+  position: absolute;
+  z-index: -1;
+  inset: -22%;
+  pointer-events: none;
+}
+
+/* Breathing golden glow */
+.glow {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 236, 150, 0.75) 0%,
+    rgba(255, 196, 60, 0.4) 30%,
+    rgba(170, 120, 255, 0.2) 52%,
+    transparent 68%
+  );
+  animation: breathe 2.8s ease-in-out infinite;
+}
+
+/* Two crowns of light rays turning in opposite directions */
+.rays,
+.raysViolet {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  mask: radial-gradient(circle, transparent 16%, #000 30%, #000 42%, transparent 66%);
+}
+
+.rays {
+  background: repeating-conic-gradient(from 0deg, rgba(255, 238, 160, 0.55) 0deg 5deg, transparent 5deg 22deg);
+  animation: spin 16s linear infinite;
+}
+
+.raysViolet {
+  background: repeating-conic-gradient(from 11deg, rgba(200, 160, 255, 0.35) 0deg 3deg, transparent 3deg 17deg);
+  animation: spin 24s linear infinite reverse;
+}
+
+/* Energy rings pulsing outwards */
+.ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40%;
+  aspect-ratio: 1;
+  border: 3px solid rgba(255, 226, 120, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 0 18px rgba(255, 200, 60, 0.8), inset 0 0 12px rgba(255, 240, 180, 0.6);
+  transform: translate(-50%, -50%) scale(0.4);
+  opacity: 0;
+  animation: ring 3.6s ease-out infinite;
+}
+
+/* Rune circle under the feet, seen in perspective */
+.circle {
+  position: absolute;
+  left: 50%;
+  width: 78%;
+  aspect-ratio: 1;
+  transform: translateX(-50%) scaleY(0.28);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 0 6px #ffd24a);
+  overflow: visible;
+}
+
+.spin,
+.spinBack {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: spin 12s linear infinite;
+}
+
+.spinBack {
+  animation: spin 7s linear infinite reverse;
+}
+
+/* Sparkles in orbit (each on its own tilted plane) */
+.orbitPlane {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.orbit {
+  position: absolute;
+  inset: 0;
+  animation: spin 6s linear infinite;
+}
+
+.orbit > i {
+  position: absolute;
+  left: calc(50% + var(--r));
+  top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.orbit > i::after {
+  content: '';
+  position: absolute;
+  right: 60%;
+  top: 30%;
+  width: 400%;
+  height: 40%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent, rgba(255, 240, 180, 0.7));
+  transform: rotate(90deg);
+  transform-origin: right center;
+}
+
+/* Embers rising from the ground */
+.ember {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fffbe0 0%, #ffd24a 55%, rgba(255, 170, 40, 0) 100%);
+  box-shadow: 0 0 8px #ffc83a;
+  animation: ember 3.5s ease-out infinite;
+}
+
+/* Lens-flare twinkles */
+.flare {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  background: #ffffff;
+  clip-path: polygon(50% 0, 56% 44%, 100% 50%, 56% 56%, 50% 100%, 44% 56%, 0 50%, 44% 44%);
+  filter: drop-shadow(0 0 6px #ffe27a);
+  opacity: 0;
+  animation: flare 5s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ring {
+  0% {
+    transform: translate(-50%, -50%) scale(0.4);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+@keyframes ember {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--sway), -32vh) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes flare {
+  0%,
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(0.2) rotate(0deg);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1.2) rotate(45deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow,
+  .rays,
+  .raysViolet,
+  .ring,
+  .spin,
+  .spinBack,
+  .orbit,
+  .ember,
+  .flare {
+    animation: none;
+  }
+  .ring,
+  .ember {
+    display: none;
+  }
+}

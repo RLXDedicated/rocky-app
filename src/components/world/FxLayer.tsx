@@ -539,6 +539,21 @@ function OverlayLayer({ kind }: { kind: Overlay | undefined }) {
     return (
       <div className={`${styles.fxTint} ${styles.fxRoyal}`} aria-hidden="true">
         <i />
+        {Array.from({ length: 9 }, (_, n) => (
+          <b
+            key={n}
+            style={
+              {
+                "--x": `${5 + rnd(n, 21) * 88}%`,
+                "--y": `${8 + rnd(n, 22) * 75}%`,
+                "--s": `${30 + rnd(n, 23) * 70}px`,
+                "--d": `${4 + rnd(n, 24) * 5}s`,
+                "--dx": `${-40 + rnd(n, 25) * 80}px`,
+                "--delay": `${-rnd(n, 26) * 6}s`,
+              } as CSSProperties
+            }
+          />
+        ))}
       </div>
     );
   return null;
