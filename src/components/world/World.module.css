@@ -24,8 +24,140 @@
 .decor {
   position: absolute;
   z-index: 1;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: filter 0.15s ease;
+}
+
+.decor > svg {
+  display: block;
+  width: 100%;
   height: auto;
-  transform: translateX(0);
+}
+
+.decor:hover,
+.decor:focus-visible {
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9));
+  outline: none;
+}
+
+/* Arrange mode: items lift a little and can be dragged along the floor. */
+.decorArrange {
+  z-index: 4;
+  cursor: grab;
+  touch-action: none;
+  filter: drop-shadow(0 6px 8px rgba(15, 35, 65, 0.25));
+  animation: decorWiggle 1.6s ease-in-out infinite;
+}
+
+.decorArrange:active {
+  cursor: grabbing;
+}
+
+.decorArrange:focus-visible {
+  outline: 3px dashed var(--rlx-green);
+  outline-offset: 4px;
+}
+
+@keyframes decorWiggle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+}
+
+.putAway {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #c9463d;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1;
+  transform: translateX(-50%);
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(15, 35, 65, 0.25);
+}
+
+.arrangeBar {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  padding: 8px 8px 8px 16px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.88rem;
+  transform: translateX(-50%);
+  box-shadow: 0 10px 24px rgba(15, 35, 65, 0.3);
+  white-space: nowrap;
+}
+
+.arrangeBar > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arrangeCancel,
+.arrangeDone {
+  flex: none;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.arrangeCancel {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.arrangeDone {
+  background: var(--rlx-green);
+  color: #ffffff;
+}
+
+.zzz,
+.note {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(15, 35, 65, 0.45);
+  animation: floatUp 2s ease-out forwards;
+}
+
+.zzz {
+  font-size: 1.4rem;
+  font-family: Poppins, sans-serif;
+}
+
+.note {
+  font-size: 1.5rem;
+  color: var(--navy);
+  text-shadow: 0 1px 0 #ffffff;
 }
 
 .hud {
@@ -408,7 +540,9 @@
   border-radius: 22px;
   border: 1px solid rgba(15, 35, 65, 0.1);
   background: #ffffff;
-  box-shadow: 0 14px 34px rgba(15, 35, 65, 0.22), 0 2px 0 rgba(15, 35, 65, 0.06);
+  box-shadow:
+    0 14px 34px rgba(15, 35, 65, 0.22),
+    0 2px 0 rgba(15, 35, 65, 0.06);
 }
 
 .meters {
@@ -482,7 +616,9 @@
   height: 100%;
   border-radius: inherit;
   background: var(--meter);
-  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.3s ease;
+  transition:
+    width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 0.3s ease;
 }
 
 .careButtons {
@@ -535,8 +671,12 @@
   border-radius: 50%;
   background: var(--tone);
   color: #ffffff;
-  box-shadow: 0 4px 0 var(--tone-dark), 0 8px 16px rgba(15, 35, 65, 0.18);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  box-shadow:
+    0 4px 0 var(--tone-dark),
+    0 8px 16px rgba(15, 35, 65, 0.18);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
 .careIcon > svg {
@@ -602,7 +742,9 @@
 /* When Rocky is muddy, the Bath button gently asks for attention. */
 .careBtnNudge .careIcon {
   animation: nudge 2.4s ease-in-out infinite;
-  box-shadow: 0 4px 0 var(--tone-dark), 0 0 0 5px rgba(47, 143, 216, 0.3);
+  box-shadow:
+    0 4px 0 var(--tone-dark),
+    0 0 0 5px rgba(47, 143, 216, 0.3);
 }
 
 @keyframes nudge {
@@ -748,7 +890,8 @@
   bottom: 0;
   height: 60%;
   pointer-events: none;
-  background: radial-gradient(ellipse 45% 38% at 50% 78%, rgba(255, 255, 255, 0.45), transparent 70%),
+  background:
+    radial-gradient(ellipse 45% 38% at 50% 78%, rgba(255, 255, 255, 0.45), transparent 70%),
     linear-gradient(to top, rgba(15, 35, 65, 0.08), transparent 30%);
 }
 
@@ -938,6 +1081,14 @@
   touch-action: manipulation;
 }
 
+/* A generous invisible hit area: the ball is small and always moving. */
+.ball::before {
+  content: '';
+  position: absolute;
+  inset: -22px;
+  border-radius: 50%;
+}
+
 .ballShadow {
   z-index: 2;
   pointer-events: none;
@@ -987,7 +1138,9 @@
   height: 5px;
   border-radius: 50%;
   background: #243042;
-  box-shadow: -3px -2px 0 -1px rgba(255, 255, 255, 0.8), 3px -2px 0 -1px rgba(255, 255, 255, 0.8);
+  box-shadow:
+    -3px -2px 0 -1px rgba(255, 255, 255, 0.8),
+    3px -2px 0 -1px rgba(255, 255, 255, 0.8);
   animation: fly 2.2s linear infinite;
 }
 
@@ -1044,7 +1197,9 @@
   background: repeating-linear-gradient(92deg, rgba(120, 190, 240, 0) 0 9px, rgba(120, 190, 240, 0.55) 9px 11px, rgba(120, 190, 240, 0) 11px 19px);
   background-size: 100% 40px;
   mask-image: linear-gradient(to bottom, #000 60%, transparent);
-  animation: rain 0.35s linear infinite, fadeWater 2.6s ease forwards;
+  animation:
+    rain 0.35s linear infinite,
+    fadeWater 2.6s ease forwards;
 }
 
 @keyframes rain {
@@ -1078,12 +1233,47 @@
   animation: foam 2.6s ease both;
 }
 
-.foam i:nth-child(1) { left: 30%; top: 12%; width: 16%; height: 12%; }
-.foam i:nth-child(2) { left: 50%; top: 8%; width: 18%; height: 14%; animation-delay: 0.15s; }
-.foam i:nth-child(3) { left: 40%; top: 45%; width: 20%; height: 15%; animation-delay: 0.3s; }
-.foam i:nth-child(4) { left: 25%; top: 62%; width: 14%; height: 11%; animation-delay: 0.45s; }
-.foam i:nth-child(5) { left: 58%; top: 60%; width: 15%; height: 12%; animation-delay: 0.6s; }
-.foam i:nth-child(6) { left: 44%; top: 78%; width: 18%; height: 10%; animation-delay: 0.75s; }
+.foam i:nth-child(1) {
+  left: 30%;
+  top: 12%;
+  width: 16%;
+  height: 12%;
+}
+.foam i:nth-child(2) {
+  left: 50%;
+  top: 8%;
+  width: 18%;
+  height: 14%;
+  animation-delay: 0.15s;
+}
+.foam i:nth-child(3) {
+  left: 40%;
+  top: 45%;
+  width: 20%;
+  height: 15%;
+  animation-delay: 0.3s;
+}
+.foam i:nth-child(4) {
+  left: 25%;
+  top: 62%;
+  width: 14%;
+  height: 11%;
+  animation-delay: 0.45s;
+}
+.foam i:nth-child(5) {
+  left: 58%;
+  top: 60%;
+  width: 15%;
+  height: 12%;
+  animation-delay: 0.6s;
+}
+.foam i:nth-child(6) {
+  left: 44%;
+  top: 78%;
+  width: 18%;
+  height: 10%;
+  animation-delay: 0.75s;
+}
 
 @keyframes foam {
   0% {
@@ -1199,10 +1389,23 @@
   color: var(--text-muted);
 }
 
+/* Sits under the sound toggle. */
+.arrangeButton {
+  top: 162px;
+}
+
 @media (max-width: 640px) {
   .sound {
     top: 10px;
     right: 10px;
+  }
+
+  .arrangeButton {
+    top: 54px;
+  }
+
+  .arrangeBar {
+    font-size: 0.78rem;
   }
 
   .meters {
@@ -1232,6 +1435,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .decorArrange,
   .meter[data-level='low'] > svg,
   .careBtnNudge .careIcon,
   .careBtn[aria-pressed='true'] .careIcon,

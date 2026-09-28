@@ -136,6 +136,8 @@ export const CLOSET: ClosetItem[] = [
 
   // Decor — props placed around Rocky.
   { id: 'decor-boxes', slot: 'decor', name: 'Package stack', requirement: 'Starter item', isUnlocked: always, price: 0 },
+  { id: 'decor-bowl', slot: 'decor', name: 'Snack bowl', requirement: 'Starter item', isUnlocked: always, price: 0 },
+  { id: 'decor-hay', slot: 'decor', name: 'Hay bale', requirement: 'Log your first check-in', isUnlocked: (p) => p.checkIns >= 1, price: 30 },
   { id: 'decor-plant', slot: 'decor', name: 'Potted plant', requirement: 'Reach level 2', isUnlocked: (p) => p.level >= 2, price: 50 },
   {
     id: 'decor-balloons',
@@ -156,6 +158,8 @@ export const CLOSET: ClosetItem[] = [
     isUnlocked: (p) => STAGE_RANK[p.stage] >= 1,
     price: 120,
   },
+  { id: 'decor-mailbox', slot: 'decor', name: 'RLX mailbox', requirement: 'Log 10 check-ins', isUnlocked: (p) => p.checkIns >= 10, price: 100 },
+  { id: 'decor-bed', slot: 'decor', name: 'Cozy bed', requirement: 'Reach level 4', isUnlocked: (p) => p.level >= 4, price: 130 },
   { id: 'decor-truck', slot: 'decor', name: 'Toy truck', requirement: 'Hit a 7-day streak', isUnlocked: (p) => p.bestStreak >= 7, price: 150 },
   { id: 'decor-barn', slot: 'decor', name: "Rocky's barn", requirement: 'Reach level 8', isUnlocked: (p) => p.level >= 8, price: 260 },
 
@@ -174,6 +178,8 @@ export interface Outfit {
   back: string | null
   scene: string
   decor: string[]
+  /** Where each placed item stands: horizontal position in % of the stage (Pet Society style). */
+  spots: Record<string, number>
   fx: string | null
 }
 
@@ -183,13 +189,28 @@ export const DEFAULT_OUTFIT: Outfit = {
   neck: 'neck-lanyard',
   back: null,
   scene: 'scene-route',
-  decor: ['decor-boxes'],
+  decor: ['decor-boxes', 'decor-bowl'],
+  spots: {},
   fx: null,
 }
 
 /** Slots holding at most one item (decor holds up to MAX_DECOR; scene always has one). */
 export const SINGLE_SLOTS = ['hat', 'glasses', 'neck', 'back', 'fx'] as const
-export const MAX_DECOR = 3
+export const MAX_DECOR = 6
+/** Placed items stay inside the stage. */
+export const SPOT_MIN = 3
+export const SPOT_MAX = 95
+
+/** Keeps only positions of placed items, as rounded, clamped percentages. */
+export function sanitizeSpots(spots: unknown, decor: readonly string[]): Record<string, number> {
+  const out: Record<string, number> = {}
+  if (!spots || typeof spots !== 'object') return out
+  for (const id of decor) {
+    const v = (spots as Record<string, unknown>)[id]
+    if (typeof v === 'number' && Number.isFinite(v)) out[id] = Math.round(Math.min(SPOT_MAX, Math.max(SPOT_MIN, v)) * 10) / 10
+  }
+  return out
+}
 
 /** The catalogue with admin price/availability edits applied. */
 export function resolveCatalog(overrides: CatalogOverrides = {}): ClosetItem[] {
@@ -239,6 +260,7 @@ export function sanitizeOutfit(
     back: ok(o.back, 'back') ? (o.back as string) : null,
     scene: ok(o.scene, 'scene') ? (o.scene as string) : DEFAULT_OUTFIT.scene,
     decor,
+    spots: sanitizeSpots(o.spots, decor),
     fx: ok(o.fx, 'fx') ? (o.fx as string) : null,
   }
 }

@@ -145,6 +145,17 @@ describe('Rocky the pet on the server', () => {
     expect(equip.body.state.outfit.hat).toBe('hat-headset')
     expect(equip.body.state.outfit.scene).toBe('scene-route') // not owned → falls back
 
+    // Placed items keep where the agent put them, across devices.
+    const placed = await request(app)
+      .post('/api/pet/actions')
+      .set(as(AGENT))
+      .send({
+        type: 'equip',
+        outfit: { ...equip.body.state.outfit, decor: ['decor-boxes', 'decor-bowl'], spots: { 'decor-bowl': 71.26, 'decor-boxes': -40 } },
+      })
+    expect(placed.body.state.outfit.spots).toEqual({ 'decor-bowl': 71.3, 'decor-boxes': 3 })
+    expect((await request(app).get('/api/pet').set(as(AGENT))).body.state.outfit.spots).toEqual({ 'decor-bowl': 71.3, 'decor-boxes': 3 })
+
     const detail = await request(app).get(`/api/admin/agents/${AGENT}/pet`).set(as(ADMIN))
     expect(detail.body.ledger.map((l: { kind: string; delta: number }) => [l.kind, l.delta])).toEqual([
       ['purchase', -60],

@@ -8,7 +8,7 @@
 // Nothing here changes XP, Energy, Level, Streak, Mood or Evolution.
 import { todayKey } from '../engine/dateUtils'
 import type { Achievement, GameState } from '../types/domain'
-import { CLOSET, DEFAULT_OUTFIT, findItem, isUsable, sanitizeOutfit, type ClosetItem, type Outfit, type ProgressFacts } from './closet'
+import { CLOSET, DEFAULT_OUTFIT, findItem, isUsable, sanitizeOutfit, sanitizeSpots, type ClosetItem, type Outfit, type ProgressFacts } from './closet'
 import { coinsEarned, TREAT_BAG } from './economy'
 import { QUIZ_REWARD, scoreQuiz } from './notesQuiz'
 
@@ -129,7 +129,7 @@ const clamp = (n: number) => Math.max(0, Math.min(NEEDS_MAX, Math.round(n * 10) 
 export function initialPetState(now: Date = new Date()): PetState {
   return {
     version: 1,
-    outfit: { ...DEFAULT_OUTFIT, decor: [...DEFAULT_OUTFIT.decor] },
+    outfit: { ...DEFAULT_OUTFIT, decor: [...DEFAULT_OUTFIT.decor], spots: {} },
     owned: [],
     granted: [],
     needs: { health: 100, happiness: 80, dirt: 10, updatedAt: now.toISOString() },
@@ -165,6 +165,7 @@ export function normalizePetState(raw: unknown, now: Date = new Date()): PetStat
       back: typeof o.back === 'string' ? o.back : null,
       scene: typeof o.scene === 'string' ? o.scene : base.outfit.scene,
       decor: Array.isArray(o.decor) ? ids(o.decor) : base.outfit.decor,
+      spots: sanitizeSpots(o.spots, Array.isArray(o.decor) ? ids(o.decor) : base.outfit.decor),
       fx: typeof o.fx === 'string' ? o.fx : null,
     },
     owned: ids(r.owned),

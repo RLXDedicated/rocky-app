@@ -109,6 +109,63 @@
   color: #fff;
 }
 
+/* Categories inside a section: chips that wrap, so none hide off-screen. */
+.subTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.subTab {
+  padding: 6px 14px;
+  border: 1.5px solid var(--border, #dfe5ec);
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--navy);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.subTabOn {
+  border-color: var(--rlx-green);
+  background: var(--rlx-green);
+  color: #fff;
+}
+
+.sectionHint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.arrange {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--rlx-green);
+  border-radius: 14px;
+  background: #eefaf2;
+  color: var(--navy);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.arrange > svg {
+  grid-row: span 2;
+  color: var(--rlx-green);
+}
+
+.arrange > small {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 .count {
   margin: 0;
   font-size: 0.82rem;
@@ -138,7 +195,9 @@
   color: var(--navy);
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
 }
 
 .item:hover:not(:disabled) {

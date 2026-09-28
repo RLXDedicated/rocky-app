@@ -8,15 +8,33 @@ import styles from './Shop.module.css'
 
 type Tab = Exclude<ItemSlot, 'neck' | 'back'> | 'clothes' | 'treats'
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'hat', label: 'Hats' },
-  { id: 'glasses', label: 'Glasses' },
-  { id: 'clothes', label: 'Clothes' },
-  { id: 'scene', label: 'Places' },
-  { id: 'decor', label: 'Decor' },
-  { id: 'fx', label: 'Ambience' },
-  { id: 'treats', label: 'Treats' },
+type Section = 'rocky' | 'world' | 'treats'
+
+/** Two shops in one: things Rocky wears, and things that make up his world. */
+const SECTIONS: { id: Section; label: string; hint: string; tabs: { id: Tab; label: string }[] }[] = [
+  {
+    id: 'rocky',
+    label: 'Rocky',
+    hint: 'Hats, glasses and clothes Rocky wears.',
+    tabs: [
+      { id: 'hat', label: 'Hats' },
+      { id: 'glasses', label: 'Glasses' },
+      { id: 'clothes', label: 'Clothes' },
+    ],
+  },
+  {
+    id: 'world',
+    label: 'World',
+    hint: 'Backgrounds, things that live with Rocky, and ambience.',
+    tabs: [
+      { id: 'scene', label: 'Backgrounds' },
+      { id: 'decor', label: 'Items' },
+      { id: 'fx', label: 'Ambience' },
+    ],
+  },
+  { id: 'treats', label: 'Treats', hint: 'Snacks for Rocky.', tabs: [{ id: 'treats', label: 'Treats' }] },
 ]
+const sectionOf = (tab: Tab): Section => SECTIONS.find((s) => s.tabs.some((t) => t.id === tab))!.id
 
 interface Props {
   open: boolean
@@ -34,7 +52,13 @@ interface Props {
   /** Buys an item; true when the purchase went through. */
   onBuy: (id: string) => boolean
   onBuyTreats: () => void
+  /** Closes the shop and lets the agent drag Rocky's things around the scene. */
+  onArrange?: () => void
+  /** Which part of the shop opens first. */
+  initialTab?: Tab
 }
+
+export type ShopTab = Tab
 
 /**
  * Rocky's shop: looks, places, decor and ambience for Rocky's world. Items
@@ -42,8 +66,27 @@ interface Props {
  * coins earned by the same work. Rocky stays visible while shopping so every
  * item can be tried on.
  */
-export function ShopPanel({ open, onClose, outfit, facts, owned, granted, catalog, coins, treats, onChange, onBuy, onBuyTreats }: Props) {
-  const [tab, setTab] = useState<Tab>('hat')
+export function ShopPanel({
+  open,
+  onClose,
+  outfit,
+  facts,
+  owned,
+  granted,
+  catalog,
+  coins,
+  treats,
+  onChange,
+  onBuy,
+  onBuyTreats,
+  onArrange,
+  initialTab = 'hat',
+}: Props) {
+  const [tab, setTab] = useState<Tab>(initialTab)
+  useEffect(() => {
+    if (open) setTab(initialTab)
+  }, [open, initialTab])
+  const section = SECTIONS.find((s) => s.id === sectionOf(tab))!
   const closeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -94,19 +137,53 @@ export function ShopPanel({ open, onClose, outfit, facts, owned, granted, catalo
           </button>
         </header>
 
-        <div className={styles.tabs} role="tablist">
-          {TABS.map((t) => (
+        <div className={styles.tabs} role="tablist" aria-label="Shop sections">
+          {SECTIONS.map((sec) => (
             <button
-              key={t.id}
+              key={sec.id}
               role="tab"
-              aria-selected={tab === t.id}
-              className={`${styles.tab} ${tab === t.id ? styles.tabOn : ''}`}
-              onClick={() => setTab(t.id)}
+              aria-selected={section.id === sec.id}
+              className={`${styles.tab} ${section.id === sec.id ? styles.tabOn : ''}`}
+              onClick={() => setTab(sec.tabs[0]!.id)}
             >
-              {t.label}
+              {sec.label}
             </button>
           ))}
         </div>
+        {section.tabs.length > 1 && (
+          <div className={styles.subTabs} role="tablist" aria-label={`${section.label} categories`}>
+            {section.tabs.map((t) => (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                className={`${styles.subTab} ${tab === t.id ? styles.subTabOn : ''}`}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <p className={styles.sectionHint}>{section.hint}</p>
+        {section.id === 'world' && onArrange && (
+          <button type="button" className={styles.arrange} onClick={onArrange}>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3" />
+            </svg>
+            Arrange my world
+            <small>Drag Rocky's things around the scene</small>
+          </button>
+        )}
 
         {tab === 'treats' ? (
           <div className={styles.treats}>
@@ -130,7 +207,7 @@ export function ShopPanel({ open, onClose, outfit, facts, owned, granted, catalo
           <>
             <p className={styles.count}>
               {items.filter((i) => isUsable(i, facts, owned, granted)).length} of {items.length} owned
-              {tab === 'decor' ? ` · place up to ${MAX_DECOR}` : ''}
+              {tab === 'decor' ? ` · ${outfit.decor.length}/${MAX_DECOR} placed · tap them in the world and Rocky plays with them` : ''}
             </p>
             <ul className={styles.grid}>
               {items.map((item) => {

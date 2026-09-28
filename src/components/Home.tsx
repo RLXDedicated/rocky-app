@@ -53,6 +53,7 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
   const [facts, setFacts] = useState<ProgressFacts | null>(null)
   const [pet, setPet] = useState<PetCache>(() => loadPetCache())
   const [shopOpen, setShopOpen] = useState(false)
+  const [arranging, setArranging] = useState(false)
   const [coinBurst, setCoinBurst] = useState<number | null>(null)
 
   function refreshFacts(state: GameState) {
@@ -142,6 +143,10 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
   }, [])
   const idleLine = tipIndex >= 0 ? NOTE_TIPS[tipIndex]! : moodLine
   const closeShop = useCallback(() => setShopOpen(false), [])
+  const startArrange = useCallback(() => {
+    setShopOpen(false)
+    setArranging(true)
+  }, [])
 
   if (!agent || !gameState || !facts) return <LoadingRocky />
 
@@ -251,6 +256,7 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
     back: usable(outfit.back) ? outfit.back : null,
     scene: usable(outfit.scene) ? outfit.scene : 'scene-route',
     decor: outfit.decor.filter(usable),
+    spots: outfit.spots ?? {},
     fx: usable(outfit.fx) ? outfit.fx : null,
   }
 
@@ -279,6 +285,12 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
           onFeed={() => act({ type: 'feed' })}
           onPlay={() => act({ type: 'play' })}
           onBath={() => act({ type: 'bath' })}
+          arranging={arranging}
+          onStartArrange={startArrange}
+          onArrangeDone={(layout) => {
+            setArranging(false)
+            if (layout) changeOutfit({ ...outfit, decor: layout.decor, spots: { ...outfit.spots, ...layout.spots } })
+          }}
           hud={
             <>
               <div className={styles.hudLeft}>
@@ -373,6 +385,7 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
         onChange={changeOutfit}
         onBuy={handleBuy}
         onBuyTreats={handleBuyTreats}
+        onArrange={startArrange}
       />
 
       {celebration && <Celebration data={celebration} mood={mood} evolutionStage={gameState.evolutionStage} onClose={() => setCelebration(null)} />}

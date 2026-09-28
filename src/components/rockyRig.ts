@@ -21,11 +21,11 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
         "x": 0.5424,
         "y": 0.4512
       },
-      "chest": 0.5958,
-      "feet": 0.9375,
+      "chest": 0.5947,
+      "feet": 0.9336,
       "top": 0.0586,
       "hip": 0.7246,
-      "splitX": 0.5111,
+      "splitX": 0.4961,
       "eyes": [
         {
           "x": 0.4637,
@@ -49,7 +49,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.9375,
       "top": 0.0586,
       "hip": 0.7246,
-      "splitX": 0.5121,
+      "splitX": 0.4754,
       "eyes": [
         {
           "x": 0.4647,
@@ -73,7 +73,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.873,
       "top": 0.1211,
       "hip": 0.7012,
-      "splitX": 0.5439,
+      "splitX": 0.4721,
       "eyes": []
     },
     "Worried": {
@@ -86,7 +86,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.9414,
       "top": 0.0625,
       "hip": 0.7285,
-      "splitX": 0.4691,
+      "splitX": 0.4548,
       "eyes": [
         {
           "x": 0.4545,
@@ -112,7 +112,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.9375,
       "top": 0.0586,
       "hip": 0.8008,
-      "splitX": 0.5125,
+      "splitX": 0.5248,
       "eyes": [
         {
           "x": 0.4492,
@@ -136,7 +136,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.9375,
       "top": 0.0586,
       "hip": 0.7734,
-      "splitX": 0.508,
+      "splitX": 0.4909,
       "eyes": [
         {
           "x": 0.4508,
@@ -160,7 +160,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.9375,
       "top": 0.0586,
       "hip": 0.793,
-      "splitX": 0.506,
+      "splitX": 0.4806,
       "eyes": []
     },
     "Worried": {
@@ -199,7 +199,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.9375,
       "top": 0.0586,
       "hip": 0.7148,
-      "splitX": 0.5283,
+      "splitX": 0.4949,
       "eyes": [
         {
           "x": 0.4889,
@@ -223,7 +223,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.9375,
       "top": 0.0586,
       "hip": 0.7148,
-      "splitX": 0.5325,
+      "splitX": 0.4903,
       "eyes": [
         {
           "x": 0.4889,
@@ -247,7 +247,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.9102,
       "top": 0.0605,
       "hip": 0.7422,
-      "splitX": 0.507,
+      "splitX": 0.4991,
       "eyes": []
     },
     "Worried": {
@@ -260,7 +260,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.9375,
       "top": 0.0586,
       "hip": 0.7129,
-      "splitX": 0.515,
+      "splitX": 0.481,
       "eyes": [
         {
           "x": 0.4626,
@@ -310,7 +310,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       "feet": 0.9414,
       "top": 0.0605,
       "hip": 0.7891,
-      "splitX": 0.4629,
+      "splitX": 0.4551,
       "eyes": [
         {
           "x": 0.4414,

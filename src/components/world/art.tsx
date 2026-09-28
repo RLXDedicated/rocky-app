@@ -258,11 +258,17 @@ export interface DecorArt {
   width: number
   /** Distance from the floor line, % of world height (pennant hangs up high). */
   lift?: number
+  /** What Rocky does when he visits it. */
+  play: DecorPlay
   svg: ReactElement
 }
 
+/** Rocky's interactions with placed items (Pet Society style). */
+export type DecorPlay = 'eat' | 'rest' | 'nap' | 'cheer' | 'sniff' | 'vroom' | 'peek'
+
 export const DECOR_ART: Record<string, DecorArt> = {
   'decor-boxes': {
+    play: 'peek',
     viewBox: '0 0 120 100',
     left: 4,
     width: 12,
@@ -284,6 +290,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     ),
   },
   'decor-plant': {
+    play: 'sniff',
     viewBox: '0 0 80 120',
     left: 88,
     width: 7,
@@ -299,6 +306,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     ),
   },
   'decor-trophy': {
+    play: 'cheer',
     viewBox: '0 0 80 100',
     left: 17,
     width: 6,
@@ -314,6 +322,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     ),
   },
   'decor-truck': {
+    play: 'vroom',
     viewBox: '0 0 160 90',
     left: 76,
     width: 13,
@@ -335,6 +344,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     ),
   },
   'decor-balloons': {
+    play: 'cheer',
     viewBox: '0 0 90 170',
     left: 33,
     width: 7,
@@ -358,6 +368,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     ),
   },
   'decor-lamp': {
+    play: 'sniff',
     viewBox: '0 0 60 220',
     left: 26,
     width: 4,
@@ -373,6 +384,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     ),
   },
   'decor-bench': {
+    play: 'rest',
     viewBox: '0 0 160 80',
     left: 60,
     width: 12,
@@ -387,6 +399,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     ),
   },
   'decor-barn': {
+    play: 'peek',
     viewBox: '0 0 160 140',
     left: 78,
     width: 16,
@@ -405,7 +418,79 @@ export const DECOR_ART: Record<string, DecorArt> = {
       </>
     ),
   },
+  'decor-bowl': {
+    play: 'eat',
+    viewBox: '0 0 100 50',
+    left: 40,
+    width: 6,
+    svg: (
+      <>
+        <ellipse cx="50" cy="46" rx="46" ry="4" fill="#000" opacity="0.1" />
+        <ellipse cx="50" cy="16" rx="40" ry="8" fill="#c98a3a" />
+        <circle cx="36" cy="13" r="5" fill="#a86a28" />
+        <circle cx="50" cy="11" r="5" fill="#b87a30" />
+        <circle cx="63" cy="14" r="5" fill="#a86a28" />
+        <path d="M8 16 L92 16 L80 44 L20 44 Z" fill={NAVY} />
+        <path d="M8 16 L92 16 L90 22 L10 22 Z" fill={NAVY2} />
+        <text x="37" y="38" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="12" fill={WHITE}>
+          RLX
+        </text>
+      </>
+    ),
+  },
+  'decor-hay': {
+    play: 'eat',
+    viewBox: '0 0 120 80',
+    left: 47,
+    width: 9,
+    svg: (
+      <>
+        <ellipse cx="60" cy="76" rx="56" ry="4" fill="#000" opacity="0.1" />
+        <rect x="6" y="14" width="108" height="60" rx="10" fill="#e3b94f" />
+        <path d="M12 26 L108 26 M12 40 L108 40 M12 54 L108 54 M12 66 L108 66" stroke="#c89a32" strokeWidth="3" />
+        <rect x="30" y="14" width="7" height="60" fill="#8c5a2b" />
+        <rect x="82" y="14" width="7" height="60" fill="#8c5a2b" />
+        <path d="M20 14 L16 4 M44 14 L46 2 M70 14 L66 5 M96 14 L102 6" stroke="#e3b94f" strokeWidth="3" strokeLinecap="round" />
+      </>
+    ),
+  },
+  'decor-mailbox': {
+    play: 'peek',
+    viewBox: '0 0 70 130',
+    left: 70,
+    width: 5,
+    svg: (
+      <>
+        <ellipse cx="35" cy="126" rx="26" ry="4" fill="#000" opacity="0.1" />
+        <rect x="31" y="50" width="8" height="76" fill="#8c5a2b" />
+        <path d="M6 20 C6 6 64 6 64 20 L64 54 L6 54 Z" fill={NAVY} />
+        <rect x="6" y="40" width="58" height="6" fill={GREEN} />
+        <rect x="62" y="12" width="4" height="26" fill="#c9463d" />
+        <rect x="62" y="12" width="16" height="10" fill="#c9463d" />
+        <text x="18" y="34" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="12" fill={WHITE}>
+          RLX
+        </text>
+      </>
+    ),
+  },
+  'decor-bed': {
+    play: 'nap',
+    viewBox: '0 0 160 70',
+    left: 22,
+    width: 12,
+    svg: (
+      <>
+        <ellipse cx="80" cy="66" rx="76" ry="4" fill="#000" opacity="0.1" />
+        <ellipse cx="80" cy="46" rx="74" ry="20" fill={NAVY} />
+        <ellipse cx="80" cy="40" rx="60" ry="14" fill="#7aa7d6" />
+        <ellipse cx="80" cy="38" rx="50" ry="9" fill="#a9c8ea" />
+        <ellipse cx="36" cy="32" rx="18" ry="8" fill={WHITE} />
+        <path d="M60 56 L70 56 M90 56 L100 56" stroke={GREEN} strokeWidth="4" strokeLinecap="round" />
+      </>
+    ),
+  },
   'decor-pennant': {
+    play: 'cheer',
     viewBox: '0 0 140 70',
     left: 8,
     width: 14,

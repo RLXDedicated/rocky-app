@@ -6,6 +6,10 @@ export interface BallHandle {
   position(): { x: number; y: number; vx: number; vy: number }
   /** Adds velocity (px/s) — a kick or a nudge. */
   push(vx: number, vy: number): void
+  /** Kicks the ball away from a screen point (a tap on or near it). */
+  kick(clientX: number, clientY: number): void
+  /** Distance in px from a screen point to the ball's centre. */
+  distanceTo(clientX: number, clientY: number): number
 }
 
 interface Props {
@@ -49,7 +53,25 @@ export const Ball = forwardRef<BallHandle, Props>(function Ball(
   const cb = useRef({ onBounce, onDone, final })
   cb.current = { onBounce, onDone, final }
 
+  const center = () => {
+    const rect = ref.current?.getBoundingClientRect()
+    return rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : { x: 0, y: 0 }
+  }
+  const kick = (clientX: number, clientY: number) => {
+    const c = center()
+    // Kicked away from where it was tapped (a straight tap still goes somewhere), and up.
+    const away = Math.max(-1, Math.min(1, (c.x - clientX) / R))
+    const dir = Math.abs(away) < 0.15 ? (Math.random() < 0.5 ? -1 : 1) * 0.6 : away
+    sim.current.vx = dir * 560 + (Math.random() - 0.5) * 140
+    sim.current.vy = 760 + Math.random() * 220 + (clientY > c.y ? 120 : 0)
+  }
+
   useImperativeHandle(handle, () => ({
+    kick,
+    distanceTo: (clientX, clientY) => {
+      const c = center()
+      return Math.hypot(c.x - clientX, c.y - clientY)
+    },
     position: () => ({ x: sim.current.px, y: sim.current.y, vx: sim.current.vx, vy: sim.current.vy }),
     push: (vx, vy) => {
       sim.current.vx += vx
@@ -94,8 +116,13 @@ export const Ball = forwardRef<BallHandle, Props>(function Ball(
             if (Math.abs(s.vx) < 4) s.vx = 0
           }
         }
-        // Stage edges bounce the ball back while playing.
+        // Stage edges (and the sky) bounce the ball back while playing.
         if (!cb.current.final) {
+          const ceiling = stageH - floor - BALL_SIZE - 8
+          if (s.y > ceiling && s.vy > 0) {
+            s.y = ceiling
+            s.vy = -s.vy * 0.4
+          }
           if (s.px < R + 4 && s.vx < 0) s.vx = -s.vx * 0.7
           if (s.px > stageW - R - 4 && s.vx > 0) s.vx = -s.vx * 0.7
           s.px = Math.max(R, Math.min(stageW - R, s.px))
@@ -121,7 +148,7 @@ export const Ball = forwardRef<BallHandle, Props>(function Ball(
       cancelAnimationFrame(raf)
       if (track) track.current = null
     }
-  }, [animate, stageW, floor, stageRef, track])
+  }, [animate, stageW, stageH, floor, stageRef, track])
 
   return (
     <>
@@ -134,11 +161,7 @@ export const Ball = forwardRef<BallHandle, Props>(function Ball(
         aria-label="Kick the ball"
         onPointerDown={(e) => {
           e.stopPropagation()
-          const rect = ref.current!.getBoundingClientRect()
-          // Kicked away from where it was tapped, and up.
-          const away = (rect.left + rect.width / 2 - e.clientX) / (rect.width / 2)
-          sim.current.vx = away * 520 + (Math.random() - 0.5) * 160
-          sim.current.vy = 760 + Math.random() * 220
+          kick(e.clientX, e.clientY)
           onTap()
         }}
         onClick={(e) => e.stopPropagation()}

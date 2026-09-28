@@ -57,8 +57,8 @@ the server re-applies them with the same rules and its copy wins.
 
 - Earned from progress (recomputed, never stored as a balance): check-in 10,
   clean QA 25, badge 40, level 30, full streak week 50.
-- Spent in the shop (36 items: 14 hats, 7 places, 9 decor, 5 ambience) and on
-  treat bags. Items unlock by progress, then are bought.
+- Spent in the shop — two sections, **Rocky** (hats, glasses, clothes) and
+  **World** (backgrounds, items, ambience) — and on treat bags. Items unlock by progress, then are bought.
 - `coin_ledger` records every purchase and admin adjustment with who did it
   and the balance right after.
 
@@ -72,7 +72,35 @@ the server re-applies them with the same rules and its copy wins.
   its own — a walk cycle, and a faster, wider run.
 - **Play**: the ball drops in and for ~9 seconds Rocky chases and dribbles
   it; the agent can tap the ball to kick it around; then Rocky takes the
-  final shot.
+  final shot. The ball has a generous invisible hit area, and a tap within
+  ~70 px of it also counts as a kick.
+
+## Items that live with Rocky (Pet Society style)
+
+- World items (package stack and snack bowl to start; hay bale, plant,
+  balloons, lamp, trophy, bench, mailbox, bed, pennant, toy truck, barn) are
+  placed in the scene — up to 6 at a time.
+- **Arrange my world** (the ✥ button on the stage, or in the shop's World
+  section): drag items along the floor (arrow keys also work), × puts one
+  away, Done saves. Positions are stored in the pet's outfit
+  (`outfit.spots`, % of the stage width, clamped 3–95) on the server, so the
+  layout follows the agent to any device.
+- **Tap an item** and Rocky walks over and plays with it: eats from the bowl
+  and the hay, naps on the bed, rests on the bench, cheers at the trophy,
+  balloons and pennant, sniffs the plant and lamp, peeks into the boxes,
+  mailbox and barn, "vroom"s the truck. When idle he also visits his things
+  on his own. Visits are for fun only: no coins, XP or needs change.
+
+## Rocky's art: white background clean-up
+
+The delivered PNGs had opaque white patches where the background was
+enclosed (between the legs, around the tail). Once the rig moves the legs,
+those patches stretched with them. `tools/clean-rocky-art.py` makes them
+transparent (flood fill from the outside through near-white pixels below
+the neck, plus enclosed white blobs below the hips) and softens the fringe;
+the untouched originals are kept in `docs/rocky-assets-source/original-png/`
+and the tool always starts from them. The half-body reaction stills are not
+touched. Re-run `tools/build-rocky-rig.py` after changing the art.
 
 ## Clothes
 
@@ -168,5 +196,11 @@ implements the counting; changing the rule is a one-function change in
    audit patterns without a deploy.
 3. **Weekend streak rule** (open decision above).
 4. **Team roster** from SharePoint to bring back real team pages.
-5. **Layered Rocky art** for true blinking, mouth shapes and full outfits.
+5. **Layered Rocky art** — the real quality jump. Per stage, deliver Rocky in
+   separate transparent layers (PSD or PNGs on one canvas): head, each horn,
+   each ear, eyes (white, iris, eyelids), mouth shapes, torso, vest, each
+   arm, each leg, tail, with each part drawn complete where it overlaps.
+   That enables true blinking, talking, arm waves, sitting/sleeping poses
+   and full outfits that follow the body, with a proper skeletal rig
+   (Spine/Rive, or the current mesh renderer per layer).
 6. **Entra ID sign-in** to replace the PIN.

@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { EvolutionStage, Mood } from '../../types/domain'
 import type { Outfit } from '../../game/closet'
 import { needsSummary, type Needs } from '../../game/pet'
 import { isMuted, play as playSfx, setMuted } from '../../game/sfx'
 import { ROCKY_HEAD_ANCHORS } from '../rockyAnchors'
 import { getReactionAsset, getRockyAsset, ROCKY_VISUALS, type RockyReactionKey } from '../rockyVisuals'
-import { DECOR_ART, HAT_ART, SceneArt, hatPlacement } from './art'
+import { DECOR_ART, HAT_ART, SceneArt, hatPlacement, type DecorPlay } from './art'
+import { findItem, MAX_DECOR, SPOT_MAX, SPOT_MIN } from '../../game/closet'
 import { Ball, type BallHandle } from './Ball'
 import { FxLayer } from './FxLayer'
 import { BACK_ART, GLASSES_ART, NECK_ART, WEAR_VIEWBOX, backPlacement, glassesPlacement, neckPlacement } from './wearables'
@@ -22,7 +23,7 @@ type Pose = 'idle' | 'walk' | 'run' | 'pet' | 'eat' | 'hop' | 'bath'
 interface Particle {
   id: number
   x: number
-  kind: 'heart' | 'crumb' | 'bubble' | 'sparkle'
+  kind: 'heart' | 'crumb' | 'bubble' | 'sparkle' | 'zzz' | 'note'
   /** Extra offsets so bursts don't stack in one column. */
   dx: number
   dy: number
@@ -46,7 +47,30 @@ interface Props {
   hud: ReactNode
   /** The primary action (check-in). */
   action: ReactNode
+  /** Arrange mode: the agent drags placed items around the scene. */
+  arranging?: boolean
+  onStartArrange?: () => void
+  /** Saves (or, with null, cancels) the new layout. */
+  onArrangeDone?: (layout: { decor: string[]; spots: Record<string, number> } | null) => void
 }
+
+/** Where a placed item stands (its centre, % of the stage width). */
+export function decorSpot(id: string, spots: Record<string, number> | undefined): number {
+  const d = DECOR_ART[id]
+  return spots?.[id] ?? (d ? d.left + d.width / 2 : 50)
+}
+
+/** Rocky's lines when he visits an item. */
+const VISIT_LINES: Record<DecorPlay, readonly string[]> = {
+  eat: ['Snack time!', 'Mmm, crunchy.', 'Just a little bite…'],
+  rest: ['Nice spot for a break.', 'Ahh, sitting down feels good.', 'Break time — then back to the notes!'],
+  nap: ['Zzz… five more minutes…', 'Power nap!', 'Dreaming of perfect notes…'],
+  cheer: ['We did it, team!', 'Look at that!', 'Go Rocky, go!'],
+  sniff: ['Smells like… teamwork.', 'Ooh, what’s this?', 'Sniff sniff!'],
+  vroom: ['Vroom vroom!', 'Out for delivery!', 'Beep beep!'],
+  peek: ['Any mail for me?', 'What’s inside?', 'Package check: all noted!'],
+}
+const VISIT_POSE: Record<DecorPlay, Pose> = { eat: 'eat', rest: 'pet', nap: 'pet', cheer: 'hop', sniff: 'pet', vroom: 'hop', peek: 'pet' }
 
 const FLOOR = 15 // default floor, % from the bottom of the stage
 /** Space kept between the top of the care panel and the floor Rocky walks on. */
@@ -96,7 +120,24 @@ function prefersReducedMotion(): boolean {
  * his health, happiness and cleanliness up — for fun and connection only;
  * nothing here changes XP, Energy or Streak.
  */
-export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, needs, onPet, onFeed, onPlay, onBath, hud, action }: Props) {
+export function RockyWorld({
+  mood,
+  stage,
+  reaction,
+  outfit,
+  speech,
+  treats,
+  needs,
+  onPet,
+  onFeed,
+  onPlay,
+  onBath,
+  hud,
+  action,
+  arranging = false,
+  onStartArrange,
+  onArrangeDone,
+}: Props) {
   const [x, setX] = useState(50)
   const [pose, setPose] = useState<Pose>('idle')
   const [walkMs, setWalkMs] = useState(0)
@@ -110,6 +151,18 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   const [playing, setPlaying] = useState(false)
   const [clickMark, setClickMark] = useState<{ id: number; x: number; y: number } | null>(null)
   const [treatFlying, setTreatFlying] = useState(false)
+  // The layout being arranged (a draft until the agent taps Done).
+  const [draft, setDraft] = useState<{ decor: string[]; spots: Record<string, number> } | null>(null)
+  const dragRef = useRef<{ id: string; pointer: number; dx: number } | null>(null)
+  useEffect(() => {
+    if (arranging) {
+      const spots: Record<string, number> = {}
+      for (const id of outfit.decor) spots[id] = decorSpot(id, outfit.spots)
+      setDraft({ decor: [...outfit.decor], spots })
+    } else setDraft(null)
+    // Only when arrange mode toggles: the draft must not reset mid-drag.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arranging])
   const [muted, setMutedState] = useState(() => isMuted())
   const busyRef = useRef(false)
   // Mirrors busyRef for rendering: care buttons are disabled while Rocky is mid-action.
@@ -119,6 +172,8 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
     setBusyState(v)
   }
   const idRef = useRef(0)
+  const floorPxRef = useRef(0)
+  const sizeRef = useRef(200)
   const worldRef = useRef<HTMLDivElement>(null)
   const [worldSize, setWorldSize] = useState({ w: 900, h: 420, dock: 0 })
   const dockRef = useRef<HTMLDivElement>(null)
@@ -200,6 +255,12 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   }, [])
 
   const xRef = useRef(50)
+  const arrangingRef = useRef(arranging)
+  arrangingRef.current = arranging
+  const decorRef = useRef(outfit.decor)
+  decorRef.current = outfit.decor
+  const spotsRef = useRef(outfit.spots)
+  spotsRef.current = outfit.spots
   const walkTimer = useRef(0)
   const walkTo = useCallback((target: number, run = false): Promise<void> => {
     const from = xRef.current
@@ -227,8 +288,11 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
     const schedule = () => {
       timer = window.setTimeout(
         async () => {
-          if (!busyRef.current && !reaction) {
-            await walkTo(28 + Math.random() * 44)
+          if (!busyRef.current && !reaction && !arrangingRef.current) {
+            const items = decorRef.current.filter((id) => DECOR_ART[id] && !DECOR_ART[id]!.lift)
+            // Now and then Rocky goes and plays with one of his things.
+            if (items.length && Math.random() < 0.4) await visitRef.current(pick(items))
+            else await walkTo(28 + Math.random() * 44)
           }
           schedule()
         },
@@ -350,6 +414,14 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   /** Clicking/tapping the ground: Rocky walks (or runs, if it's far) to that spot and looks at it. */
   function handleStageClick(e: React.MouseEvent<HTMLDivElement>) {
     if ((e.target as Element).closest('button')) return
+    if (arranging) return
+    // A tap close to the moving ball counts as a kick: it's small and quick.
+    if (ball && !ball.final && ballRef.current && ballRef.current.distanceTo(e.clientX, e.clientY) < 70) {
+      ballRef.current.kick(e.clientX, e.clientY)
+      playSfx('kick')
+      say(pick(TAP_LINES), 1400)
+      return
+    }
     if (busyRef.current && !playing) return
     const rect = e.currentTarget.getBoundingClientRect()
     const px = ((e.clientX - rect.left) / rect.width) * 100
@@ -359,6 +431,90 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
     }, 1600)
     setClickMark({ id: ++idRef.current, x: px, y: ((e.clientY - rect.top) / rect.height) * 100 })
     if (!playing) void walkTo(px, Math.abs(px - xRef.current) > 30)
+  }
+
+  /** Rocky walks over to a placed item and plays with it (just for fun — no stats change). */
+  async function visitDecor(id: string) {
+    const d = DECOR_ART[id]
+    if (!d || busyRef.current || arrangingRef.current) return
+    setBusy(true)
+    const cx = decorSpot(id, spotsRef.current)
+    const w = worldSizeRef.current
+    const stage = worldRef.current?.getBoundingClientRect()
+    if (stage) gazeRef.current = { x: stage.left + (cx / 100) * stage.width, y: stage.bottom - floorPxRef.current - 20 }
+    // Stand beside it (or right on it, for the bed and things hanging overhead).
+    const rockyHalf = (sizeRef.current / w.w) * 50
+    const side = xRef.current < cx ? -1 : 1
+    const onTop = d.play === 'nap' || Boolean(d.lift)
+    await walkTo(onTop ? cx : cx + side * (d.width / 2 + rockyHalf * 0.55), Math.abs(cx - xRef.current) > 35)
+    const pose = VISIT_POSE[d.play]
+    setPose(pose)
+    const at = xRef.current
+    switch (d.play) {
+      case 'eat':
+        playSfx('chomp')
+        burst('crumb', 5, cx)
+        burst('heart', 1, at)
+        break
+      case 'nap':
+      case 'rest':
+        playSfx('pop')
+        burst('zzz', d.play === 'nap' ? 3 : 1, at, 2200)
+        break
+      case 'cheer':
+        playSfx('chime')
+        burst('sparkle', 5, at, 1400)
+        burst('heart', 2, at)
+        break
+      case 'vroom':
+        playSfx('kick')
+        burst('note', 2, cx)
+        break
+      default:
+        playSfx('tap')
+        burst('sparkle', 2, cx, 1200)
+    }
+    say(pick(VISIT_LINES[d.play]), 2400)
+    const hold = !animate ? 300 : d.play === 'nap' ? 2600 : d.play === 'rest' ? 1800 : 1200
+    await new Promise((r) => window.setTimeout(r, hold))
+    setPose('idle')
+    gazeRef.current = null
+    setBusy(false)
+  }
+  const visitRef = useRef(visitDecor)
+  visitRef.current = visitDecor
+
+  // Arrange mode: drag an item left/right along the floor.
+  function stagePercent(clientX: number) {
+    const rect = worldRef.current?.getBoundingClientRect()
+    return rect ? ((clientX - rect.left) / rect.width) * 100 : 50
+  }
+  function startDrag(id: string, e: React.PointerEvent<HTMLButtonElement>) {
+    if (!draft) return
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragRef.current = { id, pointer: e.pointerId, dx: (draft.spots[id] ?? 50) - stagePercent(e.clientX) }
+  }
+  function moveDrag(e: React.PointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current
+    if (!drag || drag.pointer !== e.pointerId) return
+    const next = Math.max(SPOT_MIN, Math.min(SPOT_MAX, stagePercent(e.clientX) + drag.dx))
+    setDraft((cur) => (cur ? { ...cur, spots: { ...cur.spots, [drag.id]: Math.round(next * 10) / 10 } } : cur))
+  }
+  function endDrag(e: React.PointerEvent<HTMLButtonElement>) {
+    if (dragRef.current?.pointer === e.pointerId) {
+      dragRef.current = null
+      playSfx('tap')
+    }
+  }
+  function nudge(id: string, delta: number) {
+    setDraft((cur) => (cur ? { ...cur, spots: { ...cur.spots, [id]: Math.max(SPOT_MIN, Math.min(SPOT_MAX, (cur.spots[id] ?? 50) + delta)) } } : cur))
+  }
+  function putAway(id: string) {
+    setDraft((cur) =>
+      cur ? { decor: cur.decor.filter((d) => d !== id), spots: Object.fromEntries(Object.entries(cur.spots).filter(([k]) => k !== id)) } : cur,
+    )
+    playSfx('pop')
   }
 
   function handleBath() {
@@ -393,6 +549,9 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   // ends up hidden (or unclickable) behind it.
   const floorPx = Math.max((FLOOR / 100) * worldSize.h, worldSize.dock > 0 ? worldSize.dock + FLOOR_GAP : 0)
   const size = Math.round(Math.min(340, Math.max(160, Math.min(worldSize.h * 0.6, (worldSize.h - floorPx - 40) * 0.95))))
+  floorPxRef.current = floorPx
+  sizeRef.current = size
+  const layout = draft ?? { decor: outfit.decor, spots: outfit.spots }
   const anchor = ROCKY_HEAD_ANCHORS[stage][mood]
   const src = reaction ? getReactionAsset(reaction) : getRockyAsset(stage, mood)
   const equippedHat = outfit.hat ? HAT_ART[outfit.hat] : undefined
@@ -417,7 +576,7 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
 
   return (
     <section className={styles.world} aria-label="Rocky's world">
-      <div className={styles.hud}>{hud}</div>
+      {!arranging && <div className={styles.hud}>{hud}</div>}
 
       <div className={styles.stage} ref={worldRef} onClick={handleStageClick}>
         <div className={styles.scene}>
@@ -425,25 +584,68 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
         </div>
         <div className={styles.spotlight} aria-hidden="true" />
 
-        {outfit.decor.map((id) => {
+        {layout.decor.map((id) => {
           const d = DECOR_ART[id]
           if (!d) return null
+          const cx = decorSpot(id, layout.spots)
+          const name = findItem(id)?.name ?? 'item'
+          const bottom = floorPx + ((d.lift ?? 0) / 100) * worldSize.h - 0.02 * worldSize.h
           return (
-            <svg
-              key={id}
-              className={styles.decor}
-              viewBox={d.viewBox}
-              style={{
-                left: `${d.left}%`,
-                width: `${d.width}%`,
-                bottom: floorPx + ((d.lift ?? 0) / 100) * worldSize.h - 0.02 * worldSize.h,
-              }}
-              aria-hidden="true"
-            >
-              {d.svg}
-            </svg>
+            <Fragment key={id}>
+              <button
+                type="button"
+                className={`${styles.decor} ${arranging ? styles.decorArrange : ''}`}
+                style={{ left: `${cx - d.width / 2}%`, width: `${d.width}%`, bottom }}
+                aria-label={arranging ? `Move the ${name} (drag, or use the arrow keys)` : `Rocky, play with the ${name}`}
+                onClick={arranging ? undefined : () => void visitDecor(id)}
+                onPointerDown={arranging ? (e) => startDrag(id, e) : undefined}
+                onPointerMove={arranging ? moveDrag : undefined}
+                onPointerUp={arranging ? endDrag : undefined}
+                onPointerCancel={arranging ? endDrag : undefined}
+                onKeyDown={
+                  arranging
+                    ? (e) => {
+                        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                          e.preventDefault()
+                          nudge(id, e.key === 'ArrowLeft' ? -2 : 2)
+                        }
+                      }
+                    : undefined
+                }
+              >
+                <svg viewBox={d.viewBox} aria-hidden="true">
+                  {d.svg}
+                </svg>
+              </button>
+              {arranging && (
+                <button
+                  type="button"
+                  className={styles.putAway}
+                  style={{ left: `${cx}%`, bottom: bottom + (d.width / 100) * worldSize.w * 0.2 + 34 }}
+                  onClick={() => putAway(id)}
+                  aria-label={`Put away the ${name}`}
+                  title="Put away"
+                >
+                  ×
+                </button>
+              )}
+            </Fragment>
           )
         })}
+
+        {arranging && draft && (
+          <div className={styles.arrangeBar} role="group" aria-label="Arrange your world">
+            <span>
+              Drag your things around · {draft.decor.length}/{MAX_DECOR} placed
+            </span>
+            <button type="button" className={styles.arrangeCancel} onClick={() => onArrangeDone?.(null)}>
+              Cancel
+            </button>
+            <button type="button" className={styles.arrangeDone} onClick={() => onArrangeDone?.(draft)}>
+              Done
+            </button>
+          </div>
+        )}
 
         {ball && (
           <Ball
@@ -626,15 +828,41 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
             className={styles[p.kind]}
             style={{
               left: `calc(${p.x}% + ${p.dx}px)`,
-              bottom: floorPx + ((p.kind === 'heart' ? 38 : p.kind === 'crumb' ? 20 : 26) / 100) * worldSize.h + p.dy,
+              bottom:
+                floorPx +
+                ((p.kind === 'heart' || p.kind === 'zzz' ? 38 : p.kind === 'crumb' || p.kind === 'note' ? 20 : 26) / 100) * worldSize.h +
+                p.dy,
             }}
             aria-hidden="true"
           >
-            {p.kind === 'heart' ? '❤' : ''}
+            {p.kind === 'heart' ? '❤' : p.kind === 'zzz' ? 'z' : p.kind === 'note' ? '♪' : ''}
           </span>
         ))}
 
         <FxLayer id={outfit.fx} />
+        {onStartArrange && !arranging && (
+          <button
+            type="button"
+            className={`${styles.sound} ${styles.arrangeButton}`}
+            onClick={onStartArrange}
+            aria-label="Arrange your world"
+            title="Arrange your world"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3" />
+            </svg>
+          </button>
+        )}
         <div className={styles.vignette} aria-hidden="true" />
         <button
           type="button"

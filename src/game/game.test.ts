@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CLOSET, DEFAULT_OUTFIT, resolveCatalog, sanitizeOutfit, type ProgressFacts } from './closet'
+import { CLOSET, DEFAULT_OUTFIT, MAX_DECOR, resolveCatalog, sanitizeOutfit, type ProgressFacts } from './closet'
 import { coinsEarned, TREAT_BAG } from './economy'
 import {
   adminAdjustCoins,
@@ -29,7 +29,7 @@ function run(state: PetState, action: PetAction, facts = worker, now = NOW) {
 describe('shop catalogue', () => {
   it('starts with only the starter items unlocked', () => {
     const unlocked = CLOSET.filter((i) => i.isUnlocked(newbie)).map((i) => i.id)
-    expect(unlocked).toEqual(['hat-rlx-cap', 'neck-lanyard', 'scene-route', 'decor-boxes'])
+    expect(unlocked).toEqual(['hat-rlx-cap', 'neck-lanyard', 'scene-route', 'decor-boxes', 'decor-bowl'])
   })
 
   it('has unique ids and a price for every item', () => {
@@ -58,7 +58,24 @@ describe('shop catalogue', () => {
       worker,
       [],
     )
-    expect(outfit).toEqual({ ...DEFAULT_OUTFIT, hat: null })
+    expect(outfit).toEqual({ ...DEFAULT_OUTFIT, hat: null, decor: ['decor-boxes'] })
+  })
+})
+
+describe('placed items (Pet Society style)', () => {
+  it('keeps positions only for placed items, clamped to the stage', () => {
+    const outfit = sanitizeOutfit(
+      { ...DEFAULT_OUTFIT, decor: ['decor-boxes', 'decor-bowl'], spots: { 'decor-boxes': 140, 'decor-bowl': 33.33, 'decor-barn': 50 } },
+      worker,
+      [],
+    )
+    expect(outfit.spots).toEqual({ 'decor-boxes': 95, 'decor-bowl': 33.3 })
+  })
+
+  it('drops junk positions and allows up to six items', () => {
+    const outfit = sanitizeOutfit({ ...DEFAULT_OUTFIT, spots: { 'decor-boxes': Number.NaN, 'decor-bowl': 'x' } as never }, worker, [])
+    expect(outfit.spots).toEqual({})
+    expect(MAX_DECOR).toBe(6)
   })
 })
 
