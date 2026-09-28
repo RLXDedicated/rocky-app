@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CLOSET, DEFAULT_OUTFIT, MAX_DECOR, resolveCatalog, sanitizeOutfit, type ProgressFacts } from './closet'
+import { CLOSET, collectionOpen, DEFAULT_OUTFIT, MAX_DECOR, resolveCatalog, sanitizeOutfit, sanitizeSizes, type ProgressFacts } from './closet'
 import { coinsEarned, TREAT_BAG } from './economy'
 import {
   adminAdjustCoins,
@@ -78,10 +78,10 @@ describe('placed items (Pet Society style)', () => {
     expect(outfit.spots).toEqual({ 'decor-boxes': 95, 'decor-bowl': 33.3 })
   })
 
-  it('drops junk positions and allows up to six items', () => {
+  it('drops junk positions and allows up to twelve items', () => {
     const outfit = sanitizeOutfit({ ...DEFAULT_OUTFIT, spots: { 'decor-boxes': Number.NaN, 'decor-bowl': 'x' } as never }, worker, [])
     expect(outfit.spots).toEqual({})
-    expect(MAX_DECOR).toBe(6)
+    expect(MAX_DECOR).toBe(12)
   })
 })
 
@@ -293,5 +293,27 @@ describe('visits between friends', () => {
     expect(host.inbox[0]!.text).toContain('Ana Diaz')
     const read = run(host, { type: 'readInbox' }, worker, new Date(NOW.getTime() + 1000))
     expect(unreadInbox(read.state)).toHaveLength(0)
+  })
+})
+
+describe('item sizes and seasonal collections', () => {
+  it('snaps sizes to the allowed steps, never below the minimum, and drops the default', () => {
+    expect(
+      sanitizeSizes({ 'decor-lamp': 0.2, 'decor-bench': 1.6, 'decor-boxes': 1, 'decor-gone': 1.5 }, ['decor-lamp', 'decor-bench', 'decor-boxes']),
+    ).toEqual({
+      'decor-lamp': 0.85,
+      'decor-bench': 1.5,
+    })
+  })
+
+  it('keeps seasonal items unavailable until an admin opens the season (and only inside its window)', () => {
+    const now = new Date('2026-10-15T12:00:00')
+    expect(resolveCatalog({}, now).find((i) => i.id === 'hat-witch')!.enabled).toBe(false)
+    expect(resolveCatalog({}, now).find((i) => i.id === 'hat-crown')!.enabled).not.toBe(false)
+    const open = { 'collection:spooky': { enabled: true, from: '2026-10-01', until: '2026-10-31' } }
+    expect(collectionOpen(open, 'spooky', now)).toBe(true)
+    expect(collectionOpen(open, 'spooky', new Date('2026-11-01T12:00:00'))).toBe(false)
+    expect(collectionOpen(open, 'holiday', now)).toBe(false)
+    expect(resolveCatalog(open, now).find((i) => i.id === 'hat-witch')!.enabled).not.toBe(false)
   })
 })

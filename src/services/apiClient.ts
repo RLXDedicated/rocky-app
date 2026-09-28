@@ -186,6 +186,21 @@ export interface AdminCatalogItem {
   price: number
   basePrice: number
   enabled: boolean
+  /** Limited collection the item belongs to (seasonal specials), if any. */
+  collection?: string | null
+}
+
+export interface AdminCollection {
+  id: 'spooky' | 'holiday'
+  name: string
+  emoji: string
+  blurb: string
+  /** The admin switch, and the optional window (YYYY-MM-DD). */
+  enabled: boolean
+  from: string | null
+  until: string | null
+  /** Open right now (switched on and inside the window). */
+  open: boolean
 }
 
 export interface AdminEconomy {
@@ -350,7 +365,15 @@ export const apiClient = {
   resetPet: (agentId: string) => request<PetView>(agentPath(agentId, '/pet/reset'), post()),
   resetPin: (agentId: string) => request<{ ok: boolean; sessionsRevoked: number }>(agentPath(agentId, '/pin-reset'), post()),
   revokeSessions: (agentId: string) => request<{ ok: boolean; sessionsRevoked: number }>(agentPath(agentId, '/sessions/revoke'), post()),
-  getCatalog: () => request<{ items: AdminCatalogItem[]; overrides: CatalogOverrides }>('/api/admin/catalog'),
+  getCatalog: () => request<{ items: AdminCatalogItem[]; overrides: CatalogOverrides; collections: AdminCollection[] }>('/api/admin/catalog'),
+  setCollection: (id: string, value: { enabled: boolean; from?: string | null; until?: string | null }) =>
+    request<{ items: AdminCatalogItem[]; overrides: CatalogOverrides; collections: AdminCollection[] }>(
+      `/api/admin/collections/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(value),
+      },
+    ),
   setCatalogItem: (itemId: string, value: { price?: number | null; enabled?: boolean | null }) =>
     request<{ items: AdminCatalogItem[]; overrides: CatalogOverrides }>(`/api/admin/catalog/${encodeURIComponent(itemId)}`, {
       method: 'PATCH',

@@ -473,3 +473,41 @@ describe('Admin superpowers', () => {
     )
   })
 })
+
+describe('Limited collections', () => {
+  it('are closed by default; an admin opens them (optionally for a window) and bought items stay after closing', async () => {
+    const app = build()
+    await request(app).get('/api/agent/me').set(as(AGENT))
+    await request(app).post(`/api/admin/agents/${AGENT}/coins`).set(as(ADMIN)).send({ delta: 500, note: 'test' })
+    const buy = (itemId: string) => request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'buy', itemId })
+    expect((await buy('hat-witch')).body.reason).toBe('unavailable')
+    expect((await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'buyFood', foodId: 'food-candy-corn' })).body.reason).toBe(
+      'unavailable',
+    )
+
+    // A window that hasn't started yet keeps it closed (the test clock is 2026-09-08).
+    await request(app).patch('/api/admin/collections/spooky').set(as(ADMIN)).send({ enabled: true, from: '2026-10-01', until: '2026-11-02' })
+    expect((await buy('hat-witch')).body.reason).toBe('unavailable')
+    const opened = await request(app)
+      .patch('/api/admin/collections/spooky')
+      .set(as(ADMIN))
+      .send({ enabled: true, from: '2026-09-01', until: '2026-11-02' })
+    expect(opened.body.collections.find((c: { id: string }) => c.id === 'spooky')).toMatchObject({ enabled: true, open: true })
+    expect((await buy('hat-witch')).body.ok).toBe(true)
+    expect((await buy('hat-crown')).body.reason).not.toBe('unavailable') // regular items unaffected
+
+    await request(app).patch('/api/admin/collections/spooky').set(as(ADMIN)).send({ enabled: false })
+    expect((await buy('hat-pumpkin')).body.reason).toBe('unavailable')
+    const equip = await request(app)
+      .post('/api/pet/actions')
+      .set(as(AGENT))
+      .send({ type: 'equip', outfit: { hat: 'hat-witch', scene: 'scene-route', decor: [], fx: null } })
+    expect(equip.body.state.outfit.hat).toBe('hat-witch') // exclusives bought while open are kept
+
+    expect((await request(app).patch('/api/admin/collections/spooky').set(as(AGENT)).send({ enabled: true })).status).toBe(403)
+    expect((await request(app).patch('/api/admin/collections/nope').set(as(ADMIN)).send({ enabled: true })).status).toBe(422)
+    expect((await request(app).patch('/api/admin/collections/spooky').set(as(ADMIN)).send({ enabled: true, from: '10/01' })).status).toBe(422)
+    const audit = await request(app).get('/api/admin/audit').set(as(ADMIN))
+    expect(audit.body.entries.map((a: { action: string }) => a.action)).toContain('admin.collection')
+  })
+})

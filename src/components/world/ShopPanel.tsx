@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
-import { isUsable, itemsFor, MAX_DECOR, SINGLE_SLOTS, type ClosetItem, type ItemSlot, type Outfit, type ProgressFacts } from '../../game/closet'
+import {
+  collectionOpen,
+  isUsable,
+  itemsFor,
+  MAX_DECOR,
+  SINGLE_SLOTS,
+  type ClosetItem,
+  type ItemSlot,
+  type Outfit,
+  type ProgressFacts,
+} from '../../game/closet'
 import { WEAR_ART, WEAR_VIEWBOX, type WearSlot } from './wearables'
 import { TREAT_BAG } from '../../game/economy'
 import { FOODS, SOAPS, STARTER_SOAP, type Season } from '../../game/pantry'
@@ -150,7 +160,7 @@ export function ShopPanel({
   // Items taken out of the shop by an admin stay visible only to agents who already have them.
   const visible = (i: ClosetItem) => i.enabled !== false || isUsable(i, facts, owned, granted)
   const closetFor = (t: Tab): ClosetItem[] => {
-    if (t === 'clothes') return [...itemsFor('neck', catalog), ...itemsFor('back', catalog)]
+    if (t === 'clothes') return [...itemsFor('body', catalog), ...itemsFor('neck', catalog), ...itemsFor('back', catalog)]
     if (t === 'spooky' || t === 'holiday') return catalog.filter((i) => i.season === t)
     if (t === 'hat' || t === 'glasses' || t === 'scene' || t === 'decor' || t === 'fx') return itemsFor(t, catalog)
     return []
@@ -161,10 +171,12 @@ export function ShopPanel({
     const p = pantryOverrides[id]?.price
     return typeof p === 'number' ? p : base
   }
-  const foods = FOODS.filter((f) => pantryOverrides[f.id]?.enabled !== false && (tab === 'food' ? true : season !== null && f.season === season))
-  const soaps = SOAPS.filter(
-    (s) => s.price > 0 && pantryOverrides[s.id]?.enabled !== false && (tab === 'soap' ? true : season !== null && s.season === season),
-  )
+  // Seasonal specials are exclusive: on sale only while QA has their season open.
+  const onSale = (x: { id: string; season?: Season }) =>
+    pantryOverrides[x.id]?.enabled !== false && (!x.season || collectionOpen(pantryOverrides, x.season))
+  const seasonOpen = season !== null && collectionOpen(pantryOverrides, season)
+  const foods = FOODS.filter((f) => onSale(f) && (tab === 'food' ? true : season !== null && f.season === season))
+  const soaps = SOAPS.filter((s) => s.price > 0 && onSale(s) && (tab === 'soap' ? true : season !== null && s.season === season))
 
   return (
     <div className={styles.backdrop} onClick={onClose}>
@@ -226,6 +238,13 @@ export function ShopPanel({
             Arrange my world
             <small>Drag Rocky's things around the scene</small>
           </button>
+        )}
+
+        {season && !seasonOpen && (
+          <p className={styles.closedSeason}>
+            {season === 'spooky' ? '🎃 Spooky season' : '🎄 The holiday season'} isn’t open right now — these are exclusives that QA releases for a
+            limited time. Anything you already got stays yours.
+          </p>
         )}
 
         {tab === 'treats' && (
@@ -299,7 +318,7 @@ export function ShopPanel({
                 else if (!usable) state = short > 0 ? `${short} more coins` : 'Tap to buy'
                 else
                   state = on
-                    ? ['hat', 'glasses', 'neck', 'back'].includes(item.slot)
+                    ? ['hat', 'glasses', 'neck', 'back', 'body'].includes(item.slot)
                       ? 'Wearing'
                       : 'In use'
                     : granted.includes(item.id)
@@ -365,7 +384,7 @@ function ItemPreview({ item }: { item: ClosetItem }) {
       </svg>
     )
   if (item.slot === 'scene') return <SceneArt id={item.id} />
-  if ((item.slot === 'glasses' || item.slot === 'neck' || item.slot === 'back') && WEAR_ART[item.slot as WearSlot][item.id])
+  if ((item.slot === 'glasses' || item.slot === 'neck' || item.slot === 'back' || item.slot === 'body') && WEAR_ART[item.slot as WearSlot][item.id])
     return (
       <svg viewBox={WEAR_VIEWBOX[item.slot as WearSlot]} aria-hidden="true">
         {WEAR_ART[item.slot as WearSlot][item.id]}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CLOSET, type ItemSlot } from '../../game/closet'
-import { apiClient, type AdminCatalogItem, type AdminEconomy, type AuditRow } from '../../services/apiClient'
+import { apiClient, type AdminCatalogItem, type AdminCollection, type AdminEconomy, type AuditRow } from '../../services/apiClient'
 import styles from './AdminConsole.module.css'
 import { Kpi } from './AdminConsole'
 import { auditDetail, auditLabel, fmtDateTime, LEDGER_KIND_ES, SOURCE_ES } from './adminFormat'
@@ -10,6 +10,7 @@ const SLOT_ES: Record<ItemSlot, string> = {
   glasses: 'Gafas',
   neck: 'Cuello',
   back: 'Espalda',
+  body: 'Camisetas',
   scene: 'Lugares',
   decor: 'Decoración',
   fx: 'Ambientación',
@@ -159,13 +160,14 @@ export function ShopTab({ onChanged, onError }: { onChanged: (m: string) => void
   if (!data) return <p className={styles.muted}>Cargando…</p>
   return (
     <div className={styles.stack}>
+      <Collections collections={data.collections ?? []} items={data.items} onChanged={(m) => (onChanged(m), reload())} onError={onError} />
       <p className={styles.muted}>
         Los cambios aplican a todos los agentes de inmediato y quedan en la auditoría. Un accesorio retirado de la tienda sigue funcionando para quien
         ya lo tiene. Para dárselo a alguien sin que lo compre, usa “Regalar” en la ficha del agente.
       </p>
-      {(Object.keys(SLOT_ES) as ItemSlot[]).map((slot) => (
+      {([...(Object.keys(SLOT_ES) as ItemSlot[]), 'food', 'soap'] as ItemSlot[]).map((slot) => (
         <section key={slot} className={styles.card}>
-          <h3>{SLOT_ES[slot]}</h3>
+          <h3>{SLOT_ES[slot] ?? (String(slot) === 'food' ? 'Comida' : 'Jabones')}</h3>
           <div className={styles.tableCard}>
             <table className={styles.table}>
               <thead>
@@ -185,6 +187,9 @@ export function ShopTab({ onChanged, onError }: { onChanged: (m: string) => void
                     <tr key={item.id}>
                       <td>
                         <b>{item.name}</b>
+                        {item.collection && (
+                          <span className={styles.muted}> {item.collection === 'spooky' ? '🎃 Temporada Spooky' : '🎄 Temporada Holidays'}</span>
+                        )}
                       </td>
                       <td className={styles.muted}>{item.requirement}</td>
                       <td>
@@ -302,5 +307,87 @@ export function AuditTab({ onOpen, onError }: { onOpen: (id: string) => void; on
         {rows.length === 0 && <p className={styles.empty}>Sin registros con ese filtro.</p>}
       </div>
     </div>
+  )
+}
+
+/** Seasonal collections: closed by default (exclusive); the admin opens each one, optionally for a date window. */
+function Collections({
+  collections,
+  items,
+  onChanged,
+  onError,
+}: {
+  collections: AdminCollection[]
+  items: AdminCatalogItem[]
+  onChanged: (m: string) => void
+  onError: (m: string) => void
+}) {
+  const [drafts, setDrafts] = useState<Record<string, { from: string; until: string }>>({})
+  const [busy, setBusy] = useState(false)
+
+  async function save(c: AdminCollection, enabled: boolean) {
+    const d = drafts[c.id] ?? { from: c.from ?? '', until: c.until ?? '' }
+    setBusy(true)
+    try {
+      await apiClient.setCollection(c.id, { enabled, from: d.from || null, until: d.until || null })
+      onChanged(
+        enabled
+          ? `${c.emoji} ${c.name} ${d.from || d.until ? `programada ${d.from || '…'} → ${d.until || '…'}` : 'abierta'}.`
+          : `${c.emoji} ${c.name} cerrada.`,
+      )
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className={styles.card}>
+      <h3>Temporadas exclusivas</h3>
+      <p className={styles.muted}>
+        Los objetos de temporada solo se pueden comprar mientras su temporada está abierta. Ábrela ya o prográmala con fechas (se abre y se cierra
+        sola). Quien ya los compró los conserva cuando la temporada cierra.
+      </p>
+      <div className={styles.collections}>
+        {collections.map((c) => {
+          const d = drafts[c.id] ?? { from: c.from ?? '', until: c.until ?? '' }
+          const count = items.filter((i) => i.collection === c.id).length
+          const status = c.open ? 'Abierta' : c.enabled ? 'Programada' : 'Cerrada'
+          return (
+            <div key={c.id} className={styles.collection} data-open={c.open}>
+              <div className={styles.collectionHead}>
+                <b>
+                  {c.emoji} {c.name}
+                </b>
+                <span className={c.open ? styles.statusOk : styles.statusWarn}>{status}</span>
+              </div>
+              <p className={styles.muted}>
+                {c.blurb} {count} objetos.
+                {c.enabled && (c.from || c.until) ? ` Ventana: ${c.from ?? 'ya'} → ${c.until ?? 'sin fin'}.` : ''}
+              </p>
+              <div className={styles.inlineForm}>
+                <label>
+                  Desde
+                  <input type="date" value={d.from} onChange={(e) => setDrafts((x) => ({ ...x, [c.id]: { ...d, from: e.target.value } }))} />
+                </label>
+                <label>
+                  Hasta
+                  <input type="date" value={d.until} onChange={(e) => setDrafts((x) => ({ ...x, [c.id]: { ...d, until: e.target.value } }))} />
+                </label>
+              </div>
+              <div className={styles.actionRow}>
+                <button className={styles.btnPrimary} disabled={busy} onClick={() => void save(c, true)}>
+                  {d.from || d.until ? 'Programar / abrir' : 'Abrir ahora'}
+                </button>
+                <button className={styles.btnDangerOutline} disabled={busy || !c.enabled} onClick={() => void save(c, false)}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }

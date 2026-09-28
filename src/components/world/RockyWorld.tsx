@@ -7,14 +7,14 @@ import { isMuted, play as playSfx, setMuted } from '../../game/sfx'
 import { ROCKY_HEAD_ANCHORS } from '../rockyAnchors'
 import { getReactionAsset, getRockyAsset, ROCKY_VISUALS, type RockyReactionKey } from '../rockyVisuals'
 import { DECOR_ART, HAT_ART, SceneArt, hatPlacement, type DecorPlay } from './art'
-import { findItem, MAX_DECOR, SPOT_MAX, SPOT_MIN } from '../../game/closet'
+import { findItem, MAX_DECOR, SIZE_LABELS, SIZE_STEPS, SPOT_MAX, SPOT_MIN } from '../../game/closet'
 import { Ball, type BallHandle } from './Ball'
 import { FOODS, SOAPS, BASIC_TREAT, findFood, findSoap, STARTER_SOAP, type LitterPiece } from '../../game/pantry'
 import { InventoryTray, type TrayItem, type TrayTab } from './InventoryTray'
 import { BinArt, FOOD_ART, LITTER_ART, SOAP_ART } from './items'
 import { FxLayer } from './FxLayer'
 import { Coin } from './Coin'
-import { BACK_ART, GLASSES_ART, NECK_ART, WEAR_VIEWBOX, backPlacement, glassesPlacement, neckPlacement } from './wearables'
+import { BACK_ART, BODY_ART, GLASSES_ART, NECK_ART, WEAR_VIEWBOX, backPlacement, bodyPlacement, glassesPlacement, neckPlacement } from './wearables'
 import { NeedsDock } from './NeedsDock'
 import { Rocky3D, type ClipRequest } from './Rocky3D'
 import { RockyRig, type RigAction } from './RockyRig'
@@ -98,8 +98,26 @@ interface Props {
   arranging?: boolean
   onStartArrange?: () => void
   /** Saves (or, with null, cancels) the new layout. */
-  onArrangeDone?: (layout: { decor: string[]; spots: Record<string, number> } | null) => void
+  onArrangeDone?: (layout: Layout | null) => void
 }
+
+/** Placed items: which, where (centre, % of the stage) and how big (a SIZE_STEPS multiple). */
+export interface Layout {
+  decor: string[]
+  spots: Record<string, number>
+  sizes: Record<string, number>
+}
+
+/**
+ * How wide a placed item is drawn, in px. Items scale with Rocky (not with
+ * the stage), so a lamp stands taller than him on a phone as on a desktop.
+ */
+export function decorWidthPx(id: string, rockySize: number, sizes: Record<string, number> | undefined): number {
+  const d = DECOR_ART[id]
+  return d ? (d.width / 100) * rockySize * DECOR_SCALE * (sizes?.[id] ?? 1) : 0
+}
+/** Rocky's size → the reference width decor art is drawn against (≈ the desktop stage). */
+const DECOR_SCALE = 3.2
 
 /** Where a placed item stands (its centre, % of the stage width). */
 export function decorSpot(id: string, spots: Record<string, number> | undefined): number {
@@ -238,14 +256,17 @@ export function RockyWorld({
   // Litter the agent has just thrown away (hidden until the server agrees).
   const [binned, setBinned] = useState<string[]>([])
   // The layout being arranged (a draft until the agent taps Done).
-  const [draft, setDraft] = useState<{ decor: string[]; spots: Record<string, number> } | null>(null)
-  const dragRef = useRef<{ id: string; pointer: number; dx: number } | null>(null)
+  const [draft, setDraft] = useState<Layout | null>(null)
+  const dragRef = useRef<{ id: string; pointer: number; dx: number; startX: number } | null>(null)
+  // The item whose edit panel (size, put away) is open in arrange mode.
+  const [editing, setEditing] = useState<string | null>(null)
   useEffect(() => {
     if (arranging) {
       const spots: Record<string, number> = {}
       for (const id of outfit.decor) spots[id] = decorSpot(id, outfit.spots)
-      setDraft({ decor: [...outfit.decor], spots })
+      setDraft({ decor: [...outfit.decor], spots, sizes: { ...outfit.sizes } })
     } else setDraft(null)
+    setEditing(null)
     // Only when arrange mode toggles: the draft must not reset mid-drag.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arranging])
@@ -279,7 +300,8 @@ export function RockyWorld({
   const headRefs = useMemo(() => [glassesRef], [])
   const neckRef = useRef<SVGSVGElement>(null)
   const backRef = useRef<SVGSVGElement>(null)
-  const bodyRefs = useMemo(() => [neckRef, backRef], [])
+  const shirtRef = useRef<SVGSVGElement>(null)
+  const bodyRefs = useMemo(() => [neckRef, backRef, shirtRef], [])
   const animate = !prefersReducedMotion()
 
   // Evolving into a stage with (or without) a 3D model switches renderer.
@@ -347,6 +369,8 @@ export function RockyWorld({
   decorRef.current = outfit.decor
   const spotsRef = useRef(outfit.spots)
   spotsRef.current = outfit.spots
+  const sizesRef = useRef(outfit.sizes)
+  sizesRef.current = outfit.sizes
   const walkTimer = useRef(0)
   const walkTo = useCallback((target: number, run = false): Promise<void> => {
     const from = xRef.current
@@ -518,7 +542,10 @@ export function RockyWorld({
   /** Clicking/tapping the ground: Rocky walks (or runs, if it's far) to that spot and looks at it. */
   function handleStageClick(e: React.MouseEvent<HTMLDivElement>) {
     if ((e.target as Element).closest('button')) return
-    if (arranging) return
+    if (arranging) {
+      setEditing(null)
+      return
+    }
     // A tap close to the moving ball counts as a kick: it's small and quick.
     if (ball && !ball.final && ballRef.current && ballRef.current.distanceTo(e.clientX, e.clientY) < NEAR_KICK_PX) {
       ballRef.current.kick(e.clientX, e.clientY)
@@ -549,7 +576,8 @@ export function RockyWorld({
     const rockyHalf = (sizeRef.current / w.w) * 50
     const side = xRef.current < cx ? -1 : 1
     const onTop = d.play === 'nap' || Boolean(d.lift)
-    await walkTo(onTop ? cx : cx + side * (d.width / 2 + rockyHalf * 0.55), Math.abs(cx - xRef.current) > 35)
+    const halfPct = (decorWidthPx(id, sizeRef.current, sizesRef.current) / w.w) * 50
+    await walkTo(onTop ? cx : cx + side * (halfPct + rockyHalf * 0.55), Math.abs(cx - xRef.current) > 35)
     const pose = VISIT_POSE[d.play]
     setPose(pose)
     const at = xRef.current
@@ -596,7 +624,7 @@ export function RockyWorld({
     if (!draft) return
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
-    dragRef.current = { id, pointer: e.pointerId, dx: (draft.spots[id] ?? 50) - stagePercent(e.clientX) }
+    dragRef.current = { id, pointer: e.pointerId, dx: (draft.spots[id] ?? 50) - stagePercent(e.clientX), startX: e.clientX }
   }
   function moveDrag(e: React.PointerEvent<HTMLButtonElement>) {
     const drag = dragRef.current
@@ -605,18 +633,32 @@ export function RockyWorld({
     setDraft((cur) => (cur ? { ...cur, spots: { ...cur.spots, [drag.id]: Math.round(next * 10) / 10 } } : cur))
   }
   function endDrag(e: React.PointerEvent<HTMLButtonElement>) {
-    if (dragRef.current?.pointer === e.pointerId) {
+    const drag = dragRef.current
+    if (drag?.pointer === e.pointerId) {
       dragRef.current = null
+      // A tap (no real drag) opens the item's edit panel.
+      if (Math.abs(e.clientX - drag.startX) < 5) setEditing((cur) => (cur === drag.id ? null : drag.id))
+      else setEditing(drag.id)
       playSfx('tap')
     }
+  }
+  function resize(id: string, step: number) {
+    setDraft((cur) => {
+      if (!cur) return cur
+      const sizes = { ...cur.sizes }
+      if (step === 1) delete sizes[id]
+      else sizes[id] = step
+      return { ...cur, sizes }
+    })
+    playSfx('pop')
   }
   function nudge(id: string, delta: number) {
     setDraft((cur) => (cur ? { ...cur, spots: { ...cur.spots, [id]: Math.max(SPOT_MIN, Math.min(SPOT_MAX, (cur.spots[id] ?? 50) + delta)) } } : cur))
   }
   function putAway(id: string) {
-    setDraft((cur) =>
-      cur ? { decor: cur.decor.filter((d) => d !== id), spots: Object.fromEntries(Object.entries(cur.spots).filter(([k]) => k !== id)) } : cur,
-    )
+    const without = (r: Record<string, number>) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== id))
+    setDraft((cur) => (cur ? { decor: cur.decor.filter((d) => d !== id), spots: without(cur.spots), sizes: without(cur.sizes) } : cur))
+    setEditing(null)
     playSfx('pop')
   }
 
@@ -845,7 +887,7 @@ export function RockyWorld({
   const size = Math.round(Math.min(340, Math.max(160, Math.min(worldSize.h * 0.6, (worldSize.h - floorPx - 40) * 0.95))))
   floorPxRef.current = floorPx
   sizeRef.current = size
-  const layout = draft ?? { decor: outfit.decor, spots: outfit.spots }
+  const layout: Layout = draft ?? { decor: outfit.decor, spots: outfit.spots, sizes: outfit.sizes ?? {} }
   const anchor = ROCKY_HEAD_ANCHORS[stage][mood]
   const src = reaction ? getReactionAsset(reaction) : getRockyAsset(stage, mood)
   const equippedHat = outfit.hat ? HAT_ART[outfit.hat] : undefined
@@ -857,6 +899,7 @@ export function RockyWorld({
   const glasses = !reaction && outfit.glasses ? GLASSES_ART[outfit.glasses] : undefined
   const neckItem = !reaction && outfit.neck ? NECK_ART[outfit.neck] : undefined
   const backItem = !reaction && outfit.back ? BACK_ART[outfit.back] : undefined
+  const shirtItem = !reaction && outfit.body ? BODY_ART[outfit.body] : undefined
   const feetGap = (1 - (is3d ? FEET_3D : anchor.figureBottom)) * size
   const moving = pose === 'walk' || pose === 'run'
   const facing: -1 | 0 | 1 = moving ? (facingLeft ? -1 : 1) : 0
@@ -885,12 +928,16 @@ export function RockyWorld({
           const cx = decorSpot(id, layout.spots)
           const name = findItem(id)?.name ?? 'item'
           const bottom = floorPx + ((d.lift ?? 0) / 100) * worldSize.h - 0.02 * worldSize.h
+          const w = decorWidthPx(id, size, layout.sizes)
+          const [vbW, vbH] = d.viewBox.split(' ').slice(2).map(Number) as [number, number]
+          const h = (w * vbH) / vbW
+          const step = layout.sizes[id] ?? 1
           return (
             <Fragment key={id}>
               <button
                 type="button"
-                className={`${styles.decor} ${arranging ? styles.decorArrange : ''}`}
-                style={{ left: `${cx - d.width / 2}%`, width: `${d.width}%`, bottom }}
+                className={`${styles.decor} ${arranging ? styles.decorArrange : ''} ${editing === id ? styles.decorEditing : ''}`}
+                style={{ left: `calc(${cx}% - ${w / 2}px)`, width: w, bottom }}
                 aria-label={arranging ? `Move the ${name} (drag, or use the arrow keys)` : `Rocky, play with the ${name}`}
                 onClick={arranging ? undefined : () => void visitDecor(id)}
                 onPointerDown={arranging ? (e) => startDrag(id, e) : undefined}
@@ -912,17 +959,36 @@ export function RockyWorld({
                   {d.svg}
                 </svg>
               </button>
-              {arranging && (
-                <button
-                  type="button"
-                  className={styles.putAway}
-                  style={{ left: `${cx}%`, bottom: bottom + (d.width / 100) * worldSize.w * 0.2 + 34 }}
-                  onClick={() => putAway(id)}
-                  aria-label={`Put away the ${name}`}
-                  title="Put away"
+              {arranging && editing === id && (
+                <div
+                  className={styles.editPanel}
+                  style={{ left: `${Math.max(20, Math.min(80, cx))}%`, bottom: Math.min(bottom + h + 12, worldSize.h - 110) }}
+                  role="group"
+                  aria-label={`Edit the ${name}`}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  ×
-                </button>
+                  <span>Size</span>
+                  {SIZE_STEPS.map((st, i) => (
+                    <button
+                      key={st}
+                      type="button"
+                      className={st === step ? styles.editOn : undefined}
+                      aria-pressed={st === step}
+                      onClick={() => resize(id, st)}
+                    >
+                      {SIZE_LABELS[i]}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className={styles.editRemove}
+                    onClick={() => putAway(id)}
+                    aria-label={`Put away the ${name}`}
+                    title="Put away"
+                  >
+                    🗑
+                  </button>
+                </div>
               )}
             </Fragment>
           )
@@ -931,7 +997,7 @@ export function RockyWorld({
         {arranging && draft && (
           <div className={styles.arrangeBar} role="group" aria-label="Arrange your world">
             <span>
-              Drag your things around · {draft.decor.length}/{MAX_DECOR} placed
+              Drag to move · tap to resize · {draft.decor.length}/{MAX_DECOR} placed
             </span>
             <button type="button" className={styles.arrangeCancel} onClick={() => onArrangeDone?.(null)}>
               Cancel
@@ -1095,6 +1161,18 @@ export function RockyWorld({
                 />
               )}
               {!is3d && (reaction || rigMode !== 'ready') && <img key={src} src={src} alt="" className={styles.art} draggable={false} />}
+              {!is3d && shirtItem && (
+                <svg
+                  ref={shirtRef}
+                  className={styles.wear}
+                  viewBox={WEAR_VIEWBOX.body}
+                  preserveAspectRatio="none"
+                  style={bodyPlacement(rigPoints, anchor, size)}
+                  aria-hidden="true"
+                >
+                  {shirtItem}
+                </svg>
+              )}
               {!is3d && neckItem && (
                 <svg
                   ref={neckRef}

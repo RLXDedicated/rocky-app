@@ -4,7 +4,7 @@
 // editing a previously-shipped entry (same immutability principle as
 // GameEvent — a shipped migration is a historical fact).
 import type { DatabaseSync } from 'node:sqlite'
-import { MIGRATION_001_INITIAL, MIGRATION_002_IDEMPOTENCY, MIGRATION_003_ACCOUNTS } from './schema'
+import { MIGRATION_001_INITIAL, MIGRATION_002_IDEMPOTENCY, MIGRATION_003_ACCOUNTS, MIGRATION_004_COLLECTION_WINDOWS } from './schema'
 
 export interface Migration {
   version: number
@@ -21,6 +21,7 @@ export const MIGRATIONS: Migration[] = [
   { version: 1, name: 'initial', sql: MIGRATION_001_INITIAL },
   { version: 2, name: 'add_idempotency', sql: MIGRATION_002_IDEMPOTENCY },
   { version: 3, name: 'add_accounts_pet_audit', sql: MIGRATION_003_ACCOUNTS },
+  { version: 4, name: 'add_collection_windows', sql: MIGRATION_004_COLLECTION_WINDOWS },
 ]
 
 export function runMigrations(db: DatabaseSync): void {

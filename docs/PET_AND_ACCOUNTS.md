@@ -246,6 +246,63 @@ event with `grantedBy: "rocky-games"` (it replays, shows in the diary as
   squashed to 8 px by flex-shrink, so sections overlapped. Every block now
   keeps its height.
 
+## Exclusive seasons (admin-controlled)
+
+- Seasonal specials (🎃 Spooky, 🎄 Holidays — looks, backgrounds, items,
+  effects, foods and soaps) are **closed by default**. In Admin → Tienda →
+  *Temporadas exclusivas* the admin opens a season now, or schedules it
+  with a from/until date window (it opens and closes by itself), and can
+  close it at any time (`PATCH /api/admin/collections/:id`, recorded in the
+  audit as `admin.collection`).
+- While closed, nobody can buy those items (the server refuses with
+  `unavailable`); the shop's Seasonal tab explains they're limited-time
+  exclusives. Items already bought stay the agent's for good.
+- Stored as a catalog override keyed `collection:<id>` with `enabled`,
+  `starts_on` and `ends_on` (migration 004).
+
+## Placing and sizing items
+
+- Up to **12** items in Rocky's world (was 6).
+- Items are drawn relative to Rocky's size (not the stage), so they keep
+  their proportions on phones; base sizes were raised (the street lamp now
+  stands about as tall as Rocky).
+- In *Arrange my world*, tap an item to open its edit panel: five fixed
+  sizes **S · M · L · XL · XXL** (0.85×, 1×, 1.25×, 1.5×, 1.8×) — S is the
+  minimum, so nothing can be made tiny — plus 🗑 to put it away. Sizes are
+  saved with the layout (`outfit.sizes`) on the server.
+
+## Backgrounds
+
+All base backgrounds were redrawn with more depth and detail: the route
+(day/sunset/night) has a distant town, more houses, varied trees, bushes,
+a picket fence, a parked RLX truck, birds, sun rays and a flowered meadow;
+the warehouse has roof trusses, skylight beams, dock doors, racking,
+a conveyor with parcels and a forklift; the office has a city view, an RLX
+wall with a "great notes" whiteboard, desks with screens and plants; the
+ballpark has light towers, a scoreboard and a packed crowd; the beach has
+an island, a sailboat, shells, a starfish, a sandcastle and two palms.
+Key elements sit in the middle of the art so they survive the side crop
+on narrow screens.
+
+## Red & white (Barranquilla tribute) items
+
+Inspired by Junior de Barranquilla's home kit (red and white vertical
+stripes, navy collar and cuffs — the 2026 Adidas kit has four red and four
+white stripes). To stay clear of the club's trademarks, these use only the
+colours and stripes: **no crest, club name, sponsors or kit-maker logos**
+(an RLX patch sits where a crest would go). Regular shop items, unlocked
+by progress:
+
+- Red & white stripes jersey — a new **body** slot, worn over the vest and
+  placed from each artwork's rig points (works on all four stages).
+- Tiburón fan scarf, Red & white cap.
+- Rojiblanco flag, Inflatable shark, Mini goal (world items).
+- Rojiblanco stadium background ("¡Vamos Tiburón!" banner), Carnival
+  confetti effect, and an Arepa de huevo in the pantry.
+
+If RLX wants the official crest or name, that needs a licence from the
+club; the art is ready to swap the patch.
+
 ## Friends and visits
 
 - Every agent in the pilot is a friend (`GET /api/friends`): Rocky name,

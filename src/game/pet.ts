@@ -12,6 +12,8 @@ import { todayKey } from '../engine/dateUtils'
 import type { Achievement, GameState } from '../types/domain'
 import {
   CLOSET,
+  collectionOpen,
+  sanitizeSizes,
   DEFAULT_OUTFIT,
   findItem,
   isUsable,
@@ -224,7 +226,7 @@ const clamp = (n: number) => Math.max(0, Math.min(NEEDS_MAX, Math.round(n * 10) 
 export function initialPetState(now: Date = new Date()): PetState {
   return {
     version: 1,
-    outfit: { ...DEFAULT_OUTFIT, decor: [...DEFAULT_OUTFIT.decor], spots: {} },
+    outfit: { ...DEFAULT_OUTFIT, decor: [...DEFAULT_OUTFIT.decor], spots: {}, sizes: {} },
     owned: [],
     granted: [],
     needs: { health: 100, happiness: 80, dirt: 10, updatedAt: now.toISOString() },
@@ -269,9 +271,11 @@ export function normalizePetState(raw: unknown, now: Date = new Date()): PetStat
       glasses: typeof o.glasses === 'string' ? o.glasses : null,
       neck: typeof o.neck === 'string' ? o.neck : o.neck === null ? null : base.outfit.neck,
       back: typeof o.back === 'string' ? o.back : null,
+      body: typeof o.body === 'string' ? o.body : null,
       scene: typeof o.scene === 'string' ? o.scene : base.outfit.scene,
       decor: Array.isArray(o.decor) ? ids(o.decor) : base.outfit.decor,
       spots: sanitizeSpots(o.spots, Array.isArray(o.decor) ? ids(o.decor) : base.outfit.decor),
+      sizes: sanitizeSizes(o.sizes, Array.isArray(o.decor) ? ids(o.decor) : base.outfit.decor),
       fx: typeof o.fx === 'string' ? o.fx : null,
     },
     owned: ids(r.owned),
@@ -489,7 +493,7 @@ export function applyPetAction(prev: PetState, action: PetAction, ctx: PetContex
       if (!food) return fail('unknown-item')
       const qty = Math.max(1, Math.min(10, Math.floor(Number(action.qty ?? 1)) || 1))
       const price = pantryPrice(ctx.overrides, food.id, food.price) * qty
-      if (pantryDisabled(ctx.overrides, food.id)) return fail('unavailable')
+      if (pantryDisabled(ctx.overrides, food.id, ctx.now)) return fail('unavailable')
       if (coinBalance(state, ctx.facts) < price) return fail('coins')
       return {
         ok: true,
@@ -505,7 +509,7 @@ export function applyPetAction(prev: PetState, action: PetAction, ctx: PetContex
       const soap = findSoap(action.soapId)
       if (!soap) return fail('unknown-item')
       if (state.inventory[soap.id]) return fail('owned')
-      if (pantryDisabled(ctx.overrides, soap.id)) return fail('unavailable')
+      if (pantryDisabled(ctx.overrides, soap.id, ctx.now)) return fail('unavailable')
       const price = pantryPrice(ctx.overrides, soap.id, soap.price)
       if (coinBalance(state, ctx.facts) < price) return fail('coins')
       return {
@@ -616,8 +620,11 @@ function pantryPrice(overrides: CatalogOverrides | undefined, id: string, base: 
   return typeof p === 'number' && Number.isFinite(p) && p >= 0 ? Math.round(p) : base
 }
 
-function pantryDisabled(overrides: CatalogOverrides | undefined, id: string): boolean {
-  return overrides?.[id]?.enabled === false
+/** Taken out of the shop by an admin, or part of a limited collection that is closed right now. */
+function pantryDisabled(overrides: CatalogOverrides | undefined, id: string, now: Date): boolean {
+  if (overrides?.[id]?.enabled === false) return true
+  const season = (findFood(id) ?? findSoap(id))?.season
+  return season !== undefined && !collectionOpen(overrides, season, now)
 }
 
 /** Unread inbox entries (messages, gifts, visits). */

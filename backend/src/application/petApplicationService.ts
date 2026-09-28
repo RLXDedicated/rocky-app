@@ -11,7 +11,7 @@ import { GAME_XP_SOURCE, processXpGrant } from '../../../src/engine/gameEngine'
 import { CLOSET, findItem, resolveCatalog, type CatalogOverrides, type ProgressFacts } from '../../../src/game/closet'
 import { coinBreakdown, type CoinBreakdown } from '../../../src/game/economy'
 import { findFood, findSoap, FOODS, hash, SOAPS } from '../../../src/game/pantry'
-import { sanitizeOutfit } from '../../../src/game/closet'
+import { collectionKey, collectionOpen, COLLECTIONS, sanitizeOutfit, type Collection } from '../../../src/game/closet'
 import { publicName } from './leaderboardApplicationService'
 import {
   adminAdjustCoins,
@@ -177,7 +177,7 @@ export function createPetApplicationService({ persistence, clock = systemClock }
         const f = facts(agentId)
         const overrides = accounts.getCatalogOverrides()
         const { state, revision } = load(agentId, now)
-        const result = applyPetAction(state, action, { facts: f, now, catalog: resolveCatalog(overrides), overrides })
+        const result = applyPetAction(state, action, { facts: f, now, catalog: resolveCatalog(overrides, now), overrides })
         if (!result.ok) {
           audit(
             agentId,
@@ -284,9 +284,14 @@ export function createPetApplicationService({ persistence, clock = systemClock }
 
     getCatalog() {
       const overrides = accounts.getCatalogOverrides()
+      const now = clock.now()
       return {
         overrides,
-        items: resolveCatalog(overrides)
+        collections: COLLECTIONS.map((c) => {
+          const o = overrides[collectionKey(c.id)] ?? {}
+          return { ...c, enabled: o.enabled === true, from: o.from ?? null, until: o.until ?? null, open: collectionOpen(overrides, c.id, now) }
+        }),
+        items: resolveCatalog(overrides, now)
           .map((i) => {
             const base = CLOSET.find((c) => c.id === i.id)!
             return {
@@ -296,7 +301,9 @@ export function createPetApplicationService({ persistence, clock = systemClock }
               requirement: i.requirement,
               price: i.price,
               basePrice: base.price,
-              enabled: i.enabled !== false,
+              // The item's own switch; a closed collection is reported separately.
+              enabled: overrides[i.id]?.enabled !== false,
+              collection: i.season ?? null,
             }
           })
           .concat(
@@ -306,14 +313,32 @@ export function createPetApplicationService({ persistence, clock = systemClock }
                 id: x.id,
                 slot: x.slot as never,
                 name: x.name,
-                requirement: x.season === 'spooky' ? 'Spooky season' : x.season === 'holiday' ? 'Holiday season' : 'Always available',
+                requirement: x.season ? `${COLLECTIONS.find((c) => c.id === x.season)?.name} exclusive` : 'Always available',
                 price: typeof o?.price === 'number' ? o.price : x.price,
                 basePrice: x.price,
                 enabled: o?.enabled !== false,
+                collection: x.season ?? null,
               }
             }),
           ),
       }
+    },
+
+    /** Opens or closes a limited collection, optionally for a date window (YYYY-MM-DD, inclusive). */
+    setCollection(id: Collection, value: { enabled: boolean; from: string | null; until: string | null }, actor: Actor) {
+      if (!COLLECTIONS.some((c) => c.id === id)) throw ApiError.validation(`Unknown collection "${id}".`)
+      if (value.from && value.until && value.from > value.until) throw ApiError.validation('"from" must be on or before "until".')
+      return persistence.withTransaction(() => {
+        const now = clock.now()
+        accounts.setCatalogOverride(
+          collectionKey(id),
+          { price: null, enabled: value.enabled ? true : null, from: value.from, until: value.until },
+          actor.id,
+          now.toISOString(),
+        )
+        audit(null, actor, 'admin.collection', { collection: id, enabled: value.enabled, from: value.from, until: value.until }, now)
+        return this.getCatalog()
+      })
     },
 
     setCatalogItem(itemId: string, value: { price: number | null; enabled: boolean | null }, actor: Actor) {
@@ -411,7 +436,7 @@ export function createPetApplicationService({ persistence, clock = systemClock }
       const game = repo.getGameState()
       const f = facts(agentId)
       const { state } = load(agentId, now)
-      const catalog = resolveCatalog(accounts.getCatalogOverrides())
+      const catalog = resolveCatalog(accounts.getCatalogOverrides(), now)
       return {
         id: key,
         name: publicName(agentId, agent.name),

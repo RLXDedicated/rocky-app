@@ -213,6 +213,20 @@ export const NECK_ART: Record<string, ReactElement> = {
       <path d="M62 64 l2 6 M66 64 l2 6 M70 63 l2 6" stroke="#1f9d55" strokeWidth="2" />
     </>
   ),
+  'neck-jr-scarf': (
+    <>
+      <path d="M8 6 Q50 24 92 6 L94 18 Q50 38 6 18 Z" fill="#ffffff" />
+      {[10, 26, 42, 58, 74].map((x) => (
+        <path key={x} d={`M${x} ${x < 50 ? 8 + (x - 8) * 0.28 : 8 + (92 - x) * 0.28} l9 0 l0 12 l-9 -1 Z`} fill="#d0112b" />
+      ))}
+      <path d="M8 6 Q50 24 92 6 M6 18 Q50 38 94 18" stroke="#12234a" strokeWidth="2" fill="none" />
+      <path d="M58 22 L70 66 L56 68 L50 26 Z" fill="#ffffff" />
+      {[30, 40, 50, 60].map((y) => (
+        <path key={y} d={`M${51 + (y - 24) * 0.27} ${y} l12 -3 l1.6 5 l-12 3 Z`} fill="#d0112b" />
+      ))}
+      <path d="M57 66 l1 6 M61 66 l1 6 M65 65 l1 6 M69 65 l1 6" stroke="#12234a" strokeWidth="2" strokeLinecap="round" />
+    </>
+  ),
 }
 
 // ---------------------------------------------------------------------------
@@ -290,7 +304,63 @@ const BACK_WIDTH: Record<string, number> = {
   'back-gift-sack': 1.2,
 }
 
-export type WearSlot = 'glasses' | 'neck' | 'back'
+// ---------------------------------------------------------------------------
+// Body: 100x110 box from the collar (top) down to the hips (bottom); worn
+// over the vest. The shoulders reach the box's top corners.
+// ---------------------------------------------------------------------------
+export const BODY_ART: Record<string, ReactElement> = {
+  'body-jr-jersey': (
+    <>
+      <defs>
+        <clipPath id="jr-jersey-shape">
+          <path d="M22 4 L38 0 Q50 10 62 0 L78 4 L98 22 L90 40 L82 34 L84 106 Q50 112 16 106 L18 34 L10 40 L2 22 Z" />
+        </clipPath>
+        <linearGradient id="jr-jersey-shade" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#000" stopOpacity="0.18" />
+          <stop offset="0.35" stopColor="#000" stopOpacity="0" />
+          <stop offset="0.7" stopColor="#000" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.2" />
+        </linearGradient>
+      </defs>
+      <g clipPath="url(#jr-jersey-shape)">
+        <rect width="100" height="112" fill="#ffffff" />
+        {[6, 22, 38, 54, 70, 86].map((x) => (
+          <rect key={x} x={x} y="0" width="8" height="112" fill="#d0112b" />
+        ))}
+        {/* Sleeves: navy cuffs. */}
+        <path d="M2 22 L10 40 L18 34 L14 26 Z M98 22 L90 40 L82 34 L86 26 Z" fill="#12234a" />
+        <rect width="100" height="112" fill="url(#jr-jersey-shade)" />
+      </g>
+      {/* Navy V collar and trim. */}
+      <path d="M38 0 Q50 10 62 0 L58 0 Q50 16 42 0 Z" fill="#12234a" />
+      <path d="M36 0 L50 20 L64 0" stroke="#12234a" strokeWidth="4" fill="none" strokeLinejoin="round" />
+      <path d="M16 104 Q50 110 84 104" stroke="#12234a" strokeWidth="3" fill="none" />
+      {/* A small RLX patch where a club crest would go. */}
+      <rect x="62" y="26" width="16" height="11" rx="2" fill="#12234a" />
+      <text x="63.6" y="34.5" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="6.4" fill="#ffffff">
+        RLX
+      </text>
+      <path
+        d="M22 4 L38 0 Q50 10 62 0 L78 4 L98 22 L90 40 L82 34 L84 106 Q50 112 16 106 L18 34 L10 40 L2 22 Z"
+        stroke="#12234a"
+        strokeOpacity="0.35"
+        strokeWidth="1.2"
+        fill="none"
+      />
+    </>
+  ),
+}
+
+/** Body items: from the collar to just below the hips, across the chest (the SVG stretches to this box). */
+export function bodyPlacement(rig: RockyRigPoints, anchor: HeadAnchor, size: number): HatBox {
+  const width = anchor.w * 1.12 * size
+  const top = (rig.neck - 0.012) * size
+  const height = (rig.hip + 0.035) * size - top
+  const cx = (rig.pivot.x + rig.splitX) / 2
+  return { left: cx * size - width / 2, top, width, height }
+}
+
+export type WearSlot = 'glasses' | 'neck' | 'back' | 'body'
 
 /** Glasses over the measured eyes (or, for closed-eye art, the face estimate from the head anchor). */
 export function glassesPlacement(rig: RockyRigPoints, anchor: HeadAnchor, size: number): HatBox {
@@ -327,5 +397,5 @@ export function backPlacement(rig: RockyRigPoints, anchor: HeadAnchor, size: num
   return { left: cx * size - width / 2, top, width, height }
 }
 
-export const WEAR_VIEWBOX: Record<WearSlot, string> = { glasses: '0 0 100 40', neck: '0 0 100 70', back: '0 0 100 120' }
-export const WEAR_ART: Record<WearSlot, Record<string, ReactElement>> = { glasses: GLASSES_ART, neck: NECK_ART, back: BACK_ART }
+export const WEAR_VIEWBOX: Record<WearSlot, string> = { glasses: '0 0 100 40', neck: '0 0 100 70', back: '0 0 100 120', body: '0 0 100 110' }
+export const WEAR_ART: Record<WearSlot, Record<string, ReactElement>> = { glasses: GLASSES_ART, neck: NECK_ART, back: BACK_ART, body: BODY_ART }

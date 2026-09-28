@@ -13,7 +13,9 @@
 //
 // Pure module: shared by the frontend and the backend.
 
-export type Season = 'spooky' | 'holiday'
+import type { Collection } from './closet'
+
+export type Season = Collection
 
 export interface FoodItem {
   id: string
@@ -51,6 +53,7 @@ export const FOODS: FoodItem[] = [
   { id: 'food-gingerbread', name: 'Gingerbread Rocky', price: 12, health: 6, happiness: 16, season: 'holiday', emoji: '🍪' },
   { id: 'food-cocoa', name: 'Hot cocoa', price: 12, health: 10, happiness: 14, season: 'holiday', emoji: '☕' },
   { id: 'food-candy-cane', name: 'Candy cane', price: 8, health: 3, happiness: 14, season: 'holiday', emoji: '🍭' },
+  { id: 'food-arepa-huevo', name: 'Arepa de huevo', price: 10, health: 14, happiness: 12, emoji: '🫓' },
 ]
 
 /** The treat earned by check-ins and clean audits (not bought here). */

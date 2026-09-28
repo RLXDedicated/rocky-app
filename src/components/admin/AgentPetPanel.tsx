@@ -19,6 +19,7 @@ const SLOT_ES: Record<ItemSlot, string> = {
   glasses: 'Gafas',
   neck: 'Cuello',
   back: 'Espalda',
+  body: 'Camisetas',
   scene: 'Lugares',
   decor: 'Decoración',
   fx: 'Ambientación',

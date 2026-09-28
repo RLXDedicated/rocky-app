@@ -401,6 +401,19 @@ export function createApiRouter(services: ApiServices): Router {
     res.json(services.pet.setCatalogItem(req.params.itemId!, { price: price as number | null, enabled: enabled as boolean | null }, actorOf(req)))
   })
 
+  // Limited collections (seasonal specials, themed packs): closed unless an admin opens them.
+  router.patch('/admin/collections/:id', adminOnly, (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    const id = requireEnum(req.params.id, ['spooky', 'holiday'] as const, 'collection')
+    if (typeof body.enabled !== 'boolean') throw ApiError.validation('"enabled" must be true or false.')
+    const day = (v: unknown, field: string): string | null => {
+      if (v === undefined || v === null || v === '') return null
+      if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw ApiError.validation(`"${field}" must be a date (YYYY-MM-DD).`)
+      return v
+    }
+    res.json(services.pet.setCollection(id, { enabled: body.enabled, from: day(body.from, 'from'), until: day(body.until, 'until') }, actorOf(req)))
+  })
+
   router.get('/admin/economy', adminOnly, (_req: Request, res: Response) => {
     res.json({ ...services.pet.economySummary(), ledger: services.pet.listLedger(100) })
   })

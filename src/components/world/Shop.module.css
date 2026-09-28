@@ -399,3 +399,13 @@
   width: 56px;
   height: 56px;
 }
+
+.closedSeason {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff4e5;
+  color: #8a4b00;
+  font-size: 0.86rem;
+  font-weight: 600;
+}

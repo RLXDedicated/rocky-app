@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput } from './AccountStore'
 
 interface LedgerDbRow {
   entry_id: number
@@ -136,32 +136,39 @@ export class SqliteAccountStore implements AccountStore {
   }
 
   getCatalogOverrides(): CatalogOverrides {
-    const rows = this.db.prepare('SELECT item_id, price, enabled FROM catalog_overrides').all() as {
+    const rows = this.db.prepare('SELECT item_id, price, enabled, starts_on, ends_on FROM catalog_overrides').all() as {
       item_id: string
       price: number | null
       enabled: number | null
+      starts_on: string | null
+      ends_on: string | null
     }[]
     const out: CatalogOverrides = {}
     for (const r of rows) {
-      const o: { price?: number; enabled?: boolean } = {}
+      const o: CatalogOverrides[string] = {}
       if (r.price !== null) o.price = r.price
       if (r.enabled !== null) o.enabled = r.enabled === 1
+      if (r.starts_on) o.from = r.starts_on
+      if (r.ends_on) o.until = r.ends_on
       out[r.item_id] = o
     }
     return out
   }
 
-  setCatalogOverride(itemId: string, value: { price: number | null; enabled: boolean | null }, actor: string, at: string): void {
-    if (value.price === null && value.enabled === null) {
+  setCatalogOverride(itemId: string, value: CatalogOverrideInput, actor: string, at: string): void {
+    const from = value.from ?? null
+    const until = value.until ?? null
+    if (value.price === null && value.enabled === null && from === null && until === null) {
       this.db.prepare('DELETE FROM catalog_overrides WHERE item_id = ?').run(itemId)
       return
     }
     this.db
       .prepare(
-        `INSERT INTO catalog_overrides (item_id, price, enabled, updated_by, updated_at) VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT(item_id) DO UPDATE SET price = excluded.price, enabled = excluded.enabled, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
+        `INSERT INTO catalog_overrides (item_id, price, enabled, starts_on, ends_on, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(item_id) DO UPDATE SET price = excluded.price, enabled = excluded.enabled, starts_on = excluded.starts_on,
+           ends_on = excluded.ends_on, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
       )
-      .run(itemId, value.price, value.enabled === null ? null : value.enabled ? 1 : 0, actor, at)
+      .run(itemId, value.price, value.enabled === null ? null : value.enabled ? 1 : 0, from, until, actor, at)
   }
 
   getCredential(agentId: string): CredentialRecord | null {

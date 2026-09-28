@@ -5,6 +5,14 @@
 // application/authApplicationService.ts.
 import type { CatalogOverrides } from '../../../../src/game/closet'
 
+/** An admin edit: null clears that field. `from`/`until` are only used by collections. */
+export interface CatalogOverrideInput {
+  price: number | null
+  enabled: boolean | null
+  from?: string | null
+  until?: string | null
+}
+
 export interface PetProfileRecord {
   state: unknown
   revision: number
@@ -65,7 +73,7 @@ export interface AccountStore {
   listAudit(agentId: string | null, limit: number): AuditRow[]
 
   getCatalogOverrides(): CatalogOverrides
-  setCatalogOverride(itemId: string, value: { price: number | null; enabled: boolean | null }, actor: string, at: string): void
+  setCatalogOverride(itemId: string, value: CatalogOverrideInput, actor: string, at: string): void
 
   getCredential(agentId: string): CredentialRecord | null
   saveCredential(record: CredentialRecord): void

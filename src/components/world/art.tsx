@@ -39,6 +39,19 @@ export function hatPlacement(anchor: HeadAnchor, hat: HatArt, size: number): Hat
 }
 
 export const HAT_ART: Record<string, HatArt> = {
+  'hat-jr-cap': {
+    width: 0.78,
+    sink: 0.42,
+    svg: (
+      <>
+        <path d="M14 48 C14 18 34 6 52 6 C72 6 88 20 88 46 Z" fill="#ffffff" />
+        <path d="M24 44 C24 22 34 10 42 8 L46 7 C40 14 36 28 36 46 Z M56 7 C62 14 66 28 66 46 L78 45 C78 26 70 12 62 8 Z" fill="#d0112b" />
+        <path d="M60 44 C76 40 94 42 99 50 C92 55 74 55 58 53 Z" fill="#12234a" />
+        <rect x="12" y="44" width="78" height="7" rx="3" fill="#12234a" />
+        <circle cx="51" cy="7" r="3" fill="#12234a" />
+      </>
+    ),
+  },
   'hat-rlx-cap': {
     width: 0.78,
     sink: 0.42,
@@ -337,7 +350,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'peek',
     viewBox: '0 0 120 100',
     left: 4,
-    width: 12,
+    width: 13,
     svg: (
       <>
         <ellipse cx="60" cy="96" rx="56" ry="5" fill="#000" opacity="0.08" />
@@ -358,8 +371,8 @@ export const DECOR_ART: Record<string, DecorArt> = {
   'decor-plant': {
     play: 'sniff',
     viewBox: '0 0 80 120',
-    left: 88,
-    width: 7,
+    left: 80,
+    width: 9,
     svg: (
       <>
         <ellipse cx="40" cy="116" rx="30" ry="4" fill="#000" opacity="0.08" />
@@ -375,7 +388,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'cheer',
     viewBox: '0 0 80 100',
     left: 17,
-    width: 6,
+    width: 8,
     svg: (
       <>
         <ellipse cx="40" cy="96" rx="26" ry="4" fill="#000" opacity="0.08" />
@@ -391,7 +404,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'vroom',
     viewBox: '0 0 160 90',
     left: 76,
-    width: 13,
+    width: 15,
     svg: (
       <>
         <ellipse cx="80" cy="86" rx="74" ry="4" fill="#000" opacity="0.08" />
@@ -413,7 +426,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'cheer',
     viewBox: '0 0 90 170',
     left: 33,
-    width: 7,
+    width: 9,
     svg: (
       <>
         <path
@@ -437,7 +450,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'sniff',
     viewBox: '0 0 60 220',
     left: 26,
-    width: 4,
+    width: 8,
     svg: (
       <>
         <ellipse cx="30" cy="216" rx="22" ry="4" fill="#000" opacity="0.08" />
@@ -453,7 +466,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'rest',
     viewBox: '0 0 160 80',
     left: 60,
-    width: 12,
+    width: 15,
     svg: (
       <>
         <ellipse cx="80" cy="76" rx="74" ry="4" fill="#000" opacity="0.08" />
@@ -468,7 +481,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'peek',
     viewBox: '0 0 160 140',
     left: 78,
-    width: 16,
+    width: 20,
     svg: (
       <>
         <ellipse cx="80" cy="136" rx="76" ry="5" fill="#000" opacity="0.08" />
@@ -488,7 +501,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'eat',
     viewBox: '0 0 100 50',
     left: 40,
-    width: 6,
+    width: 7,
     svg: (
       <>
         <ellipse cx="50" cy="46" rx="46" ry="4" fill="#000" opacity="0.1" />
@@ -508,7 +521,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'eat',
     viewBox: '0 0 120 80',
     left: 47,
-    width: 9,
+    width: 11,
     svg: (
       <>
         <ellipse cx="60" cy="76" rx="56" ry="4" fill="#000" opacity="0.1" />
@@ -524,7 +537,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'peek',
     viewBox: '0 0 70 130',
     left: 70,
-    width: 5,
+    width: 7,
     svg: (
       <>
         <ellipse cx="35" cy="126" rx="26" ry="4" fill="#000" opacity="0.1" />
@@ -543,7 +556,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'nap',
     viewBox: '0 0 160 70',
     left: 22,
-    width: 12,
+    width: 14,
     svg: (
       <>
         <ellipse cx="80" cy="66" rx="76" ry="4" fill="#000" opacity="0.1" />
@@ -559,7 +572,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'peek',
     viewBox: '0 0 100 80',
     left: 12,
-    width: 7,
+    width: 8,
     svg: (
       <>
         <ellipse cx="50" cy="77" rx="44" ry="4" fill="#000" opacity="0.1" />
@@ -576,7 +589,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'eat',
     viewBox: '0 0 80 80',
     left: 55,
-    width: 5,
+    width: 7,
     svg: (
       <>
         <ellipse cx="40" cy="77" rx="34" ry="3.5" fill="#000" opacity="0.1" />
@@ -594,7 +607,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'sniff',
     viewBox: '0 0 80 100',
     left: 82,
-    width: 6,
+    width: 8.5,
     svg: (
       <>
         <ellipse cx="40" cy="96" rx="36" ry="4" fill="#3f7d2a" opacity="0.5" />
@@ -614,7 +627,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'cheer',
     viewBox: '0 0 80 90',
     left: 30,
-    width: 6,
+    width: 8,
     lift: 40,
     svg: (
       <g className="rocky-drift">
@@ -631,7 +644,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'sniff',
     viewBox: '0 0 100 100',
     left: 68,
-    width: 8,
+    width: 10,
     svg: (
       <>
         <ellipse cx="50" cy="97" rx="44" ry="3.5" fill="#000" opacity="0.12" />
@@ -653,7 +666,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'eat',
     viewBox: '0 0 60 140',
     left: 6,
-    width: 4,
+    width: 6,
     svg: (
       <>
         <ellipse cx="30" cy="137" rx="20" ry="3" fill="#000" opacity="0.1" />
@@ -667,7 +680,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'peek',
     viewBox: '0 0 120 90',
     left: 58,
-    width: 9,
+    width: 11,
     svg: (
       <>
         <ellipse cx="60" cy="87" rx="56" ry="4" fill="#000" opacity="0.1" />
@@ -686,7 +699,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'cheer',
     viewBox: '0 0 90 140',
     left: 84,
-    width: 7,
+    width: 10,
     svg: (
       <>
         <ellipse cx="45" cy="137" rx="38" ry="4" fill="#000" opacity="0.1" />
@@ -710,7 +723,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'cheer',
     viewBox: '0 0 120 160',
     left: 70,
-    width: 11,
+    width: 15,
     svg: (
       <>
         <ellipse cx="60" cy="156" rx="50" ry="4" fill="#000" opacity="0.1" />
@@ -740,7 +753,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     play: 'vroom',
     viewBox: '0 0 160 90',
     left: 40,
-    width: 13,
+    width: 15,
     svg: (
       <>
         <ellipse cx="80" cy="87" rx="74" ry="4" fill="#000" opacity="0.1" />
@@ -755,11 +768,83 @@ export const DECOR_ART: Record<string, DecorArt> = {
       </>
     ),
   },
+  'decor-jr-flag': {
+    play: 'cheer',
+    viewBox: '0 0 90 170',
+    left: 90,
+    width: 8,
+    svg: (
+      <>
+        <ellipse cx="14" cy="167" rx="12" ry="3" fill="#000" opacity="0.12" />
+        <rect x="11" y="6" width="5" height="162" rx="2" fill="#9aa6b2" />
+        <circle cx="13.5" cy="6" r="5" fill={GOLD} />
+        <g className="rocky-drift">
+          <path d="M16 12 C40 4 60 22 86 12 L86 70 C60 80 40 62 16 70 Z" fill="#ffffff" />
+          <clipPath id="jr-flag-clip">
+            <path d="M16 12 C40 4 60 22 86 12 L86 70 C60 80 40 62 16 70 Z" />
+          </clipPath>
+          <g clipPath="url(#jr-flag-clip)">
+            {[16, 36, 56, 76].map((x) => (
+              <rect key={x} x={x} y="0" width="10" height="90" fill="#d0112b" />
+            ))}
+          </g>
+          <path d="M16 12 C40 4 60 22 86 12 L86 70 C60 80 40 62 16 70 Z" fill="none" stroke="#12234a" strokeWidth="2" />
+        </g>
+      </>
+    ),
+  },
+  'decor-jr-goal': {
+    play: 'cheer',
+    viewBox: '0 0 180 110',
+    left: 50,
+    width: 17,
+    svg: (
+      <>
+        <ellipse cx="90" cy="106" rx="86" ry="4" fill="#000" opacity="0.1" />
+        <path d="M14 104 L24 30 L156 30 L166 104" fill="#ffffff" opacity="0.25" />
+        <g stroke="#cfd8e3" strokeWidth="1.2">
+          {Array.from({ length: 13 }, (_, i) => (
+            <path key={`v${i}`} d={`M${24 + i * 11} 30 L${14 + i * 12.5} 104`} />
+          ))}
+          {Array.from({ length: 7 }, (_, i) => (
+            <path key={`h${i}`} d={`M${24 - i * 1.4} ${40 + i * 10.6} L${156 + i * 1.4} ${40 + i * 10.6}`} />
+          ))}
+        </g>
+        <path d="M10 106 L10 20 L170 20 L170 106" stroke="#ffffff" strokeWidth="7" fill="none" strokeLinejoin="round" />
+        <path d="M10 106 L10 20 L170 20 L170 106" stroke="#d0112b" strokeWidth="7" fill="none" strokeDasharray="12 12" strokeLinejoin="round" />
+      </>
+    ),
+  },
+  'decor-jr-shark': {
+    play: 'vroom',
+    viewBox: '0 0 160 90',
+    left: 30,
+    width: 14,
+    svg: (
+      <>
+        <ellipse cx="80" cy="86" rx="70" ry="4" fill="#000" opacity="0.12" />
+        <path d="M6 54 C20 30 60 20 100 26 C124 30 146 40 154 52 C146 64 124 72 100 74 C60 78 22 72 6 54 Z" fill="#6f8fb3" />
+        <path d="M14 58 C40 70 80 76 120 70 C136 66 148 60 154 52 C146 64 124 74 96 76 C58 80 26 72 14 58 Z" fill="#e8eef5" />
+        <path d="M78 26 C82 8 94 2 100 2 C96 12 96 20 98 27 Z" fill="#5a789b" />
+        <path d="M6 54 C0 40 2 30 8 24 C12 36 14 46 18 52 C12 62 8 72 2 78 C2 68 4 60 6 54 Z" fill="#5a789b" />
+        <path d="M84 70 C90 80 96 84 104 84 C100 78 98 74 98 70 Z" fill="#5a789b" />
+        <circle cx="130" cy="46" r="4" fill="#12234a" />
+        <circle cx="131.5" cy="44.5" r="1.3" fill="#ffffff" />
+        <path d="M128 58 C136 62 144 60 150 55" stroke="#12234a" strokeWidth="2" fill="none" strokeLinecap="round" />
+        <path d="M112 40 L112 56 M106 41 L106 57 M118 40 L118 55" stroke="#5a789b" strokeWidth="2" strokeLinecap="round" />
+        {/* A red-and-white fan band around its middle. */}
+        <path d="M58 28 C56 44 56 60 60 76 L70 76 C66 60 66 44 68 26 Z" fill="#d0112b" />
+        <path d="M68 26 C66 44 66 60 70 76 L78 76 C74 60 74 44 76 25 Z" fill="#ffffff" />
+        <path d="M76 25 C74 44 74 60 78 76 L86 75 C82 60 82 44 84 25 Z" fill="#d0112b" />
+        <ellipse cx="96" cy="36" rx="18" ry="5" fill="#ffffff" opacity="0.35" />
+      </>
+    ),
+  },
   'decor-pennant': {
     play: 'cheer',
     viewBox: '0 0 140 70',
     left: 8,
-    width: 14,
+    width: 16,
     lift: 58,
     svg: (
       <>
@@ -779,28 +864,116 @@ export const DECOR_ART: Record<string, DecorArt> = {
 // ---------------------------------------------------------------------------
 // Scenes — 1000x400, the floor line sits at y≈340.
 // ---------------------------------------------------------------------------
-function Tree({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+function Tree({ x, y, s = 1, tone = 0 }: { x: number; y: number; s?: number; tone?: number }) {
+  // Three greens per tone so a row of trees never looks copy-pasted.
+  const g = [
+    ['#2e8b3e', '#3aa14c', '#56bd66'],
+    ['#2c7a45', '#36955a', '#4fb173'],
+    ['#3d8f2f', '#4ea63e', '#6cc155'],
+  ][tone % 3]!
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
-      <ellipse cx="0" cy="20" rx="22" ry="6" fill="#000" opacity="0.07" />
-      <rect x="-3" y="0" width="6" height="18" fill="#6b4a2f" />
-      <circle cx="-10" cy="-8" r="14" fill="#2e8b3e" />
-      <circle cx="10" cy="-10" r="15" fill="#3aa14c" />
-      <circle cx="0" cy="-24" r="15" fill="#48b35a" />
+      <ellipse cx="0" cy="20" rx="26" ry="6" fill="#000" opacity="0.08" />
+      <path d="M-3 18 L-2 -2 L2 -2 L3 18 Z" fill="#6b4a2f" />
+      <path d="M0 4 L-7 -6 M0 0 L6 -8" stroke="#6b4a2f" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="-12" cy="-8" r="14" fill={g[0]} />
+      <circle cx="12" cy="-10" r="15" fill={g[1]} />
+      <circle cx="0" cy="-24" r="16" fill={g[2]} />
+      <circle cx="-4" cy="-30" r="6" fill="#ffffff" opacity="0.18" />
+      <circle cx="8" cy="-16" r="4" fill="#ffffff" opacity="0.12" />
     </g>
   )
 }
 
-function House({ x, y, roof = '#d9695f' }: { x: number; y: number; roof?: string }) {
+function Bush({ x, y, s = 1, color = '#3aa14c' }: { x: number; y: number; s?: number; color?: string }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <ellipse cx="0" cy="8" rx="30" ry="5" fill="#000" opacity="0.08" />
+      <circle cx="-14" cy="0" r="12" fill={color} />
+      <circle cx="0" cy="-6" r="15" fill={color} />
+      <circle cx="15" cy="0" r="11" fill={color} />
+      <circle cx="-4" cy="-10" r="5" fill="#ffffff" opacity="0.15" />
+      <circle cx="-8" cy="-2" r="2" fill="#f5b82e" />
+      <circle cx="6" cy="-8" r="2" fill="#ff8fa3" />
+    </g>
+  )
+}
+
+function House({ x, y, roof = '#d9695f', wall = '#f7f4ef' }: { x: number; y: number; roof?: string; wall?: string }) {
   return (
     <g transform={`translate(${x} ${y})`}>
-      <ellipse cx="22" cy="44" rx="34" ry="7" fill="#000" opacity="0.07" />
-      <polygon points="0,16 22,4 44,16 44,42 0,42" fill="#f7f4ef" />
-      <polygon points="22,4 44,16 44,42 22,42" fill="#e4dfd6" />
+      <ellipse cx="22" cy="44" rx="36" ry="7" fill="#000" opacity="0.08" />
+      <polygon points="0,16 22,4 44,16 44,42 0,42" fill={wall} />
+      <polygon points="22,4 44,16 44,42 22,42" fill="#000" opacity="0.07" />
+      <rect x="30" y="-6" width="6" height="14" fill="#8a5a4a" />
       <polygon points="-4,18 22,-2 26,2 2,22" fill={roof} />
       <polygon points="22,-2 48,18 44,22 22,4" fill={roof} opacity="0.8" />
-      <rect x="8" y="26" width="8" height="16" fill={NAVY2} />
-      <rect x="28" y="24" width="8" height="8" fill="#9fc6e8" />
+      <rect x="8" y="26" width="9" height="16" rx="1" fill={NAVY2} />
+      <circle cx="15" cy="34" r="0.9" fill={GOLD} />
+      <rect x="27" y="23" width="10" height="9" fill="#9fc6e8" stroke="#ffffff" strokeWidth="1.2" />
+      <path d="M32 23 L32 32 M27 27.5 L37 27.5" stroke="#ffffff" strokeWidth="1" />
+      <rect x="25" y="32" width="14" height="3" fill="#6fbf73" />
+    </g>
+  )
+}
+
+/** Tufts of grass and little flowers along a ground line. */
+function Meadow({
+  y,
+  color = '#7cc48f',
+  flowers = true,
+  seed = 1,
+  count = 22,
+}: {
+  y: number
+  color?: string
+  flowers?: boolean
+  seed?: number
+  count?: number
+}) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => {
+        const x = (i * 97 * seed + 23) % 1000
+        const dy = ((i * 37 * seed) % 30) - 6
+        return (
+          <g key={i} transform={`translate(${x} ${y + dy})`}>
+            <path
+              d="M0 0 q3 -12 6 0 q3 -9 6 0 q2 -7 5 0"
+              stroke={color}
+              strokeWidth="2.4"
+              fill="none"
+              strokeLinecap="round"
+              opacity={0.55 + (i % 3) * 0.15}
+            />
+            {flowers && i % 4 === 0 && (
+              <>
+                <path d="M9 0 L9 -10" stroke={color} strokeWidth="1.5" />
+                <circle cx="9" cy="-12" r="3" fill={['#ffffff', '#f5b82e', '#ff8fa3', '#b8a2ff'][i % 4]} />
+                <circle cx="9" cy="-12" r="1.1" fill="#f5b82e" />
+              </>
+            )}
+          </g>
+        )
+      })}
+    </>
+  )
+}
+
+function Birds({ x, y, live }: { x: number; y: number; live: boolean }) {
+  return (
+    <g
+      transform={`translate(${x} ${y})`}
+      className={live ? 'rocky-drift' : undefined}
+      stroke="#3b4a5c"
+      strokeWidth="2"
+      fill="none"
+      strokeLinecap="round"
+      opacity="0.6"
+    >
+      <path d="M0 0 q6 -6 12 0 q6 -6 12 0" />
+      <path d="M30 -14 q5 -5 10 0 q5 -5 10 0" />
+      <path d="M-24 -20 q4 -4 8 0 q4 -4 8 0" />
     </g>
   )
 }
@@ -899,6 +1072,13 @@ function RouteScene({ time = 'day', live = false }: { time?: TimeOfDay; live?: b
           fill={time === 'sunset' ? '#ffcf73' : '#fff4c9'}
         />
       )}
+      {time === 'day' && (
+        <g opacity="0.25">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <path key={i} d={`M840 70 L${600 + i * 70} 400 L${640 + i * 70} 400 Z`} fill="#fff8d6" />
+          ))}
+        </g>
+      )}
       {!night && (
         <g className={live ? 'rocky-drift' : undefined}>
           <Cloud x={160} y={70} s={1.1} />
@@ -906,6 +1086,14 @@ function RouteScene({ time = 'day', live = false }: { time?: TimeOfDay; live?: b
           <Cloud x={1080} y={90} s={0.9} opacity={0.8} />
         </g>
       )}
+      {/* Distant town skyline for depth. */}
+      <g opacity={night ? 0.55 : 0.35} fill={night ? '#0f2548' : '#9fbfd4'}>
+        <rect x="150" y="150" width="18" height="30" />
+        <rect x="172" y="138" width="14" height="42" />
+        <rect x="190" y="158" width="22" height="22" />
+        <rect x="380" y="146" width="16" height="30" />
+        <rect x="400" y="132" width="12" height="44" />
+      </g>
       {/* Far and mid hills for depth. */}
       <path d="M0 210 C120 170 240 190 360 176 C500 160 600 200 720 182 C840 166 930 184 1000 176 L1000 400 L0 400 Z" fill={c.far} />
       <path d="M0 240 C160 214 300 236 460 222 C620 208 760 236 1000 214 L1000 400 L0 400 Z" fill={c.mid} opacity="0.8" />
@@ -926,31 +1114,49 @@ function RouteScene({ time = 'day', live = false }: { time?: TimeOfDay; live?: b
         fill="none"
         opacity={night ? 0.5 : 1}
       />
+      {!night && time === 'day' && <Birds x={330} y={90} live={live} />}
+      {time === 'sunset' && <Birds x={600} y={120} live={live} />}
       <House x={560} y={120} />
-      <House x={640} y={100} roof="#c9564c" />
-      <House x={880} y={214} roof="#d9695f" />
+      <House x={640} y={100} roof="#c9564c" wall="#fdf6e8" />
+      <House x={880} y={214} roof="#3a78c2" wall="#f2f6fa" />
+      <House x={220} y={170} roof="#e08b3a" wall="#fff7ec" />
       <Tree x={520} y={150} s={0.9} />
-      <Tree x={720} y={120} s={0.8} />
-      <Tree x={960} y={150} />
-      <Tree x={90} y={220} s={0.9} />
-      <Tree x={300} y={196} s={0.7} />
+      <Tree x={720} y={120} s={0.8} tone={1} />
+      <Tree x={960} y={150} tone={2} />
+      <Tree x={90} y={220} s={0.9} tone={1} />
+      <Tree x={300} y={196} s={0.7} tone={2} />
+      <Tree x={40} y={250} s={1.1} />
+      <Bush x={180} y={262} s={0.9} />
+      <Bush x={660} y={236} s={0.8} color="#2e8b3e" />
+      <Bush x={990} y={236} s={1} color="#48b35a" />
+      {/* A picket fence in front of the far houses. */}
+      <g opacity={night ? 0.5 : 0.9}>
+        {Array.from({ length: 10 }, (_, i) => (
+          <path key={i} d={`M${540 + i * 12} 168 l0 -14 l3 -4 l3 4 l0 14 Z`} fill={night ? '#38557f' : '#ffffff'} />
+        ))}
+        <rect x="538" y="158" width="122" height="3" fill={night ? '#38557f' : '#ffffff'} />
+      </g>
+      {/* Delivery truck parked by the road. */}
+      <g transform="translate(700 210) scale(0.55)">
+        <ellipse cx="80" cy="86" rx="74" ry="5" fill="#000" opacity="0.1" />
+        <rect x="6" y="12" width="104" height="58" rx="5" fill={WHITE} stroke="#d7dee6" strokeWidth="2" />
+        <rect x="6" y="50" width="104" height="8" fill={GREEN} />
+        <text x="22" y="42" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="20" fill={NAVY}>
+          RLX
+        </text>
+        <path d="M110 30 L136 30 L152 50 L152 70 L110 70 Z" fill={NAVY} />
+        <path d="M116 36 L134 36 L144 50 L116 50 Z" fill="#9fc6e8" />
+        <circle cx="36" cy="72" r="11" fill={NAVY2} />
+        <circle cx="128" cy="72" r="11" fill={NAVY2} />
+      </g>
       {/* Map pin at a delivery stop. */}
       <g transform="translate(820 160)">
         <circle r="16" fill={WHITE} />
         <circle r="8" fill={GREEN} />
       </g>
-      {/* Grass tufts along the floor Rocky walks on. */}
-      {[40, 170, 260, 610, 700, 930].map((x, i) => (
-        <path
-          key={x}
-          d={`M${x} 352 q4 -14 8 0 q4 -10 8 0`}
-          stroke={night ? '#2f5a8a' : '#7cc48f'}
-          strokeWidth="3"
-          fill="none"
-          strokeLinecap="round"
-          opacity={0.7 - (i % 2) * 0.2}
-        />
-      ))}
+      {/* Grass and flowers along the floor Rocky walks on. */}
+      <Meadow y={352} color={night ? '#2f5a8a' : time === 'sunset' ? '#b98a6a' : '#7cc48f'} flowers={!night} />
+      <Meadow y={300} color={night ? '#2a5080' : time === 'sunset' ? '#c49a7a' : '#8fd0a0'} flowers={false} seed={3} count={12} />
       {night &&
         [150, 450, 750].map((x) => (
           <g key={x} transform={`translate(${x} 200)`}>
@@ -963,42 +1169,119 @@ function RouteScene({ time = 'day', live = false }: { time?: TimeOfDay; live?: b
   )
 }
 
-function WarehouseScene() {
+function Box({ x, y, w, h, tone }: { x: number; y: number; w: number; h: number; tone: number }) {
+  const c = ['#c99a63', '#d6a86f', '#b88650', '#e0b67c'][tone % 4]!
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx="2" fill={c} />
+      <rect x={x + w / 2 - 3} y={y} width="6" height={h} fill="#f0d5a8" opacity="0.7" />
+      <rect x={x} y={y} width={w} height="4" fill="#000" opacity="0.08" />
+      {tone % 3 === 0 && <rect x={x + 5} y={y + h - 12} width={w * 0.35} height="7" rx="1" fill="#ffffff" />}
+    </g>
+  )
+}
+
+function WarehouseScene({ live = false }: { live?: boolean }) {
   return (
     <>
-      <rect width="1000" height="400" fill="#eef2f5" />
-      <rect y="300" width="1000" height="100" fill="#dfe5ea" />
-      <rect y="296" width="1000" height="6" fill="#c9d2da" />
-      {[0, 1, 2].map((r) => (
-        <g key={r} transform={`translate(${90 + r * 300} 60)`}>
-          <rect x="0" y="0" width="8" height="240" fill={NAVY} />
-          <rect x="200" y="0" width="8" height="240" fill={NAVY} />
+      <defs>
+        <linearGradient id="wh-wall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#dde5ec" />
+          <stop offset="1" stopColor="#eef2f5" />
+        </linearGradient>
+        <linearGradient id="wh-floor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#cfd8e0" />
+          <stop offset="1" stopColor="#e6ecf1" />
+        </linearGradient>
+        <linearGradient id="wh-beam" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff6d6" stopOpacity="0.6" />
+          <stop offset="1" stopColor="#fff6d6" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <rect width="1000" height="400" fill="url(#wh-wall)" />
+      {/* Roof trusses and skylights. */}
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <g key={i}>
+          <path d={`M${i * 200} 0 L${i * 200 + 100} 28 L${i * 200 + 200} 0`} stroke="#9fb0c0" strokeWidth="3" fill="none" />
+          <rect x={i * 200 + 70} y="2" width="60" height="16" rx="2" fill="#cfe8f7" stroke="#9fb0c0" strokeWidth="2" />
+        </g>
+      ))}
+      {[170, 570].map((x) => (
+        <path key={x} d={`M${x} 18 L${x - 90} 330 L${x + 150} 330 L${x + 60} 18 Z`} fill="url(#wh-beam)" />
+      ))}
+      {/* Big roll-up dock doors with RLX signage. */}
+      {[270, 560].map((x, i) => (
+        <g key={x} transform={`translate(${x} 70)`}>
+          <rect width="170" height="150" fill="#b8c4cf" />
+          {Array.from({ length: 12 }, (_, k) => (
+            <rect key={k} y={k * 12.5} width="170" height="2" fill="#9fb0c0" />
+          ))}
+          <rect x="-8" y="-24" width="186" height="22" rx="4" fill={NAVY} />
+          <text x="46" y="-8" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="14" fill={WHITE}>
+            DOCK {i + 3}
+          </text>
+          <rect x="-8" y="0" width="8" height="150" fill={GOLD} />
+          <rect x="170" y="0" width="8" height="150" fill={GOLD} />
+          <path d="M0 0 L8 10 M0 20 L8 30 M0 40 L8 50 M170 0 L178 10 M170 20 L178 30 M170 40 L178 50" stroke={NAVY} strokeWidth="3" />
+        </g>
+      ))}
+      {/* Pallet racking full of parcels. */}
+      {[20, 770].map((rx, r) => (
+        <g key={rx} transform={`translate(${rx} 60)`}>
+          <rect x="0" y="0" width="8" height="250" fill={NAVY} />
+          <rect x="202" y="0" width="8" height="250" fill={NAVY} />
+          <rect x="101" y="0" width="6" height="250" fill={NAVY2} />
           {[70, 150, 230].map((y) => (
-            <rect key={y} x="0" y={y} width="208" height="7" fill={GREEN} />
+            <rect key={y} x="0" y={y} width="210" height="8" fill="#e8762c" />
           ))}
           {[0, 1, 2].map((row) =>
             [0, 1, 2, 3].map((c) => (
-              <rect
+              <Box
                 key={`${row}-${c}`}
-                x={14 + c * 46}
-                y={[36, 116, 196][row]}
-                width={40}
-                height={34}
-                rx="2"
-                fill={(row + c) % 3 === 0 ? '#c99a63' : (row + c) % 3 === 1 ? '#d6a86f' : '#b88650'}
+                x={10 + c * 48 + (c > 1 ? 6 : 0)}
+                y={[26, 104, 184][row]! + ((row + c + r) % 2) * 8}
+                w={42}
+                h={44 - ((row + c + r) % 2) * 8}
+                tone={row + c + r}
               />
             )),
           )}
         </g>
       ))}
-      <rect x="0" y="338" width="1000" height="6" fill={GOLD} opacity="0.7" />
-      {[0, 1, 2, 3, 4].map((i) => (
-        <rect key={i} x={40 + i * 220} y="338" width="80" height="6" fill={NAVY} opacity="0.7" />
+      {/* A conveyor belt carrying parcels. */}
+      <g transform="translate(250 250)">
+        <rect x="0" y="30" width="500" height="14" rx="7" fill="#3b4a5c" />
+        {Array.from({ length: 21 }, (_, i) => (
+          <circle key={i} cx={10 + i * 24} cy="37" r="4" fill="#9fb0c0" />
+        ))}
+        <rect x="20" y="44" width="8" height="40" fill="#3b4a5c" />
+        <rect x="472" y="44" width="8" height="40" fill="#3b4a5c" />
+        <g className={live ? 'rocky-drift' : undefined}>
+          <Box x={40} y={4} w={36} h={26} tone={1} />
+          <Box x={170} y={0} w={44} h={30} tone={2} />
+          <Box x={320} y={6} w={30} h={24} tone={0} />
+        </g>
+      </g>
+      {/* Floor, safety lines and a forklift. */}
+      <rect y="310" width="1000" height="90" fill="url(#wh-floor)" />
+      <rect y="306" width="1000" height="6" fill="#b8c4cf" />
+      <rect x="0" y="338" width="1000" height="6" fill={GOLD} opacity="0.75" />
+      {Array.from({ length: 12 }, (_, i) => (
+        <path key={i} d={`M${i * 90} 338 l20 0 l-10 6 l-20 0 Z`} fill={NAVY} opacity="0.7" />
       ))}
-      <path d="M500 0 L500 30" stroke={NAVY2} strokeWidth="3" />
-      <path d="M470 30 L530 30 L520 44 L480 44 Z" fill={NAVY} />
-      <path d="M480 44 L380 200 L620 200 L520 44 Z" fill="#fff6d6" opacity="0.35" />
-      <ellipse cx="500" cy="352" rx="260" ry="26" fill="#fff6d6" opacity="0.5" />
+      <g transform="translate(760 250)">
+        <ellipse cx="50" cy="88" rx="56" ry="6" fill="#000" opacity="0.12" />
+        <rect x="10" y="30" width="70" height="44" rx="6" fill={GOLD} />
+        <path d="M20 30 L24 0 L66 0 L70 30" stroke="#3b4a5c" strokeWidth="5" fill="none" />
+        <rect x="84" y="-6" width="6" height="86" fill="#3b4a5c" />
+        <rect x="88" y="66" width="30" height="5" fill="#3b4a5c" />
+        <circle cx="26" cy="78" r="11" fill="#1b2433" />
+        <circle cx="68" cy="78" r="11" fill="#1b2433" />
+        <text x="24" y="58" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="12" fill={NAVY}>
+          RLX
+        </text>
+      </g>
+      <ellipse cx="500" cy="356" rx="280" ry="26" fill="#fff6d6" opacity="0.45" />
     </>
   )
 }
@@ -1008,78 +1291,187 @@ function BallparkScene({ live = false }: { live?: boolean }) {
     <>
       <defs>
         <linearGradient id="bp-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#bfe2f7" />
+          <stop offset="0" stopColor="#8fcdf2" />
           <stop offset="1" stopColor="#eaf6fc" />
+        </linearGradient>
+        <linearGradient id="bp-grass" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#2f9444" />
+          <stop offset="1" stopColor="#4cb45e" />
         </linearGradient>
       </defs>
       <rect width="1000" height="400" fill="url(#bp-sky)" />
-      <circle cx="140" cy="70" r="36" fill="#fff4c9" />
+      <circle cx="140" cy="60" r="34" fill="#fff4c9" />
+      <circle cx="140" cy="60" r="70" fill="#fff4c9" opacity="0.2" />
       <g className={live ? 'rocky-drift' : undefined}>
         <Cloud x={420} y={50} s={0.7} opacity={0.8} />
         <Cloud x={820} y={36} s={0.9} opacity={0.85} />
       </g>
-      {/* Stands */}
-      <path d="M0 120 L1000 90 L1000 220 L0 230 Z" fill={NAVY2} />
-      {Array.from({ length: 5 }, (_, row) => (
-        <path key={row} d={`M0 ${140 + row * 18} L1000 ${112 + row * 26}`} stroke={NAVY} strokeWidth="4" />
+      {/* Light towers. */}
+      {[60, 940].map((x) => (
+        <g key={x} transform={`translate(${x} 20)`}>
+          <rect x="-4" y="40" width="8" height="120" fill="#6b7a8c" />
+          <rect x="-30" y="0" width="60" height="40" rx="4" fill="#3b4a5c" />
+          {[0, 1, 2].map((r) =>
+            [0, 1, 2, 3].map((c) => (
+              <circle key={`${r}${c}`} cx={-21 + c * 14} cy={9 + r * 11} r="4.5" fill="#fff8d6" className={live ? 'rocky-twinkle' : undefined} />
+            )),
+          )}
+        </g>
       ))}
-      {Array.from({ length: 40 }, (_, i) => (
-        <circle key={i} cx={20 + i * 25} cy={150 + ((i * 13) % 50)} r="4" fill={[GREEN2, WHITE, GOLD, '#d9695f'][i % 4]} opacity="0.85" />
+      {/* Stands, packed with fans, and the scoreboard. */}
+      <path d="M0 120 L1000 90 L1000 222 L0 232 Z" fill={NAVY2} />
+      {Array.from({ length: 6 }, (_, row) => (
+        <path key={row} d={`M0 ${136 + row * 16} L1000 ${108 + row * 19}`} stroke={NAVY} strokeWidth="3" />
       ))}
+      {Array.from({ length: 480 }, (_, i) => {
+        const row = i % 7
+        const col = Math.floor(i / 7)
+        const x = 6 + col * 14.6 + (row % 2) * 7 + ((i * 13) % 5)
+        const y = 140 + row * 12.5 - x * 0.028 + ((i * 7) % 3)
+        return (
+          <circle
+            key={i}
+            cx={x}
+            cy={y}
+            r={2.6 + ((i * 11) % 3) * 0.5}
+            fill={[GREEN2, WHITE, GOLD, '#d9695f', '#9fc6e8'][(i * 7) % 5]}
+            opacity="0.9"
+          />
+        )
+      })}
+      <g transform="translate(410 20)">
+        <rect x="-6" y="-6" width="192" height="90" rx="8" fill={NAVY} />
+        <rect x="0" y="0" width="180" height="56" rx="4" fill="#0b1a33" />
+        <text x="14" y="24" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="15" fill={GOLD}>
+          RLX 7 · QA 3
+        </text>
+        <text x="14" y="46" fontFamily="Poppins, sans-serif" fontWeight="700" fontSize="12" fill={GREEN2}>
+          NOTES: PERFECT ★
+        </text>
+        <rect x="80" y="84" width="20" height="20" fill={NAVY} />
+      </g>
       <rect y="222" width="1000" height="16" fill={GREEN} />
-      {/* Field */}
-      <rect y="236" width="1000" height="164" fill="#3aa14c" />
       {Array.from({ length: 10 }, (_, i) => (
-        <rect key={i} x={i * 100} y="236" width="50" height="164" fill="#46ad58" />
+        <rect key={i} x={i * 100 + 20} y="225" width="60" height="10" rx="2" fill={i % 2 ? GOLD : WHITE} opacity="0.85" />
       ))}
-      <path d="M250 400 L500 290 L750 400 Z" fill="#c9905a" opacity="0.85" />
+      {/* The field, mowed in stripes, with the diamond. */}
+      <rect y="236" width="1000" height="164" fill="url(#bp-grass)" />
+      {Array.from({ length: 10 }, (_, i) => (
+        <path key={i} d={`M${i * 100} 236 L${i * 100 + 50} 236 L${i * 110 + 20} 400 L${i * 110 - 30} 400 Z`} fill="#ffffff" opacity="0.06" />
+      ))}
+      <path d="M250 400 L500 290 L750 400 Z" fill="#c9905a" opacity="0.9" />
+      <path d="M340 400 L500 330 L660 400 Z" fill="url(#bp-grass)" />
       <path d="M300 400 L500 312 L700 400" stroke={WHITE} strokeWidth="3" fill="none" />
-      <text x="760" y="212" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="22" fill={WHITE} opacity="0.9">
-        RLX
-      </text>
+      {[
+        [500, 300],
+        [400, 350],
+        [600, 350],
+      ].map(([x, y]) => (
+        <rect key={x} x={x - 6} y={y - 6} width="12" height="12" fill={WHITE} transform={`rotate(45 ${x} ${y})`} />
+      ))}
+      <ellipse cx="500" cy="352" rx="22" ry="8" fill="#d9a56c" />
     </>
   )
 }
 
-function OfficeScene() {
+function OfficeScene({ live = false }: { live?: boolean }) {
   return (
     <>
       <defs>
         <linearGradient id="office-wall" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#eaf1f4" />
+          <stop offset="0" stopColor="#e6eef3" />
           <stop offset="1" stopColor="#f7fafb" />
+        </linearGradient>
+        <linearGradient id="office-city" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#9fd3f2" />
+          <stop offset="1" stopColor="#e0f2fb" />
+        </linearGradient>
+        <linearGradient id="office-floor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#c9a57a" />
+          <stop offset="1" stopColor="#dcbf98" />
         </linearGradient>
       </defs>
       <rect width="1000" height="400" fill="url(#office-wall)" />
-      {/* Windows onto the city. */}
-      {[80, 380, 680].map((x) => (
-        <g key={x} transform={`translate(${x} 50)`}>
-          <rect width="240" height="150" rx="10" fill="#bfe3f6" />
-          <path d="M0 120 L30 90 L60 110 L100 70 L150 100 L190 60 L240 90 L240 150 L0 150 Z" fill="#9fc6e8" />
-          <rect x="116" width="8" height="150" fill={WHITE} />
-          <rect width="240" height="150" rx="10" fill="none" stroke={WHITE} strokeWidth="8" />
+      {/* Floor-to-ceiling windows onto the city. */}
+      <rect x="120" y="30" width="440" height="200" rx="6" fill="url(#office-city)" />
+      <g fill="#b6cfe2">
+        {[
+          [130, 120, 40, 110],
+          [176, 90, 50, 140],
+          [232, 130, 36, 100],
+          [272, 70, 60, 160],
+          [338, 110, 44, 120],
+          [388, 60, 56, 170],
+          [450, 120, 40, 110],
+          [494, 96, 60, 134],
+        ].map(([x, y, w, h], i) => (
+          <g key={i}>
+            <rect x={x} y={y} width={w} height={h} fill={i % 2 ? '#a9c5dc' : '#bcd4e6'} />
+            {Array.from({ length: Math.floor(h! / 18) }, (_, k) => (
+              <rect key={k} x={x! + 6} y={y! + 8 + k * 18} width={w! - 12} height="6" fill="#ffffff" opacity="0.35" />
+            ))}
+          </g>
+        ))}
+      </g>
+      <g className={live ? 'rocky-drift' : undefined}>
+        <Cloud x={200} y={62} s={0.6} opacity={0.8} />
+        <Cloud x={500} y={48} s={0.5} opacity={0.7} />
+      </g>
+      {[120, 267, 413, 560].map((x) => (
+        <rect key={x} x={x - 4} y="30" width="8" height="200" fill="#ffffff" />
+      ))}
+      <rect x="116" y="26" width="448" height="208" rx="8" fill="none" stroke="#ffffff" strokeWidth="8" />
+      {/* RLX wall and a whiteboard with a "great notes" checklist. */}
+      <rect x="590" y="30" width="230" height="200" fill={NAVY} />
+      <text x="612" y="112" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="30" fill={WHITE}>
+        RLX
+      </text>
+      <rect x="694" y="100" width="100" height="6" fill={GREEN2} />
+      <rect x="608" y="124" width="194" height="96" rx="6" fill="#ffffff" />
+      <text x="618" y="140" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="10" fill={NAVY} opacity="0.6">
+        GREAT NOTES
+      </text>
+      {['Who & how', 'What happened', 'Next step'].map((t, i) => (
+        <g key={t}>
+          <rect x="618" y={148 + i * 22} width="12" height="12" rx="2" fill="none" stroke={GREEN} strokeWidth="2" />
+          <path d={`M620 ${154 + i * 22} l3 3 l6 -7`} stroke={GREEN} strokeWidth="2" fill="none" />
+          <text x="638" y={159 + i * 22} fontFamily="Caveat, cursive" fontWeight="700" fontSize="17" fill={NAVY}>
+            {t}
+          </text>
         </g>
       ))}
       <rect y="230" width="1000" height="10" fill={GREEN} />
-      <text x="470" y="30" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="20" fill={NAVY} opacity="0.2">
-        RLX
-      </text>
-      {/* Floor and a desk row. */}
-      <rect y="240" width="1000" height="160" fill="#dfe7ec" />
-      {Array.from({ length: 11 }, (_, i) => (
-        <rect key={i} x={i * 100} y="240" width="2" height="160" fill="#cfd9e0" />
+      {/* Wooden floor, desks with screens, plants and a lamp. */}
+      <rect y="240" width="1000" height="160" fill="url(#office-floor)" />
+      {Array.from({ length: 14 }, (_, i) => (
+        <rect key={i} x={i * 75} y="240" width="2" height="160" fill="#b89166" opacity="0.6" />
       ))}
-      {[120, 780].map((x) => (
-        <g key={x} transform={`translate(${x} 196)`}>
-          <rect x="0" y="40" width="130" height="10" rx="3" fill="#c99a63" />
-          <rect x="8" y="50" width="6" height="48" fill={NAVY2} />
-          <rect x="116" y="50" width="6" height="48" fill={NAVY2} />
-          <rect x="40" y="4" width="54" height="34" rx="3" fill={NAVY} />
-          <rect x="44" y="8" width="46" height="24" rx="2" fill={GREEN2} opacity="0.8" />
-          <rect x="62" y="38" width="10" height="4" fill={NAVY} />
+      {[180, 660].map((x) => (
+        <g key={x} transform={`translate(${x} 190)`}>
+          <ellipse cx="80" cy="102" rx="90" ry="8" fill="#000" opacity="0.08" />
+          <rect x="0" y="46" width="160" height="12" rx="3" fill="#ffffff" />
+          <rect x="10" y="58" width="6" height="44" fill={NAVY2} />
+          <rect x="144" y="58" width="6" height="44" fill={NAVY2} />
+          <rect x="30" y="4" width="70" height="42" rx="3" fill={NAVY} />
+          <rect x="35" y="9" width="60" height="30" rx="2" fill="#dff1ff" />
+          <rect x="40" y="14" width="34" height="4" rx="2" fill={GREEN} />
+          <rect x="40" y="22" width="46" height="3" rx="1.5" fill="#9fb0c0" />
+          <rect x="40" y="28" width="40" height="3" rx="1.5" fill="#9fb0c0" />
+          <rect x="60" y="46" width="10" height="4" fill={NAVY} />
+          <rect x="108" y="36" width="12" height="10" rx="2" fill="#e2445c" />
+          <path d="M120 38 q5 2 0 6" stroke="#e2445c" strokeWidth="2" fill="none" />
         </g>
       ))}
-      <ellipse cx="500" cy="350" rx="240" ry="26" fill={WHITE} opacity="0.5" />
+      {[150, 850].map((x) => (
+        <g key={x} transform={`translate(${x} 250)`}>
+          <path d="M-14 50 L14 50 L10 80 L-10 80 Z" fill={NAVY} />
+          <path
+            d="M0 50 C-20 36 -22 12 -8 2 C-4 20 -2 34 0 50 Z M0 50 C20 36 22 12 8 2 C4 20 2 34 0 50 Z M0 50 C-4 30 0 8 0 -6 C6 12 6 34 0 50 Z"
+            fill={GREEN}
+          />
+        </g>
+      ))}
+      <ellipse cx="500" cy="352" rx="260" ry="26" fill={WHITE} opacity="0.35" />
     </>
   )
 }
@@ -1089,49 +1481,178 @@ function BeachScene({ live = false }: { live?: boolean }) {
     <>
       <defs>
         <linearGradient id="beach-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#7fd0f2" />
+          <stop offset="0" stopColor="#5cc2ee" />
           <stop offset="1" stopColor="#e6f7fc" />
         </linearGradient>
         <linearGradient id="beach-sea" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#2aa7c9" />
-          <stop offset="1" stopColor="#6fd3e0" />
+          <stop offset="0" stopColor="#1a8fb8" />
+          <stop offset="0.6" stopColor="#35b8d0" />
+          <stop offset="1" stopColor="#7fe0e4" />
+        </linearGradient>
+        <linearGradient id="beach-sand" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f0d49a" />
+          <stop offset="1" stopColor="#f8e7c0" />
         </linearGradient>
       </defs>
       <rect width="1000" height="400" fill="url(#beach-sky)" />
       <circle cx="820" cy="80" r="40" fill="#fff4c9" />
+      <circle cx="820" cy="80" r="90" fill="#fff4c9" opacity="0.2" />
       <g className={live ? 'rocky-drift' : undefined}>
         <Cloud x={220} y={70} s={0.9} />
         <Cloud x={600} y={50} s={0.7} opacity={0.8} />
       </g>
+      <Birds x={420} y={110} live={live} />
+      {/* A far island and a sailboat on the horizon. */}
+      <path d="M560 200 C600 170 660 168 700 200 Z" fill="#3f9a6a" opacity="0.7" />
+      <path d="M640 176 L642 150 M642 150 C650 150 658 160 660 168" stroke="#6b4a2f" strokeWidth="2" fill="none" opacity="0.7" />
+      <g transform="translate(250 176)" className={live ? 'rocky-drift' : undefined}>
+        <path d="M0 22 L40 22 L34 30 L6 30 Z" fill={NAVY} />
+        <path d="M20 22 L20 -12 L38 18 Z" fill={WHITE} />
+        <path d="M18 22 L18 -6 L4 18 Z" fill={GREEN2} />
+      </g>
       <rect y="200" width="1000" height="80" fill="url(#beach-sea)" />
-      {[210, 232, 256].map((y, i) => (
+      {[208, 226, 246, 262].map((y, i) => (
         <path
           key={y}
-          d={`M0 ${y} q25 -6 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0`}
+          d={`M${-20 + i * 12} ${y} q25 -6 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0`}
           stroke={WHITE}
           strokeWidth="2"
           fill="none"
-          opacity={0.5 - i * 0.12}
+          opacity={0.55 - i * 0.1}
+          className={live && i % 2 ? 'rocky-drift' : undefined}
         />
       ))}
-      <path d="M0 272 C200 262 400 280 600 270 C780 262 900 274 1000 268 L1000 400 L0 400 Z" fill="#f3dfae" />
-      <path d="M0 282 C200 272 400 290 600 280 C780 272 900 284 1000 278" stroke={WHITE} strokeWidth="6" fill="none" opacity="0.7" />
-      {/* Palm tree */}
-      <g transform="translate(900 300)">
-        <path d="M0 40 C-6 0 -4 -60 10 -120" stroke="#8a5a2b" strokeWidth="12" fill="none" strokeLinecap="round" />
-        {[-150, -110, -60, -20, 20].map((a) => (
-          <path key={a} d="M10 -120 C40 -140 80 -130 100 -100 C70 -118 40 -118 10 -120 Z" fill="#2e8b3e" transform={`rotate(${a + 60} 10 -120)`} />
-        ))}
-        <circle cx="4" cy="-112" r="6" fill="#6b4a2f" />
-        <circle cx="16" cy="-110" r="6" fill="#6b4a2f" />
+      <path d="M0 272 C200 262 400 280 600 270 C780 262 900 274 1000 268 L1000 400 L0 400 Z" fill="url(#beach-sand)" />
+      <path d="M0 276 C200 266 400 284 600 274 C780 266 900 278 1000 272" stroke={WHITE} strokeWidth="7" fill="none" opacity="0.8" />
+      {/* Shells, a starfish, a sandcastle. */}
+      {Array.from({ length: 16 }, (_, i) => (
+        <circle key={i} cx={(i * 67) % 1000} cy={300 + ((i * 29) % 80)} r="1.6" fill="#d9b779" />
+      ))}
+      <path d="M380 360 l4 -10 l4 10 l10 1 l-8 6 l3 10 l-9 -6 l-9 6 l3 -10 l-8 -6 Z" fill="#ff8f6b" />
+      <path d="M640 368 C640 358 656 358 656 368 Z" fill="#ffd1dc" />
+      <g transform="translate(560 316)">
+        <rect x="0" y="16" width="60" height="30" fill="#e8c98a" />
+        <rect x="-6" y="0" width="18" height="46" fill="#e8c98a" />
+        <rect x="48" y="0" width="18" height="46" fill="#e8c98a" />
+        <path d="M-6 0 l3 -5 l3 5 l3 -5 l3 5 l3 -5 l3 5 M48 0 l3 -5 l3 5 l3 -5 l3 5 l3 -5 l3 5" stroke="#e8c98a" strokeWidth="3" fill="none" />
+        <path d="M24 46 L24 30 C24 24 36 24 36 30 L36 46 Z" fill="#c9a766" />
+        <path d="M3 -5 L3 -20 L14 -15 L3 -12" fill="#e2445c" stroke="#8a5a2b" strokeWidth="1.2" />
       </g>
-      {/* Umbrella and towel */}
+      {/* Palm trees */}
+      {[
+        [900, 300, 1],
+        [990, 290, 0.8],
+      ].map(([px, py, k], j) => (
+        <g key={j} transform={`translate(${px} ${py}) scale(${k})`}>
+          <path d="M0 40 C-6 0 -4 -60 10 -120" stroke="#8a5a2b" strokeWidth="12" fill="none" strokeLinecap="round" />
+          <path d="M-4 10 l12 -3 M-5 -20 l12 -3 M-2 -50 l12 -3 M3 -80 l11 -3" stroke="#6b4423" strokeWidth="2" />
+          {[-150, -110, -60, -20, 20].map((a) => (
+            <path
+              key={a}
+              d="M10 -120 C40 -140 80 -130 100 -100 C70 -118 40 -118 10 -120 Z"
+              fill={a % 40 ? '#2e8b3e' : '#3aa14c'}
+              transform={`rotate(${a + 60} 10 -120)`}
+            />
+          ))}
+          <circle cx="4" cy="-112" r="6" fill="#6b4a2f" />
+          <circle cx="16" cy="-110" r="6" fill="#6b4a2f" />
+        </g>
+      ))}
+      {/* Umbrella, towel, beach ball. */}
       <g transform="translate(90 300)">
         <path d="M40 60 L52 -20" stroke={NAVY} strokeWidth="4" />
         <path d="M-10 -10 C10 -50 90 -50 110 -24 Z" fill={GREEN} />
-        <path d="M24 -24 C30 -40 60 -44 76 -30 Z" fill={WHITE} opacity="0.9" />
+        <path d="M24 -24 C30 -40 60 -44 76 -30 L60 -18 Z" fill={WHITE} opacity="0.9" />
         <rect x="0" y="50" width="90" height="20" rx="4" fill={GOLD} transform="skewX(-20)" />
+        <rect x="10" y="54" width="70" height="4" fill="#e2445c" transform="skewX(-20)" />
       </g>
+      <g transform="translate(260 356)">
+        <circle r="13" fill={WHITE} />
+        <path d="M0 -13 A13 13 0 0 1 13 0 L0 0 Z" fill="#e2445c" />
+        <path d="M0 13 A13 13 0 0 1 -13 0 L0 0 Z" fill={GOLD} />
+        <path d="M-13 0 A13 13 0 0 1 0 -13 L0 0 Z" fill="#35b8d0" />
+      </g>
+    </>
+  )
+}
+
+/** A red-and-white stadium (a tribute to Barranquilla's rojiblanco colours — no crests or sponsors). */
+function JrStadiumScene({ live = false }: { live?: boolean }) {
+  return (
+    <>
+      <defs>
+        <linearGradient id="jr-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#0f2341" />
+          <stop offset="0.7" stopColor="#274b7c" />
+          <stop offset="1" stopColor="#3f6aa2" />
+        </linearGradient>
+        <linearGradient id="jr-pitch" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#1f8a3c" />
+          <stop offset="1" stopColor="#39b057" />
+        </linearGradient>
+        <radialGradient id="jr-glow">
+          <stop offset="0" stopColor="#fff8d6" stopOpacity="0.8" />
+          <stop offset="1" stopColor="#fff8d6" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="1000" height="400" fill="url(#jr-sky)" />
+      <Stars live={live} count={10} seed={7} />
+      {/* Floodlights. */}
+      {[70, 930].map((x) => (
+        <g key={x}>
+          <circle cx={x} cy="40" r="90" fill="url(#jr-glow)" />
+          <rect x={x - 4} y="60" width="8" height="120" fill="#6b7a8c" />
+          <rect x={x - 32} y="20" width="64" height="40" rx="4" fill="#1b2433" />
+          {[0, 1, 2].map((r) =>
+            [0, 1, 2, 3].map((c) => (
+              <circle key={`${r}${c}`} cx={x - 23 + c * 15} cy={29 + r * 11} r="5" fill="#fffbe6" className={live ? 'rocky-twinkle' : undefined} />
+            )),
+          )}
+        </g>
+      ))}
+      {/* Stands in red-and-white stripes, packed with fans. */}
+      <path d="M0 110 L1000 110 L1000 232 L0 232 Z" fill="#b40e24" />
+      {Array.from({ length: 20 }, (_, i) => (
+        <rect key={i} x={i * 50} y="110" width="25" height="122" fill="#ffffff" opacity="0.9" />
+      ))}
+      {Array.from({ length: 560 }, (_, i) => {
+        const row = i % 8
+        const col = Math.floor(i / 8)
+        const x = 6 + col * 14.5 + (row % 2) * 7 + ((i * 13) % 5)
+        return (
+          <circle
+            key={i}
+            cx={x}
+            cy={122 + row * 13.5 + ((i * 7) % 3)}
+            r={2.6 + ((i * 11) % 3) * 0.5}
+            fill={['#d0112b', '#ffffff', '#12234a', '#d0112b', '#f5b82e'][(i * 7) % 5]}
+            opacity="0.95"
+            className={live && i % 9 === 0 ? 'rocky-twinkle' : undefined}
+          />
+        )
+      })}
+      {/* Banners along the stand. */}
+      <rect x="215" y="92" width="270" height="26" rx="4" fill="#12234a" />
+      <text x="232" y="111" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="16" fill="#ffffff">
+        ¡VAMOS TIBURÓN! 🦈
+      </text>
+      <rect x="515" y="92" width="240" height="26" rx="4" fill="#ffffff" />
+      <text x="534" y="111" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="16" fill="#d0112b">
+        ROJIBLANCO · RLX
+      </text>
+      <rect y="228" width="1000" height="14" fill="#12234a" />
+      {Array.from({ length: 10 }, (_, i) => (
+        <rect key={i} x={i * 100 + 14} y="230" width="72" height="10" rx="2" fill={i % 2 ? '#d0112b' : '#ffffff'} />
+      ))}
+      {/* The pitch, mowed in stripes, with its lines. */}
+      <rect y="242" width="1000" height="158" fill="url(#jr-pitch)" />
+      {Array.from({ length: 10 }, (_, i) => (
+        <rect key={i} x={i * 100} y="242" width="50" height="158" fill="#ffffff" opacity="0.06" />
+      ))}
+      <path d="M0 330 L1000 330" stroke="#ffffff" strokeWidth="3" opacity="0.8" />
+      <ellipse cx="500" cy="330" rx="120" ry="30" stroke="#ffffff" strokeWidth="3" fill="none" opacity="0.8" />
+      <circle cx="500" cy="330" r="4" fill="#ffffff" />
+      <path d="M0 262 L140 262 L140 310 L0 310 M1000 262 L860 262 L860 310 L1000 310" stroke="#ffffff" strokeWidth="3" fill="none" opacity="0.8" />
     </>
   )
 }
@@ -1483,14 +2004,16 @@ export function SceneArt({ id, live = false }: { id: string; live?: boolean }) {
         <WinterScene live={live} />
       ) : id === 'scene-north-pole' ? (
         <NorthPoleScene live={live} />
+      ) : id === 'scene-jr-stadium' ? (
+        <JrStadiumScene live={live} />
       ) : id === 'scene-warehouse' ? (
-        <WarehouseScene />
+        <WarehouseScene live={live} />
       ) : id === 'scene-ballpark' ? (
         <BallparkScene live={live} />
       ) : id === 'scene-night' ? (
         <RouteScene time="night" live={live} />
       ) : id === 'scene-office' ? (
-        <OfficeScene />
+        <OfficeScene live={live} />
       ) : id === 'scene-beach' ? (
         <BeachScene live={live} />
       ) : id === 'scene-sunset' ? (

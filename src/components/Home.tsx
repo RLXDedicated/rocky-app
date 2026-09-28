@@ -299,9 +299,11 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
     glasses: usable(outfit.glasses) ? outfit.glasses : null,
     neck: usable(outfit.neck) ? outfit.neck : null,
     back: usable(outfit.back) ? outfit.back : null,
+    body: usable(outfit.body) ? outfit.body : null,
     scene: usable(outfit.scene) ? outfit.scene : 'scene-route',
     decor: outfit.decor.filter(usable),
     spots: outfit.spots ?? {},
+    sizes: outfit.sizes ?? {},
     fx: usable(outfit.fx) ? outfit.fx : null,
   }
 
@@ -348,7 +350,7 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
           onStartArrange={startArrange}
           onArrangeDone={(layout) => {
             setArranging(false)
-            if (layout) changeOutfit({ ...outfit, decor: layout.decor, spots: { ...outfit.spots, ...layout.spots } })
+            if (layout) changeOutfit({ ...outfit, decor: layout.decor, spots: { ...outfit.spots, ...layout.spots }, sizes: layout.sizes })
           }}
           hud={
             <>

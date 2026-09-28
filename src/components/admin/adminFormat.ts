@@ -191,6 +191,7 @@ export const AUDIT_ACTION_ES: Record<string, string> = {
   'admin.pin-reset': 'Reseteó el PIN',
   'admin.sessions-revoked': 'Cerró todas las sesiones',
   'admin.catalog': 'Editó la tienda',
+  'admin.collection': 'Temporada abierta/cerrada',
   'admin.agent.renamed': 'Renombró al agente',
   'admin.agent.reset': 'Reseteó el progreso',
   'admin.agent.deleted': 'Eliminó al agente',
@@ -236,6 +237,8 @@ export function auditDetail(detail: Record<string, unknown> | null): string {
     const r = detail.reward as { coins?: number; xp?: number }
     parts.push(`premio ${r.coins ?? 0} coins${r.xp ? ` + ${r.xp} XP` : ''}`)
   }
+  if (typeof detail.collection === 'string') parts.push(detail.collection === 'spooky' ? '🎃 Spooky' : '🎄 Holidays')
+  if (typeof detail.from === 'string' || typeof detail.until === 'string') parts.push(`${detail.from ?? '…'} → ${detail.until ?? '…'}`)
   if (typeof detail.kind === 'string') parts.push(detail.kind)
   if (typeof detail.from === 'string') parts.push(`de ${detail.from}`)
   if (typeof detail.text === 'string') parts.push(`“${detail.text}”`)

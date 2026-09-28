@@ -1,5 +1,5 @@
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput } from './AccountStore'
 
 const clone = <T>(v: T): T => (v === undefined || v === null ? v : (JSON.parse(JSON.stringify(v)) as T))
 const newest = <T extends { id: number }>(rows: T[], limit: number) => [...rows].sort((a, b) => b.id - a.id).slice(0, limit)
@@ -58,10 +58,12 @@ export class InMemoryAccountStore implements AccountStore {
     return clone(this.catalog)
   }
 
-  setCatalogOverride(itemId: string, value: { price: number | null; enabled: boolean | null }) {
-    const next: { price?: number; enabled?: boolean } = {}
+  setCatalogOverride(itemId: string, value: CatalogOverrideInput) {
+    const next: CatalogOverrides[string] = {}
     if (value.price !== null) next.price = value.price
     if (value.enabled !== null) next.enabled = value.enabled
+    if (value.from) next.from = value.from
+    if (value.until) next.until = value.until
     if (Object.keys(next).length === 0) delete this.catalog[itemId]
     else this.catalog[itemId] = next
   }

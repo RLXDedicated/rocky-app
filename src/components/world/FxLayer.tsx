@@ -95,6 +95,9 @@ const flake = (
     ))}
   </g>
 )
+/** Carnival confetti bits and curly streamers (serpentinas). */
+const confettiBit = (c: string) => <rect x="6" y="3" width="8" height="14" rx="1.5" fill={c} stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
+const streamer = (c: string) => <path d="M3 2 C12 4 4 8 12 10 C20 12 8 16 17 18" stroke={c} strokeWidth="2.4" fill="none" strokeLinecap="round" />
 const star = (c: string) => <polygon points="10,1 12.4,7.2 19,7.6 13.8,11.8 15.6,18.4 10,14.6 4.4,18.4 6.2,11.8 1,7.6 7.6,7.2" fill={c} />
 
 const FX: Record<string, ParticleFx | SpecialFx> = {
@@ -138,6 +141,19 @@ const FX: Record<string, ParticleFx | SpecialFx> = {
     shapes: ['#e2445c', '#f28c28', '#7a4fd1', '#1fbf68'].map(candy),
     size: [14, 20],
     dur: [5, 8],
+  },
+  'fx-jr-carnaval': {
+    kind: 'particles',
+    count: 34,
+    motion: 'sway',
+    shapes: [
+      ...['#d0112b', '#ffffff', '#12234a', '#f5b82e', '#d0112b', '#1fbf68'].map(confettiBit),
+      streamer('#d0112b'),
+      streamer('#12234a'),
+      streamer('#f5b82e'),
+    ],
+    size: [10, 22],
+    dur: [6, 11],
   },
   'fx-aurora': { kind: 'aurora' },
   'fx-fog': { kind: 'fog' },

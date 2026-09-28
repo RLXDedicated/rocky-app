@@ -176,3 +176,10 @@ export const MIGRATION_003_ACCOUNTS = `
   );
   CREATE INDEX idx_sessions_agent ON sessions(agent_id);
 `
+
+// Limited collections (seasonal specials, themed packs) can be opened for a
+// date window: the day it opens and the last day it stays open.
+export const MIGRATION_004_COLLECTION_WINDOWS = `
+  ALTER TABLE catalog_overrides ADD COLUMN starts_on TEXT;
+  ALTER TABLE catalog_overrides ADD COLUMN ends_on TEXT;
+`
