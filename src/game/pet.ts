@@ -10,6 +10,7 @@ import { todayKey } from '../engine/dateUtils'
 import type { Achievement, GameState } from '../types/domain'
 import { CLOSET, DEFAULT_OUTFIT, findItem, isUsable, sanitizeOutfit, type ClosetItem, type Outfit, type ProgressFacts } from './closet'
 import { coinsEarned, TREAT_BAG } from './economy'
+import { QUIZ_REWARD, scoreQuiz } from './notesQuiz'
 
 export const NEEDS_MAX = 100
 
@@ -63,7 +64,23 @@ export interface PetState {
   coinsAdjust: number
   /** When the agent finished the intro (kept server-side so a new device skips it). */
   onboardedAt: string | null
+  /** Coins won in Note Check (the daily notes quiz). */
+  gameCoins: number
+  quiz: QuizState
 }
+
+export interface QuizState {
+  /** Day of the last round played, and whether today's reward was already given. */
+  date: string | null
+  rewarded: boolean
+  lastScore: number
+  lastTotal: number
+  lastReward: number
+  played: number
+  perfectRounds: number
+}
+
+const EMPTY_QUIZ: QuizState = { date: null, rewarded: false, lastScore: 0, lastTotal: 0, lastReward: 0, played: 0, perfectRounds: 0 }
 
 export type PetAction =
   | { type: 'pet' }
@@ -73,8 +90,9 @@ export type PetAction =
   | { type: 'buy'; itemId: string }
   | { type: 'buyTreats' }
   | { type: 'equip'; outfit: Outfit }
+  | { type: 'quiz'; answers: Record<string, number> }
 
-export const PET_ACTION_TYPES = ['pet', 'feed', 'play', 'bath', 'buy', 'buyTreats', 'equip'] as const
+export const PET_ACTION_TYPES = ['pet', 'feed', 'play', 'bath', 'buy', 'buyTreats', 'equip', 'quiz'] as const
 
 export interface PetContext {
   facts: ProgressFacts
@@ -87,7 +105,7 @@ export type PetFailure = 'no-treats' | 'locked' | 'owned' | 'coins' | 'unknown-i
 /** A coin movement to record in the ledger. */
 export interface LedgerEntry {
   delta: number
-  kind: 'purchase' | 'treat-bag' | 'admin-grant' | 'admin-deduct'
+  kind: 'purchase' | 'treat-bag' | 'admin-grant' | 'admin-deduct' | 'quiz'
   itemId?: string
   note?: string
 }
@@ -121,6 +139,8 @@ export function initialPetState(now: Date = new Date()): PetState {
     coinsSpent: 0,
     coinsAdjust: 0,
     onboardedAt: null,
+    gameCoins: 0,
+    quiz: { ...EMPTY_QUIZ },
   }
 }
 
@@ -139,6 +159,10 @@ export function normalizePetState(raw: unknown, now: Date = new Date()): PetStat
     version: 1,
     outfit: {
       hat: o.hat === null || typeof o.hat === 'string' ? (o.hat ?? null) : base.outfit.hat,
+      // Saves from before clothes existed get the starter ID badge.
+      glasses: typeof o.glasses === 'string' ? o.glasses : null,
+      neck: typeof o.neck === 'string' ? o.neck : o.neck === null ? null : base.outfit.neck,
+      back: typeof o.back === 'string' ? o.back : null,
       scene: typeof o.scene === 'string' ? o.scene : base.outfit.scene,
       decor: Array.isArray(o.decor) ? ids(o.decor) : base.outfit.decor,
       fx: typeof o.fx === 'string' ? o.fx : null,
@@ -162,6 +186,22 @@ export function normalizePetState(raw: unknown, now: Date = new Date()): PetStat
     coinsSpent: Math.max(0, num(r.coinsSpent, 0)),
     coinsAdjust: num(r.coinsAdjust, 0),
     onboardedAt: typeof r.onboardedAt === 'string' ? r.onboardedAt : null,
+    gameCoins: Math.max(0, num(r.gameCoins, 0)),
+    quiz: normalizeQuiz(r.quiz),
+  }
+}
+
+function normalizeQuiz(raw: unknown): QuizState {
+  if (!raw || typeof raw !== 'object') return { ...EMPTY_QUIZ }
+  const q = raw as Partial<QuizState>
+  return {
+    date: typeof q.date === 'string' ? q.date : null,
+    rewarded: q.rewarded === true,
+    lastScore: Math.max(0, num(q.lastScore, 0)),
+    lastTotal: Math.max(0, num(q.lastTotal, 0)),
+    lastReward: Math.max(0, num(q.lastReward, 0)),
+    played: Math.max(0, num(q.played, 0)),
+    perfectRounds: Math.max(0, num(q.perfectRounds, 0)),
   }
 }
 
@@ -196,7 +236,7 @@ export function treatsAvailable(state: PetState, facts: ProgressFacts): number {
 }
 
 export function coinBalance(state: PetState, facts: ProgressFacts): number {
-  return Math.max(0, coinsEarned(facts) + state.coinsAdjust - state.coinsSpent)
+  return Math.max(0, coinsEarned(facts) + state.gameCoins + state.coinsAdjust - state.coinsSpent)
 }
 
 function bump(needs: Needs, fx: Partial<Record<'health' | 'happiness' | 'dirt', number>>): Needs {
@@ -253,6 +293,34 @@ export function applyPetAction(prev: PetState, action: PetAction, ctx: PetContex
         state: { ...state, coinsSpent: state.coinsSpent + TREAT_BAG.price, bonusTreats: state.bonusTreats + TREAT_BAG.treats },
         ledger: { delta: -TREAT_BAG.price, kind: 'treat-bag', itemId: TREAT_BAG.id },
       }
+    }
+    case 'quiz': {
+      if (!action.answers || typeof action.answers !== 'object') return fail('invalid')
+      const answers: Record<string, number> = {}
+      for (const [k, v] of Object.entries(action.answers)) if (typeof v === 'number' && Number.isInteger(v)) answers[k] = v
+      const { correct, total } = scoreQuiz(answers, ctx.now)
+      const today = todayKey(ctx.now)
+      const firstToday = !(state.quiz.date === today && state.quiz.rewarded)
+      const perfect = correct === total && total > 0
+      // Only the first round of the day pays out; replays are practice.
+      const reward = firstToday ? correct * QUIZ_REWARD.perCorrect + (perfect ? QUIZ_REWARD.perfectBonus : 0) : 0
+      const next: PetState = {
+        ...state,
+        gameCoins: state.gameCoins + reward,
+        bonusTreats: state.bonusTreats + (firstToday && perfect ? QUIZ_REWARD.perfectTreats : 0),
+        // A little happiness: Rocky loves it when you practise.
+        needs: bump(state.needs, { happiness: 3 + correct }),
+        quiz: {
+          date: today,
+          rewarded: true,
+          lastScore: correct,
+          lastTotal: total,
+          lastReward: reward,
+          played: state.quiz.played + 1,
+          perfectRounds: state.quiz.perfectRounds + (perfect ? 1 : 0),
+        },
+      }
+      return { ok: true, state: next, ledger: reward > 0 ? { delta: reward, kind: 'quiz', note: `Note Check ${correct}/${total}` } : undefined }
     }
     case 'equip': {
       if (!action.outfit || typeof action.outfit !== 'object') return fail('invalid')

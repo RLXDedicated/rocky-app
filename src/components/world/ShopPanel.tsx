@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { isUsable, itemsFor, MAX_DECOR, type ClosetItem, type ItemSlot, type Outfit, type ProgressFacts } from '../../game/closet'
+import { isUsable, itemsFor, MAX_DECOR, SINGLE_SLOTS, type ClosetItem, type ItemSlot, type Outfit, type ProgressFacts } from '../../game/closet'
+import { WEAR_ART, WEAR_VIEWBOX, type WearSlot } from './wearables'
 import { TREAT_BAG } from '../../game/economy'
 import { DECOR_ART, FX_ART, HAT_ART, SceneArt } from './art'
 import { Coin } from './Coin'
 import styles from './Shop.module.css'
 
-type Tab = ItemSlot | 'treats'
+type Tab = Exclude<ItemSlot, 'neck' | 'back'> | 'clothes' | 'treats'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'hat', label: 'Hats' },
+  { id: 'glasses', label: 'Glasses' },
+  { id: 'clothes', label: 'Clothes' },
   { id: 'scene', label: 'Places' },
   { id: 'decor', label: 'Decor' },
   { id: 'fx', label: 'Ambience' },
@@ -53,17 +56,17 @@ export function ShopPanel({ open, onClose, outfit, facts, owned, granted, catalo
 
   if (!open) return null
 
+  const isSingle = (slot: ItemSlot): slot is (typeof SINGLE_SLOTS)[number] => (SINGLE_SLOTS as readonly string[]).includes(slot)
+
   function isEquipped(slot: ItemSlot, id: string) {
-    if (slot === 'hat') return outfit.hat === id
     if (slot === 'scene') return outfit.scene === id
-    if (slot === 'fx') return outfit.fx === id
+    if (isSingle(slot)) return outfit[slot] === id
     return outfit.decor.includes(id)
   }
 
   function equip(slot: ItemSlot, id: string) {
-    if (slot === 'hat') onChange({ ...outfit, hat: outfit.hat === id ? null : id })
-    else if (slot === 'scene') onChange({ ...outfit, scene: id })
-    else if (slot === 'fx') onChange({ ...outfit, fx: outfit.fx === id ? null : id })
+    if (slot === 'scene') onChange({ ...outfit, scene: id })
+    else if (isSingle(slot)) onChange({ ...outfit, [slot]: outfit[slot] === id ? null : id })
     else {
       const has = outfit.decor.includes(id)
       const decor = has ? outfit.decor.filter((d) => d !== id) : [...outfit.decor, id].slice(-MAX_DECOR)
@@ -72,7 +75,8 @@ export function ShopPanel({ open, onClose, outfit, facts, owned, granted, catalo
   }
 
   // Items taken out of the shop by an admin stay visible only to agents who already have them.
-  const items = tab === 'treats' ? [] : itemsFor(tab, catalog).filter((i) => i.enabled !== false || isUsable(i, facts, owned, granted))
+  const tabItems = tab === 'treats' ? [] : tab === 'clothes' ? [...itemsFor('neck', catalog), ...itemsFor('back', catalog)] : itemsFor(tab, catalog)
+  const items = tabItems.filter((i) => i.enabled !== false || isUsable(i, facts, owned, granted))
 
   return (
     <div className={styles.backdrop} onClick={onClose}>
@@ -137,7 +141,14 @@ export function ShopPanel({ open, onClose, outfit, facts, owned, granted, catalo
                 let state: string
                 if (!unlocked) state = item.requirement
                 else if (!usable) state = short > 0 ? `${short} more coins` : 'Tap to buy'
-                else state = on ? (item.slot === 'hat' ? 'Wearing' : 'In use') : granted.includes(item.id) ? 'Gift · tap to use' : 'Tap to use'
+                else
+                  state = on
+                    ? ['hat', 'glasses', 'neck', 'back'].includes(item.slot)
+                      ? 'Wearing'
+                      : 'In use'
+                    : granted.includes(item.id)
+                      ? 'Gift · tap to use'
+                      : 'Tap to use'
                 return (
                   <li key={item.id}>
                     <button
@@ -161,6 +172,11 @@ export function ShopPanel({ open, onClose, outfit, facts, owned, granted, catalo
                           </svg>
                         )}
                         {item.slot === 'scene' && <SceneArt id={item.id} />}
+                        {(item.slot === 'glasses' || item.slot === 'neck' || item.slot === 'back') && WEAR_ART[item.slot as WearSlot][item.id] && (
+                          <svg viewBox={WEAR_VIEWBOX[item.slot as WearSlot]} aria-hidden="true">
+                            {WEAR_ART[item.slot as WearSlot][item.id]}
+                          </svg>
+                        )}
                         {item.slot === 'fx' && FX_ART[item.id] && (
                           <svg viewBox="0 0 100 75" aria-hidden="true">
                             {FX_ART[item.id]}

@@ -14,6 +14,8 @@ export type EventType =
   | 'EVOLUTION'
   | 'ACHIEVEMENT'
   | 'CORRECTION'
+  /** XP granted by a QA coordinator/admin (payload: xp, reason, grantedBy). Counted on replay. */
+  | 'XP_GRANT'
 
 export interface GameEvent {
   id: string

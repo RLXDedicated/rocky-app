@@ -5,7 +5,15 @@ import styles from './AdminConsole.module.css'
 import { Kpi } from './AdminConsole'
 import { auditDetail, auditLabel, fmtDateTime, LEDGER_KIND_ES, SOURCE_ES } from './adminFormat'
 
-const SLOT_ES: Record<ItemSlot, string> = { hat: 'Gorros', scene: 'Lugares', decor: 'Decoración', fx: 'Ambientación' }
+const SLOT_ES: Record<ItemSlot, string> = {
+  hat: 'Gorros',
+  glasses: 'Gafas',
+  neck: 'Cuello',
+  back: 'Espalda',
+  scene: 'Lugares',
+  decor: 'Decoración',
+  fx: 'Ambientación',
+}
 const itemName = (id: string | null) => (id ? (CLOSET.find((i) => i.id === id)?.name ?? id) : '')
 
 function useLoad<T>(load: () => Promise<T>, onError: (m: string) => void): [T | null, () => void] {
@@ -32,7 +40,7 @@ export function EconomyTab({ onOpen, onError }: { onOpen: (id: string) => void; 
   return (
     <div className={styles.stack}>
       <div className={styles.kpiGrid}>
-        <Kpi label="Coins ganados" value={t.earned.toLocaleString('es-CO')} hint="por check-ins, QA, logros, niveles y rachas" />
+        <Kpi label="Coins ganados" value={t.earned.toLocaleString('es-CO')} hint="por check-ins, QA, logros, niveles, rachas y Note Check" />
         <Kpi label="Coins gastados" value={t.spent.toLocaleString('es-CO')} hint="en la tienda" />
         <Kpi label="Ajustes admin" value={t.adjustments > 0 ? `+${t.adjustments}` : t.adjustments} />
         <Kpi label="En circulación" value={t.balance.toLocaleString('es-CO')} hint="saldo total de los agentes" />

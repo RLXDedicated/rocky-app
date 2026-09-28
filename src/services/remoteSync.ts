@@ -81,3 +81,28 @@ export async function initializeIdentityAndSync(): Promise<void> {
     console.warn('[rocky] Could not sync with the backend, continuing with local data:', err)
   }
 }
+
+/**
+ * Re-pulls this agent's progress while the app is open (e.g. when the tab
+ * comes back into focus), so changes made elsewhere — another device, or
+ * QA granting XP or an evolution — show up without reloading. Returns null
+ * offline or on any failure.
+ */
+export async function refreshFromServer(): Promise<{ gameState: import('../types/domain').GameState } | null> {
+  if (!isRemoteModeEnabled()) return null
+  try {
+    const [gameState, achievements, history, pet] = await Promise.all([
+      apiClient.getGameState(),
+      apiClient.getAchievements(),
+      apiClient.getEvents(),
+      apiClient.getPet(),
+    ])
+    repository.saveGameState(gameState)
+    repository.replaceEvents(history.events)
+    repository.replaceAchievements(achievements.unlocked)
+    savePetCache(fromView(pet))
+    return { gameState }
+  } catch {
+    return null
+  }
+}

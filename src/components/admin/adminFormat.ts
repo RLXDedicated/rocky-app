@@ -28,6 +28,7 @@ export const EVENT_TYPE_ES: Record<string, string> = {
   EVOLUTION: 'Evolución',
   ACHIEVEMENT: 'Logro',
   CORRECTION: 'Corrección',
+  XP_GRANT: 'XP otorgado',
 }
 
 export function eventDetail(e: AdminEventRow): string {
@@ -46,6 +47,8 @@ export function eventDetail(e: AdminEventRow): string {
       return `${p.previousStage ?? '?'} → ${p.newStage ?? p.stage ?? '?'}`
     case 'ACHIEVEMENT':
       return String(p.name ?? '')
+    case 'XP_GRANT':
+      return `+${p.xp ?? 0} XP${p.reason ? ` · “${p.reason}”` : ''}${p.grantedBy ? ` · por ${p.grantedBy}` : ''}`
     case 'CORRECTION':
       return `Corregido a ${p.correctedTo === 'PASS' ? 'QA Pass' : 'Alerta'}${p.reason ? ` · “${p.reason}”` : ''}`
     default:
@@ -158,10 +161,14 @@ export const AUDIT_ACTION_ES: Record<string, string> = {
   'pet.buy': 'Compró un accesorio',
   'pet.buyTreats': 'Compró bolsa de premios',
   'pet.equip': 'Cambió el look',
+  'pet.quiz': 'Jugó Note Check',
   'qa.pass': 'QA Pass registrado',
   'qa.alert': 'Alerta registrada',
   'qa.correction': 'Corrección de auditoría',
   'admin.coins': 'Ajuste de coins',
+  'admin.xp': 'Otorgó XP',
+  'admin.level': 'Subió de nivel',
+  'admin.evolution': 'Activó una evolución',
   'admin.treats': 'Ajuste de premios',
   'admin.item.grant': 'Regaló un accesorio',
   'admin.item.revoke': 'Quitó un accesorio',
@@ -185,6 +192,7 @@ export const LEDGER_KIND_ES: Record<string, string> = {
   'treat-bag': 'Bolsa de premios',
   'admin-grant': 'Otorgado por admin',
   'admin-deduct': 'Descontado por admin',
+  quiz: 'Note Check (juego de notas)',
 }
 
 export const SOURCE_ES: Record<string, string> = {
@@ -207,6 +215,9 @@ export function auditDetail(detail: Record<string, unknown> | null): string {
   if (typeof detail.enabled === 'boolean') parts.push(detail.enabled ? 'disponible' : 'retirado de la tienda')
   if (typeof detail.note === 'string') parts.push(`“${detail.note}”`)
   if (typeof detail.reason === 'string') parts.push(detail.reason)
+  if (typeof detail.score === 'string') parts.push(`puntaje ${detail.score}`)
+  if (typeof detail.level === 'number') parts.push(`nivel ${detail.level}`)
+  if (typeof detail.stage === 'string') parts.push(`${detail.stage} Rocky`)
   if (typeof detail.rockyName === 'string') parts.push(detail.rockyName)
   if (typeof detail.name === 'string') parts.push(detail.name)
   if (typeof detail.auditDate === 'string') parts.push(detail.auditDate)

@@ -9,7 +9,7 @@
 // of truth in remote mode). No storage, no browser APIs.
 import type { EvolutionStage } from '../types/domain'
 
-export type ItemSlot = 'hat' | 'scene' | 'decor' | 'fx'
+export type ItemSlot = 'hat' | 'glasses' | 'neck' | 'back' | 'scene' | 'decor' | 'fx'
 
 export interface ProgressFacts {
   level: number
@@ -77,6 +77,40 @@ export const CLOSET: ClosetItem[] = [
     price: 400,
   },
 
+  // Glasses — on the measured eyes, moving with the head.
+  { id: 'glasses-round', slot: 'glasses', name: 'Round specs', requirement: 'Log 2 check-ins', isUnlocked: (p) => p.checkIns >= 2, price: 50 },
+  { id: 'glasses-sun', slot: 'glasses', name: 'Sunglasses', requirement: 'Reach level 2', isUnlocked: (p) => p.level >= 2, price: 80 },
+  { id: 'glasses-3d', slot: 'glasses', name: 'Retro 3D glasses', requirement: 'Pass 2 QA audits', isUnlocked: (p) => p.qaPasses >= 2, price: 120 },
+  { id: 'glasses-star', slot: 'glasses', name: 'Star shades', requirement: 'Hit a 3-day streak', isUnlocked: (p) => p.bestStreak >= 3, price: 140 },
+  {
+    id: 'glasses-heart',
+    slot: 'glasses',
+    name: 'Heart glasses',
+    requirement: 'Collect 2 badges',
+    isUnlocked: (p) => p.badgeIds.length >= 2,
+    price: 160,
+  },
+
+  // Neck — clothes and accessories worn at the collar.
+  { id: 'neck-lanyard', slot: 'neck', name: 'RLX ID badge', requirement: 'Starter item', isUnlocked: always, price: 0 },
+  { id: 'neck-bowtie', slot: 'neck', name: 'Green bow tie', requirement: 'Log your first check-in', isUnlocked: (p) => p.checkIns >= 1, price: 40 },
+  { id: 'neck-bandana', slot: 'neck', name: 'Navy bandana', requirement: 'Log 4 check-ins', isUnlocked: (p) => p.checkIns >= 4, price: 90 },
+  { id: 'neck-scarf', slot: 'neck', name: 'Winter scarf', requirement: 'Reach level 3', isUnlocked: (p) => p.level >= 3, price: 100 },
+  { id: 'neck-tie', slot: 'neck', name: 'Office tie', requirement: 'Reach level 4', isUnlocked: (p) => p.level >= 4, price: 130 },
+  { id: 'neck-medal', slot: 'neck', name: 'Gold medal', requirement: 'Hit a 7-day streak', isUnlocked: (p) => p.bestStreak >= 7, price: 200 },
+
+  // Back — worn behind Rocky.
+  { id: 'back-backpack', slot: 'back', name: 'Delivery backpack', requirement: 'Log 8 check-ins', isUnlocked: (p) => p.checkIns >= 8, price: 120 },
+  {
+    id: 'back-cape',
+    slot: 'back',
+    name: 'Hero cape',
+    requirement: 'Evolve into Young Rocky',
+    isUnlocked: (p) => STAGE_RANK[p.stage] >= 1,
+    price: 180,
+  },
+  { id: 'back-wings', slot: 'back', name: 'Angel wings', requirement: 'Collect 3 badges', isUnlocked: (p) => p.badgeIds.length >= 3, price: 250 },
+
   // Scenes — where Rocky hangs out.
   { id: 'scene-route', slot: 'scene', name: 'Delivery route', requirement: 'Starter scene', isUnlocked: always, price: 0 },
   { id: 'scene-sunset', slot: 'scene', name: 'Sunset route', requirement: 'Log 3 check-ins', isUnlocked: (p) => p.checkIns >= 3, price: 120 },
@@ -135,12 +169,26 @@ export const CLOSET: ClosetItem[] = [
 
 export interface Outfit {
   hat: string | null
+  glasses: string | null
+  neck: string | null
+  back: string | null
   scene: string
   decor: string[]
   fx: string | null
 }
 
-export const DEFAULT_OUTFIT: Outfit = { hat: 'hat-rlx-cap', scene: 'scene-route', decor: ['decor-boxes'], fx: null }
+export const DEFAULT_OUTFIT: Outfit = {
+  hat: 'hat-rlx-cap',
+  glasses: null,
+  neck: 'neck-lanyard',
+  back: null,
+  scene: 'scene-route',
+  decor: ['decor-boxes'],
+  fx: null,
+}
+
+/** Slots holding at most one item (decor holds up to MAX_DECOR; scene always has one). */
+export const SINGLE_SLOTS = ['hat', 'glasses', 'neck', 'back', 'fx'] as const
 export const MAX_DECOR = 3
 
 /** The catalogue with admin price/availability edits applied. */
@@ -186,6 +234,9 @@ export function sanitizeOutfit(
   const decor = Array.isArray(o.decor) ? [...new Set(o.decor)].filter((d) => ok(d, 'decor')).slice(-MAX_DECOR) : []
   return {
     hat: ok(o.hat, 'hat') ? (o.hat as string) : null,
+    glasses: ok(o.glasses, 'glasses') ? (o.glasses as string) : null,
+    neck: ok(o.neck, 'neck') ? (o.neck as string) : null,
+    back: ok(o.back, 'back') ? (o.back as string) : null,
     scene: ok(o.scene, 'scene') ? (o.scene as string) : DEFAULT_OUTFIT.scene,
     decor,
     fx: ok(o.fx, 'fx') ? (o.fx as string) : null,

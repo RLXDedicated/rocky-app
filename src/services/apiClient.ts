@@ -274,6 +274,14 @@ export const apiClient = {
   getLeaderboard: () => request<{ entries: import('../types/leaderboard').LeaderboardEntry[] }>('/api/leaderboard'),
   petAction: (action: PetAction) => request<PetActionResponse>('/api/pet/actions', post(action)),
 
+  // Admin: progress (XP bonus, raise level, unlock evolution — always forward).
+  grantXp: (agentId: string, xp: number, reason: string) =>
+    request<{ state: import('../types/domain').GameState }>(agentPath(agentId, '/xp'), post({ xp, reason })),
+  raiseLevel: (agentId: string, level: number) =>
+    request<{ state: import('../types/domain').GameState }>(agentPath(agentId, '/level'), post({ level })),
+  unlockEvolution: (agentId: string, stage: 'Young' | 'Advanced' | 'Elite') =>
+    request<{ state: import('../types/domain').GameState }>(agentPath(agentId, '/level'), post({ stage })),
+
   // Admin: pet, coins, items, sign-in, catalogue, economy, audit.
   getAdminPet: (agentId: string) => request<AdminPetDetail>(agentPath(agentId, '/pet')),
   adjustCoins: (agentId: string, delta: number, note: string) => request<PetView>(agentPath(agentId, '/coins'), post({ delta, note })),

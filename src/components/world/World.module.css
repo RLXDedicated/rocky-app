@@ -12,6 +12,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .scene {
@@ -92,6 +93,7 @@
 }
 
 .art {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
@@ -106,12 +108,100 @@
   pointer-events: none;
 }
 
+.wear,
+.wearBack {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.wear {
+  z-index: 2;
+  filter: drop-shadow(0 1px 1px rgba(15, 35, 65, 0.18));
+}
+
+/* Behind Rocky: the rig canvas and art come later in the same box. */
+.wearBack {
+  z-index: 0;
+}
+
 .leanLeft {
   transform: rotate(-4deg);
 }
 
 .leanRight {
   transform: rotate(4deg);
+}
+
+.runLeft {
+  transform: rotate(-9deg);
+}
+
+.runRight {
+  transform: rotate(9deg);
+}
+
+.pose-run {
+  animation: gallop 0.3s ease-in-out infinite;
+}
+
+@keyframes gallop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7%);
+  }
+}
+
+/* Where the agent tapped the ground. */
+.clickMark {
+  position: absolute;
+  z-index: 2;
+  width: 34px;
+  height: 14px;
+  margin: -7px 0 0 -17px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 2px rgba(0, 140, 69, 0.45);
+  pointer-events: none;
+  animation: clickMark 0.7s ease-out forwards;
+}
+
+@keyframes clickMark {
+  from {
+    transform: scale(0.3);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.playHint {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 22%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 20px rgba(15, 35, 65, 0.25);
+  pointer-events: none;
+  animation: hintPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  50% {
+    transform: translateX(-50%) scale(1.06);
+  }
 }
 
 @keyframes breathe {
@@ -313,12 +403,12 @@
 .care {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 8px 24px rgba(15, 35, 65, 0.12);
-  backdrop-filter: blur(6px);
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-radius: 22px;
+  border: 1px solid rgba(15, 35, 65, 0.1);
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(15, 35, 65, 0.22), 0 2px 0 rgba(15, 35, 65, 0.06);
 }
 
 .meters {
@@ -396,63 +486,123 @@
 }
 
 .careButtons {
-  display: flex;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(64px, 1fr));
+  gap: 8px;
 }
 
+/* Each care action is a solid, colour-coded button: it has to read clearly
+   over any scene, day or night. */
 .careBtn {
-  display: inline-flex;
+  --tone: var(--rlx-green);
+  --tone-dark: #006231;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--card-border);
-  background: #ffffff;
+  gap: 5px;
+  padding: 0 0 2px;
+  border: none;
+  background: none;
   color: var(--navy);
   font: inherit;
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.8rem;
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 
-.careBtn:hover:not(:disabled) {
-  border-color: var(--rlx-green);
-  color: var(--rlx-green);
+.careBtn[data-tone='pet'] {
+  --tone: #e2577a;
+  --tone-dark: #b83a5b;
 }
 
-.careBtn:active:not(:disabled) {
-  transform: scale(0.96);
+.careBtn[data-tone='treat'] {
+  --tone: #f0a020;
+  --tone-dark: #c07a0c;
+}
+
+.careBtn[data-tone='bath'] {
+  --tone: #2f8fd8;
+  --tone-dark: #1d6aa6;
+}
+
+.careIcon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--tone);
+  color: #ffffff;
+  box-shadow: 0 4px 0 var(--tone-dark), 0 8px 16px rgba(15, 35, 65, 0.18);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.careIcon > svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.2;
+}
+
+.careBtn:hover:not(:disabled) .careIcon {
+  transform: translateY(-2px);
+}
+
+.careBtn:active:not(:disabled) .careIcon {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--tone-dark);
 }
 
 .careBtn:disabled {
-  opacity: 0.45;
   cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+.careBtn:disabled .careIcon {
+  filter: grayscale(0.6);
+  opacity: 0.55;
+}
+
+.careBtn[aria-pressed='true'] .careIcon {
+  animation: bouncePlay 0.6s ease-in-out infinite;
+  opacity: 1;
+  filter: none;
+}
+
+@keyframes bouncePlay {
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .careBtn:focus-visible,
 .sound:focus-visible {
   outline: 3px solid var(--rlx-green);
   outline-offset: 2px;
+  border-radius: 14px;
 }
 
 .count {
-  min-width: 20px;
-  padding: 1px 6px;
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 22px;
+  padding: 2px 6px;
   border-radius: 999px;
-  background: var(--mint);
-  color: var(--rlx-green);
+  border: 2px solid #ffffff;
+  background: var(--navy);
+  color: #ffffff;
   font-weight: 800;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
+  line-height: 1.1;
   text-align: center;
 }
 
 /* When Rocky is muddy, the Bath button gently asks for attention. */
-.careBtnNudge {
-  border-color: #6fb6e8;
-  color: #1d5f8f;
+.careBtnNudge .careIcon {
   animation: nudge 2.4s ease-in-out infinite;
+  box-shadow: 0 4px 0 var(--tone-dark), 0 0 0 5px rgba(47, 143, 216, 0.3);
 }
 
 @keyframes nudge {
@@ -776,9 +926,21 @@
 .ballShadow {
   position: absolute;
   left: 0;
+  z-index: 4;
+  will-change: transform;
+}
+
+.ball {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ballShadow {
   z-index: 2;
   pointer-events: none;
-  will-change: transform;
 }
 
 .ball > svg {
@@ -1063,15 +1225,16 @@
     display: none;
   }
 
-  .careButtons {
-    flex-wrap: wrap;
-    justify-content: center;
+  .careIcon {
+    width: 46px;
+    height: 46px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .meter[data-level='low'] > svg,
-  .careBtnNudge,
+  .careBtnNudge .careIcon,
+  .careBtn[aria-pressed='true'] .careIcon,
   .water,
   .foam i,
   .pose-bath {

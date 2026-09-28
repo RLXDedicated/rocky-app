@@ -21,12 +21,12 @@ export function labelForEvent(event: GameEvent): string {
     case 'EVOLUTION': {
       const prev = event.payload?.previousStage
       const next = event.payload?.newStage ?? event.payload?.stage
-      return prev != null
-        ? `✨ Rocky evolved! ${prev} Rocky → ${next} Rocky`
-        : `✨ Rocky evolved into ${next ?? 'a new form'}!`
+      return prev != null ? `✨ Rocky evolved! ${prev} Rocky → ${next} Rocky` : `✨ Rocky evolved into ${next ?? 'a new form'}!`
     }
     case 'ACHIEVEMENT':
       return `Achievement unlocked: ${event.payload?.name ?? ''}`
+    case 'XP_GRANT':
+      return `+${Number(event.payload?.xp ?? 0)} XP bonus from your QA team${typeof event.payload?.reason === 'string' && event.payload.reason ? `: ${event.payload.reason}` : ''}`
     case 'CORRECTION':
       return 'A correction was recorded'
     default:

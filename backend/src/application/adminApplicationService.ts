@@ -17,6 +17,9 @@ import {
   countEffectiveQaPasses,
   daysBetweenKeys,
   missedWorkingDays,
+  processXpGrant,
+  LEVEL_THRESHOLDS,
+  MAX_DEFINED_LEVEL,
   systemClock,
   todayKey,
   type Clock,
@@ -159,6 +162,32 @@ export function createAdminApplicationService({ persistence, config, clock = sys
 
     hasAgent(agentId: string): boolean {
       return store.hasAgent(agentId)
+    },
+
+    /**
+     * Grants XP (a bonus). Recorded as an XP_GRANT event so the event log
+     * stays the source of truth; levels and evolution follow the XP.
+     */
+    grantXp(agentId: string, xp: number, reason: string, grantedBy: string) {
+      requireKnownAgent(agentId)
+      return persistence.withTransaction(() => {
+        const repo = store.forAgent(agentId)
+        const before = repo.getGameState()
+        const result = processXpGrant(before, xp, clock.now(), agentId, { reason, grantedBy })
+        repo.saveGameState(result.state)
+        for (const e of result.events) repo.saveEvent(e)
+        return { state: result.state, leveledUp: result.leveledUp, evolved: result.evolved, xpGranted: result.state.xp - before.xp }
+      })
+    },
+
+    /** Raises the agent to `level` by granting exactly the XP missing. Levels never go down. */
+    raiseToLevel(agentId: string, level: number, reason: string, grantedBy: string) {
+      requireKnownAgent(agentId)
+      const target = Math.min(MAX_DEFINED_LEVEL, Math.max(1, Math.trunc(level)))
+      const state = store.forAgent(agentId).getGameState()
+      const missing = LEVEL_THRESHOLDS[target]! - state.xp
+      if (missing <= 0) throw ApiError.conflict(`${agentId} is already level ${state.level}. Levels never go down; use Reset progress instead.`)
+      return this.grantXp(agentId, missing, reason, grantedBy)
     },
 
     renameAgent(agentId: string, name: string): AdminAgentSummary {

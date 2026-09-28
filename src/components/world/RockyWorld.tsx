@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { EvolutionStage, Mood } from '../../types/domain'
 import type { Outfit } from '../../game/closet'
 import { needsSummary, type Needs } from '../../game/pet'
@@ -6,8 +6,9 @@ import { isMuted, play as playSfx, setMuted } from '../../game/sfx'
 import { ROCKY_HEAD_ANCHORS } from '../rockyAnchors'
 import { getReactionAsset, getRockyAsset, ROCKY_VISUALS, type RockyReactionKey } from '../rockyVisuals'
 import { DECOR_ART, HAT_ART, SceneArt, hatPlacement } from './art'
-import { Ball } from './Ball'
+import { Ball, type BallHandle } from './Ball'
 import { FxLayer } from './FxLayer'
+import { BACK_ART, GLASSES_ART, NECK_ART, WEAR_VIEWBOX, backPlacement, glassesPlacement, neckPlacement } from './wearables'
 import { NeedsDock } from './NeedsDock'
 import { Rocky3D, type ClipRequest } from './Rocky3D'
 import { RockyRig, type RigAction } from './RockyRig'
@@ -16,7 +17,7 @@ import { ROCKY_3D_MODELS, rocky3dEnabled } from './rocky3dModels'
 import type { RockyClip } from './rocky3dRuntime'
 import styles from './World.module.css'
 
-type Pose = 'idle' | 'walk' | 'pet' | 'eat' | 'hop' | 'bath'
+type Pose = 'idle' | 'walk' | 'run' | 'pet' | 'eat' | 'hop' | 'bath'
 
 interface Particle {
   id: number
@@ -51,6 +52,13 @@ const FLOOR = 15 // % from the bottom of the world where Rocky's feet rest
 const PET_LINES = ['Hehe, that tickles!', 'Right behind the horns!', 'More scratches, please!', 'Best teammate ever.']
 const FEED_LINES = ['Nom nom nom!', 'Delicious. Thank you!', 'Crunchy! Rocky approves.']
 const PLAY_LINES = ['Goooal!', 'Again! Again!', 'Did you see that kick?']
+const TAP_LINES = ['Nice pass!', 'My ball!', 'Wheee!', 'You’re good at this!']
+const PLAY_START = 'Ball! Let’s play!'
+/** How long Rocky plays with the ball before the final kick. */
+const PLAY_MS = 9000
+/** Rocky's walkable band, % of the stage width. */
+const WALK_MIN = 34
+const WALK_MAX = 86
 const BATH_LINES = ['Squeaky clean!', 'Ahh, bubbles!', 'Fresh as a daisy.']
 const NEED_LINES = {
   dirty: 'I could really use a bath…',
@@ -93,7 +101,12 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   const [facingLeft, setFacingLeft] = useState(false)
   const [localLine, setLocalLine] = useState<string | null>(null)
   const [particles, setParticles] = useState<Particle[]>([])
-  const [ball, setBall] = useState<{ id: number; x: number; kick: -1 | 0 | 1 } | null>(null)
+  const [ball, setBall] = useState<{ id: number; x: number; final: boolean } | null>(null)
+  const ballRef = useRef<BallHandle>(null)
+  // What Rocky's eyes follow: the ball while playing, or where the agent clicked.
+  const gazeRef = useRef<{ x: number; y: number } | null>(null)
+  const [playing, setPlaying] = useState(false)
+  const [clickMark, setClickMark] = useState<{ id: number; x: number; y: number } | null>(null)
   const [treatFlying, setTreatFlying] = useState(false)
   const [muted, setMutedState] = useState(() => isMuted())
   const busyRef = useRef(false)
@@ -106,6 +119,8 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   const idRef = useRef(0)
   const worldRef = useRef<HTMLDivElement>(null)
   const [worldSize, setWorldSize] = useState({ w: 900, h: 420 })
+  const worldSizeRef = useRef(worldSize)
+  worldSizeRef.current = worldSize
   const model3d = ROCKY_3D_MODELS[stage]
   const [mode3d, setMode3d] = useState<'loading' | 'ready' | 'off'>(() => (model3d && rocky3dEnabled() ? 'loading' : 'off'))
   const [clipRequest, setClipRequest] = useState<ClipRequest | null>(null)
@@ -116,6 +131,8 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   // 2.5D animated rig (the default): 'loading' until the art is on the canvas.
   const [rigMode, setRigMode] = useState<'loading' | 'ready' | 'off'>(() => (import.meta.env.MODE === 'test' ? 'off' : 'loading'))
   const hatRef = useRef<SVGSVGElement>(null)
+  const glassesRef = useRef<SVGSVGElement>(null)
+  const headRefs = useMemo(() => [glassesRef], [])
   const animate = !prefersReducedMotion()
 
   // Evolving into a stage with (or without) a 3D model switches renderer.
@@ -169,20 +186,24 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   }, [])
 
   const xRef = useRef(50)
-  const walkTo = useCallback((target: number): Promise<void> => {
+  const walkTimer = useRef(0)
+  const walkTo = useCallback((target: number, run = false): Promise<void> => {
     const from = xRef.current
-    const ms = prefersReducedMotion() ? 0 : Math.min(2600, Math.abs(target - from) * 45)
-    xRef.current = target
-    setFacingLeft(target < from)
+    // Never behind the care panel (bottom-left) or off the right edge.
+    const clamped = Math.max(WALK_MIN, Math.min(WALK_MAX, target))
+    const ms = prefersReducedMotion() ? 0 : Math.min(run ? 1400 : 2600, Math.abs(clamped - from) * (run ? 16 : 45))
+    xRef.current = clamped
+    if (Math.abs(clamped - from) > 0.5) setFacingLeft(clamped < from)
     setWalkMs(ms)
-    setPose(ms > 0 ? 'walk' : 'idle')
-    setX(target)
-    return new Promise((resolve) =>
-      window.setTimeout(() => {
-        setPose('idle')
+    setPose(ms > 0 ? (run ? 'run' : 'walk') : 'idle')
+    setX(clamped)
+    window.clearTimeout(walkTimer.current)
+    return new Promise((resolve) => {
+      walkTimer.current = window.setTimeout(() => {
+        setPose((p) => (p === 'walk' || p === 'run' ? 'idle' : p))
         resolve()
-      }, ms),
-    )
+      }, ms)
+    })
   }, [])
 
   // Idle wandering along the route.
@@ -252,28 +273,78 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
     }, 650)
   }
 
+  /**
+   * Play time: the ball drops in and for a while Rocky chases it, dribbling
+   * it along; the agent can tap the ball to kick it around. Then Rocky
+   * lines up and takes the final shot.
+   */
   async function handlePlay() {
     if (busyRef.current) return
     setBusy(true)
-    const target = x > 50 ? 24 + Math.random() * 12 : 64 + Math.random() * 12
+    setPlaying(true)
+    const target = x > 50 ? 26 + Math.random() * 12 : 62 + Math.random() * 12
     const id = ++idRef.current
-    setBall({ id, x: target, kick: 0 })
+    setBall({ id, x: target, final: false })
     playSfx('tap')
-    await new Promise((r) => window.setTimeout(r, animate ? 1100 : 200))
-    // Rocky runs up beside the ball, then kicks it away from himself.
-    const side = target > xRef.current ? -1 : 1
-    await walkTo(target + side * 7)
+    say(PLAY_START)
+    const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms))
+    await wait(animate ? 900 : 200)
+
+    if (animate) {
+      const until = performance.now() + PLAY_MS
+      let lastNudge = 0
+      while (performance.now() < until) {
+        const b = ballRef.current?.position()
+        if (!b) break
+        const bx = (b.x / worldSizeRef.current.w) * 100
+        const gap = bx - xRef.current
+        if (Math.abs(gap) > 7) {
+          // Chase: stop just short of the ball, on the side it came from.
+          void walkTo(bx - Math.sign(gap) * 5, true)
+        } else if (b.y < 30 && performance.now() - lastNudge > 650) {
+          // Dribble: a light touch in the direction Rocky is going.
+          const dir = gap === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(gap)
+          ballRef.current?.push(dir * (220 + Math.random() * 180), 200 + Math.random() * 260)
+          playSfx('bounce')
+          if (Math.random() < 0.35) burst('heart', 1, bx)
+          lastNudge = performance.now()
+        }
+        await wait(260)
+      }
+    }
+
+    // The final shot: run up to the ball and send it flying.
+    const b = ballRef.current?.position()
+    const bx = b ? (b.x / worldSizeRef.current.w) * 100 : target
+    const side = bx > 50 ? 1 : -1 // shoot toward the nearer edge... from the inside
+    await walkTo(bx - side * 6, true)
     setPose('hop')
     playClip('Celebrate')
     playSfx('kick')
-    setBall({ id, x: target, kick: side === -1 ? 1 : -1 })
-    burst('heart', 2, target)
+    ballRef.current?.push(side * 900, 950)
+    setBall((cur) => (cur?.id === id ? { ...cur, final: true } : cur))
+    burst('heart', 3, bx)
     say(pick(PLAY_LINES))
     onPlay()
     window.setTimeout(() => {
       setPose('idle')
+      setPlaying(false)
       setBusy(false)
     }, 1100)
+  }
+
+  /** Clicking/tapping the ground: Rocky walks (or runs, if it's far) to that spot and looks at it. */
+  function handleStageClick(e: React.MouseEvent<HTMLDivElement>) {
+    if ((e.target as Element).closest('button')) return
+    if (busyRef.current && !playing) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const px = ((e.clientX - rect.left) / rect.width) * 100
+    gazeRef.current = { x: e.clientX, y: e.clientY }
+    window.setTimeout(() => {
+      if (!ball) gazeRef.current = null
+    }, 1600)
+    setClickMark({ id: ++idRef.current, x: px, y: ((e.clientY - rect.top) / rect.height) * 100 })
+    if (!playing) void walkTo(px, Math.abs(px - xRef.current) > 30)
   }
 
   function handleBath() {
@@ -311,8 +382,14 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
   // 2.5D: reaction art has different poses, so the hat comes off for it.
   const hat = !reaction ? equippedHat : undefined
   const hatBox = hat ? hatPlacement(anchor, hat, size) : null
+  // Clothes follow the same rule as hats: off for the reaction art's different poses.
+  const rigPoints = ROCKY_RIG[stage][mood]
+  const glasses = !reaction && outfit.glasses ? GLASSES_ART[outfit.glasses] : undefined
+  const neckItem = !reaction && outfit.neck ? NECK_ART[outfit.neck] : undefined
+  const backItem = !reaction && outfit.back ? BACK_ART[outfit.back] : undefined
   const feetGap = (1 - (is3d ? FEET_3D : anchor.figureBottom)) * size
-  const facing: -1 | 0 | 1 = pose === 'walk' ? (facingLeft ? -1 : 1) : 0
+  const moving = pose === 'walk' || pose === 'run'
+  const facing: -1 | 0 | 1 = moving ? (facingLeft ? -1 : 1) : 0
   const summary = needsSummary(needs)
   const needLine = !reaction && summary in NEED_LINES ? NEED_LINES[summary as keyof typeof NEED_LINES] : null
   const line = localLine ?? needLine ?? speech
@@ -326,7 +403,7 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
     <section className={styles.world} aria-label="Rocky's world">
       <div className={styles.hud}>{hud}</div>
 
-      <div className={styles.stage} ref={worldRef}>
+      <div className={styles.stage} ref={worldRef} onClick={handleStageClick}>
         <div className={styles.scene}>
           <SceneArt id={outfit.scene} live={animate} />
         </div>
@@ -355,15 +432,38 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
         {ball && (
           <Ball
             key={ball.id}
+            ref={ballRef}
             x={ball.x}
-            kick={ball.kick}
+            final={ball.final}
             stageW={worldSize.w}
             stageH={worldSize.h}
             floor={floorPx}
             animate={animate}
+            track={gazeRef}
+            stageRef={worldRef}
             onBounce={(s) => s > 0.12 && playSfx('bounce')}
+            onTap={() => {
+              playSfx('kick')
+              say(pick(TAP_LINES), 1400)
+            }}
             onDone={() => setBall((b) => (b?.id === ball.id ? null : b))}
           />
+        )}
+
+        {clickMark && (
+          <span
+            key={clickMark.id}
+            className={styles.clickMark}
+            style={{ left: `${clickMark.x}%`, top: `${clickMark.y}%` }}
+            onAnimationEnd={() => setClickMark((c) => (c?.id === clickMark.id ? null : c))}
+            aria-hidden="true"
+          />
+        )}
+
+        {playing && ball && !ball.final && (
+          <p className={styles.playHint} role="status">
+            Tap the ball to kick it!
+          </p>
         )}
 
         <div
@@ -386,12 +486,35 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
             onClick={handlePet}
             aria-label={`Pet ${ROCKY_VISUALS[stage].label}`}
           >
-            <span className={is3d ? '' : facingLeft && pose === 'walk' ? styles.leanLeft : pose === 'walk' ? styles.leanRight : ''}>
+            <span
+              className={
+                is3d || !moving
+                  ? ''
+                  : facingLeft
+                    ? pose === 'run'
+                      ? styles.runLeft
+                      : styles.leanLeft
+                    : pose === 'run'
+                      ? styles.runRight
+                      : styles.leanRight
+              }
+            >
+              {!is3d && backItem && (
+                <svg
+                  className={styles.wearBack}
+                  viewBox={WEAR_VIEWBOX.back}
+                  preserveAspectRatio="none"
+                  style={backPlacement(rigPoints, anchor, size, outfit.back!)}
+                  aria-hidden="true"
+                >
+                  {backItem}
+                </svg>
+              )}
               {mode3d !== 'off' && model3d && (
                 <Rocky3D
                   url={model3d}
                   size={size}
-                  walking={pose === 'walk'}
+                  walking={moving}
                   facing={facing}
                   request={clipRequest}
                   hat={equippedHat}
@@ -408,12 +531,31 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
                   mood={mood}
                   action={rigAction}
                   animate={animate}
+                  facing={facing}
+                  lookAt={gazeRef}
                   hatRef={hatRef}
+                  headRefs={headRefs}
                   onReady={() => setRigMode('ready')}
                   onFail={() => setRigMode('off')}
                 />
               )}
               {!is3d && (reaction || rigMode !== 'ready') && <img key={src} src={src} alt="" className={styles.art} draggable={false} />}
+              {!is3d && neckItem && (
+                <svg className={styles.wear} viewBox={WEAR_VIEWBOX.neck} style={neckPlacement(rigPoints, anchor, size)} aria-hidden="true">
+                  {neckItem}
+                </svg>
+              )}
+              {!is3d && glasses && (
+                <svg
+                  ref={glassesRef}
+                  className={styles.wear}
+                  viewBox={WEAR_VIEWBOX.glasses}
+                  style={glassesPlacement(rigPoints, anchor, size)}
+                  aria-hidden="true"
+                >
+                  {glasses}
+                </svg>
+              )}
               {!is3d && hat && hatBox && (
                 <svg ref={hatRef} className={styles.hat} viewBox="0 0 100 60" style={hatBox} aria-hidden="true">
                   {hat.svg}
@@ -499,6 +641,7 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, need
           needs={needs}
           treats={treats}
           busy={busy}
+          playing={playing}
           onPet={handlePet}
           onFeed={handleFeed}
           onPlay={() => void handlePlay()}

@@ -13,6 +13,7 @@ import {
   processDevXpGrant,
   processDocumentationAlert,
   processQAPass,
+  processXpGrant,
   recalculateStateFromEvents,
 } from './gameEngine'
 import { LEVEL_THRESHOLDS } from './levels'
@@ -110,60 +111,42 @@ describe('calculateStreak', () => {
 
 describe('calculateMood', () => {
   it('new agent (streak 0, no alerts) -> Motivated, never Worried by default', () => {
-    expect(calculateMood({ energy: 80, currentStreak: 0, lastAlertAt: null, lastPositiveActionAt: null })).toBe(
-      'Motivated',
-    )
+    expect(calculateMood({ energy: 80, currentStreak: 0, lastAlertAt: null, lastPositiveActionAt: null })).toBe('Motivated')
   })
 
   it('streak 1-2 with healthy energy -> Motivated (habit still forming, no problem)', () => {
-    expect(calculateMood({ energy: 75, currentStreak: 1, lastAlertAt: null, lastPositiveActionAt: null })).toBe(
-      'Motivated',
-    )
-    expect(calculateMood({ energy: 80, currentStreak: 2, lastAlertAt: null, lastPositiveActionAt: null })).toBe(
-      'Motivated',
-    )
+    expect(calculateMood({ energy: 75, currentStreak: 1, lastAlertAt: null, lastPositiveActionAt: null })).toBe('Motivated')
+    expect(calculateMood({ energy: 80, currentStreak: 2, lastAlertAt: null, lastPositiveActionAt: null })).toBe('Motivated')
   })
 
   it('an unanswered alert stops worrying Rocky once the alert window passes', () => {
     const alertAt = new Date('2026-09-01T09:00:00').toISOString()
     const now = new Date('2026-09-05T09:00:00')
-    expect(calculateMood({ energy: 60, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: null }, now)).toBe(
-      'Motivated',
-    )
+    expect(calculateMood({ energy: 60, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: null }, now)).toBe('Motivated')
   })
 
   it('streak 3 + energy 40 -> Motivated', () => {
-    expect(calculateMood({ energy: 40, currentStreak: 3, lastAlertAt: null, lastPositiveActionAt: null })).toBe(
-      'Motivated',
-    )
+    expect(calculateMood({ energy: 40, currentStreak: 3, lastAlertAt: null, lastPositiveActionAt: null })).toBe('Motivated')
   })
 
   it('streak 7 + energy 70 -> Happy', () => {
-    expect(calculateMood({ energy: 70, currentStreak: 7, lastAlertAt: null, lastPositiveActionAt: null })).toBe(
-      'Happy',
-    )
+    expect(calculateMood({ energy: 70, currentStreak: 7, lastAlertAt: null, lastPositiveActionAt: null })).toBe('Happy')
   })
 
   it('energy < 40 -> Worried regardless of streak', () => {
-    expect(calculateMood({ energy: 20, currentStreak: 8, lastAlertAt: null, lastPositiveActionAt: null })).toBe(
-      'Worried',
-    )
+    expect(calculateMood({ energy: 20, currentStreak: 8, lastAlertAt: null, lastPositiveActionAt: null })).toBe('Worried')
   })
 
   it('Alert alone -> Worried (never Recovery without a follow-up action)', () => {
     const alertAt = new Date().toISOString()
-    expect(calculateMood({ energy: 50, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: null })).toBe(
-      'Worried',
-    )
+    expect(calculateMood({ energy: 50, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: null })).toBe('Worried')
   })
 
   it('Alert + Check-in afterwards -> Recovery', () => {
     const alertAt = new Date('2026-09-04T09:00:00').toISOString()
     const checkInAt = new Date('2026-09-04T10:00:00').toISOString()
     const now = new Date('2026-09-04T10:05:00')
-    expect(
-      calculateMood({ energy: 50, currentStreak: 1, lastAlertAt: alertAt, lastPositiveActionAt: checkInAt }, now),
-    ).toBe('Recovery')
+    expect(calculateMood({ energy: 50, currentStreak: 1, lastAlertAt: alertAt, lastPositiveActionAt: checkInAt }, now)).toBe('Recovery')
   })
 
   it('Alert + QA Pass afterwards -> Recovery', () => {
@@ -171,26 +154,20 @@ describe('calculateMood', () => {
     const alertAt = new Date('2026-09-04T09:00:00').toISOString()
     const qaPassAt = new Date('2026-09-04T09:30:00').toISOString()
     const now = new Date('2026-09-04T09:35:00')
-    expect(
-      calculateMood({ energy: 60, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: qaPassAt }, now),
-    ).toBe('Recovery')
+    expect(calculateMood({ energy: 60, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: qaPassAt }, now)).toBe('Recovery')
   })
 
   it('Recovery does not occur without a follow-up positive action, even much later', () => {
     const alertAt = new Date('2026-09-04T09:00:00').toISOString()
     const now = new Date('2026-09-04T20:00:00')
-    expect(
-      calculateMood({ energy: 50, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: null }, now),
-    ).toBe('Worried')
+    expect(calculateMood({ energy: 50, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: null }, now)).toBe('Worried')
   })
 
   it('does not report Recovery if the positive action happened before the alert', () => {
     const positiveActionAt = new Date('2026-09-04T08:00:00').toISOString()
     const alertAt = new Date('2026-09-04T09:00:00').toISOString()
     const now = new Date('2026-09-04T09:05:00')
-    expect(
-      calculateMood({ energy: 50, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: positiveActionAt }, now),
-    ).toBe('Worried')
+    expect(calculateMood({ energy: 50, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: positiveActionAt }, now)).toBe('Worried')
   })
 
   it('Recovery fades back to Motivated/Happy once enough positive actions rebuild the streak', () => {
@@ -199,12 +176,9 @@ describe('calculateMood', () => {
     const alertAt = new Date('2026-09-01T09:00:00').toISOString()
     const oldPositiveActionAt = new Date('2026-09-01T10:00:00').toISOString()
     const muchLater = new Date('2026-09-05T10:00:00')
-    expect(
-      calculateMood(
-        { energy: 70, currentStreak: 3, lastAlertAt: alertAt, lastPositiveActionAt: oldPositiveActionAt },
-        muchLater,
-      ),
-    ).toBe('Motivated')
+    expect(calculateMood({ energy: 70, currentStreak: 3, lastAlertAt: alertAt, lastPositiveActionAt: oldPositiveActionAt }, muchLater)).toBe(
+      'Motivated',
+    )
   })
 })
 
@@ -462,11 +436,7 @@ describe('processCorrection', () => {
     expect(state.energy).toBeLessThan(checkIn.state.energy)
 
     const alertEventId = alert.events[0].id
-    const correction = processCorrection(
-      events,
-      { originalEventId: alertEventId, correctedTo: 'PASS' },
-      new Date('2026-09-01T11:00:00'),
-    )
+    const correction = processCorrection(events, { originalEventId: alertEventId, correctedTo: 'PASS' }, new Date('2026-09-01T11:00:00'))
 
     expect(correction.correctionEvent.type).toBe('CORRECTION')
     expect(correction.correctionEvent.correctsEventId).toBe(alertEventId)
@@ -482,11 +452,7 @@ describe('processCorrection', () => {
     const events = qaPass.events
     const qaEventId = events[0].id
 
-    const correction = processCorrection(
-      events,
-      { originalEventId: qaEventId, correctedTo: 'ALERT' },
-      new Date('2026-09-01T10:00:00'),
-    )
+    const correction = processCorrection(events, { originalEventId: qaEventId, correctedTo: 'ALERT' }, new Date('2026-09-01T10:00:00'))
 
     expect(correction.state.xp).toBe(0) // the +25 XP from the (now corrected-away) QA Pass is gone
     expect(correction.state.currentStreak).toBe(0)
@@ -944,5 +910,22 @@ describe('Streak — weekend / non-working-day behavior (Phase 10 §Rule 7)', ()
     // Sanity check that calculateStreak's signature can't even see working
     // hours/days — it only ever takes (previousStreak, lastCheckInDate, today).
     expect(calculateStreak.length).toBe(3)
+  })
+})
+
+describe('processXpGrant (QA/admin XP)', () => {
+  it('adds XP, levels up and evolves, with events a replay reproduces', () => {
+    const now = new Date('2026-09-08T10:00:00')
+    const result = processXpGrant(INITIAL_GAME_STATE, LEVEL_THRESHOLDS[5], now, 'a@rlx.us', { reason: 'Pilot champion', grantedBy: 'qa@rlx.us' })
+    expect(result.state.level).toBe(5)
+    expect(result.state.evolutionStage).toBe('Young')
+    expect(result.events.map((e) => e.type)).toEqual(['XP_GRANT', 'LEVEL_UP', 'EVOLUTION'])
+    const replayed = recalculateStateFromEvents(result.events, 'a@rlx.us')
+    expect(replayed.xp).toBe(result.state.xp)
+    expect(replayed.evolutionStage).toBe('Young')
+  })
+
+  it('never removes XP', () => {
+    expect(processXpGrant({ ...INITIAL_GAME_STATE, xp: 50 }, -40).state.xp).toBe(50)
   })
 })

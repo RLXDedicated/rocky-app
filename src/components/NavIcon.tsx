@@ -1,8 +1,9 @@
 // Small stroke icons for the app navigation. Inline SVG so they inherit
 // `currentColor` and need no icon library.
-export type NavIconName = 'home' | 'chart' | 'medal' | 'podium' | 'team' | 'teams' | 'admin' | 'flask' | 'wrench'
+export type NavIconName = 'home' | 'chart' | 'note' | 'medal' | 'podium' | 'team' | 'teams' | 'admin' | 'flask' | 'wrench'
 
 const PATHS: Record<NavIconName, string> = {
+  note: 'M6 3h9l4 4v14H6zM15 3v4h4M9 12h7M9 16h5',
   chart: 'M4 20h16M7 16v-4M12 16V7M17 16v-7M5 9l4-3 4 3 6-5',
   home: 'M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z',
   medal: 'M8 3h8l-2 6h-4zM12 21a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM12 13.2l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 15.3l2-.3z',
@@ -16,7 +17,17 @@ const PATHS: Record<NavIconName, string> = {
 
 export function NavIcon({ name }: { name: NavIconName }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d={PATHS[name]} />
     </svg>
   )

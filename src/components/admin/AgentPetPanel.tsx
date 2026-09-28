@@ -13,7 +13,15 @@ interface Props {
   onError: (message: string) => void
 }
 
-const SLOT_ES: Record<ItemSlot, string> = { hat: 'Gorros', scene: 'Lugares', decor: 'Decoración', fx: 'Ambientación' }
+const SLOT_ES: Record<ItemSlot, string> = {
+  hat: 'Gorros',
+  glasses: 'Gafas',
+  neck: 'Cuello',
+  back: 'Espalda',
+  scene: 'Lugares',
+  decor: 'Decoración',
+  fx: 'Ambientación',
+}
 
 function Meter({ label, value, invert = false }: { label: string; value: number; invert?: boolean }) {
   const shown = Math.round(invert ? 100 - value : value)
@@ -172,6 +180,10 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
             <b>{pet.earned.total}</b>
           </div>
           <div>
+            <span>Note Check</span>
+            <b>{st.gameCoins}</b>
+          </div>
+          <div>
             <span>Gastados</span>
             <b>{st.coinsSpent}</b>
           </div>
@@ -186,7 +198,7 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
         </div>
         <p className={styles.muted}>
           Ganados: {pet.earned.checkIns} por check-ins · {pet.earned.qaPasses} por QA · {pet.earned.badges} por logros · {pet.earned.levels} por
-          niveles · {pet.earned.streakWeeks} por rachas.
+          niveles · {pet.earned.streakWeeks} por rachas. Note Check: {st.quiz.played} rondas, {st.quiz.perfectRounds} perfectas.
         </p>
         <form
           className={styles.inlineForm}
@@ -297,7 +309,15 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
                 const gifted = st.granted.includes(item.id)
                 const bought = st.owned.includes(item.id)
                 const unlocked = item.isUnlocked(pet.facts)
-                const inUse = [st.outfit.hat, st.outfit.scene, st.outfit.fx, ...st.outfit.decor].includes(item.id)
+                const inUse = [
+                  st.outfit.hat,
+                  st.outfit.glasses,
+                  st.outfit.neck,
+                  st.outfit.back,
+                  st.outfit.scene,
+                  st.outfit.fx,
+                  ...st.outfit.decor,
+                ].includes(item.id)
                 const status = gifted
                   ? 'Regalo'
                   : bought

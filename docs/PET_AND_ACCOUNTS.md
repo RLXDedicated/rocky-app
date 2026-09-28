@@ -62,6 +62,37 @@ the server re-applies them with the same rules and its copy wins.
 - `coin_ledger` records every purchase and admin adjustment with who did it
   and the balance right after.
 
+## Playing with Rocky
+
+- **Click/tap the ground** and Rocky walks there (runs if it's far) and looks
+  at the spot.
+- **Eyes**: the iris moves inside each measured eye toward the pointer, the
+  ball or the tapped spot, and glances around on its own when idle.
+- **Legs**: below the hips (the bottom edge of the vest) each leg moves on
+  its own — a walk cycle, and a faster, wider run.
+- **Play**: the ball drops in and for ~9 seconds Rocky chases and dribbles
+  it; the agent can tap the ball to kick it around; then Rocky takes the
+  final shot.
+
+## Clothes
+
+Besides hats: **glasses** (on the measured eyes, moving with the head),
+**neck** items (RLX ID badge — starter —, bow tie, bandana, scarf, tie,
+medal) and **back** items drawn behind Rocky (backpack, hero cape, angel
+wings). Placement is measured per artwork (`tools/build-rocky-rig.py`), so
+every item fits every stage and mood. Full-body outfits would need layered
+art (the torso changes shape between artworks).
+
+## Note Check (the core habit)
+
+`src/game/notesQuiz.ts`: 18 questions about great account notes; five a day,
+the same for everyone. Rocky explains each answer. The first round of the
+day pays 4 coins per correct answer, +10 and a treat for a perfect round —
+scored on the server with the same bank (ledger kind `quiz`). Replays are
+practice. The screen keeps a "what a great note has" checklist next to the
+game, and Rocky mixes note tips into what he says on the pet screen. QA can
+edit the question bank to match RLX's exact note standard.
+
 ## Traceability
 
 `audit_log` records, with actor and source (PIN session / Teams link / admin):
@@ -81,6 +112,15 @@ reset / delete). It is append-only and survives agent resets.
 - **Tienda**: change any item's price or take it out of the shop.
 - **Auditoría**: the whole pilot's audit trail, filterable.
 
+## Admin: progress
+
+In the agent drawer, **Progreso**: grant XP (with a reason), raise to a
+level, or unlock an evolution (Young = level 5, Advanced = 10, Elite = 20).
+All of it is an `XP_GRANT` event — replayable from the event log, shown in
+the agent's diary and in the audit trail. XP never goes down (use Reset
+progress). The agent's screen picks it up when they come back to the tab
+and celebrates the level-up or evolution.
+
 ## API
 
 | Method | Path | Who |
@@ -92,6 +132,7 @@ reset / delete). It is append-only and survives agent resets.
 | GET | `/api/admin/agents/:id/pet`, `/api/admin/catalog`, `/api/admin/economy`, `/api/admin/audit` | QA/Admin |
 | POST | `/api/admin/agents/:id/{coins,treats,items,needs/restore,pet/reset,pin-reset,sessions/revoke}` | QA/Admin |
 | PATCH | `/api/admin/catalog/:itemId` | QA/Admin |
+| POST | `/api/admin/agents/:id/xp` (`xp`, `reason`) · `/api/admin/agents/:id/level` (`level` or `stage`) | QA/Admin |
 
 Storage: migration 3 (`backend/src/infrastructure/persistence/schema.ts`).
 
@@ -117,3 +158,15 @@ weekends. Recommendation: count working days (a weekend off doesn't break
 the streak). `missedWorkingDays` in `src/engine/dateUtils.ts` already
 implements the counting; changing the rule is a one-function change in
 `calculateStreak` plus its tests.
+
+## Next improvements (identified)
+
+1. **Link Note Check to real QA findings**: when an audit raises a
+   Documentation Alert, show the agent the related Note Check tip the next
+   time they open Rocky ("Your last alert was about missing next steps").
+2. **Question bank in the admin console**, so QA can add questions from real
+   audit patterns without a deploy.
+3. **Weekend streak rule** (open decision above).
+4. **Team roster** from SharePoint to bring back real team pages.
+5. **Layered Rocky art** for true blinking, mouth shapes and full outfits.
+6. **Entra ID sign-in** to replace the PIN.

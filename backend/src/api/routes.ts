@@ -32,11 +32,18 @@ export interface ApiServices {
   clock?: Clock
 }
 
+/** The level each evolution starts at (engine/levels.ts evolutionForLevel). */
+const EVOLUTION_LEVEL = { Young: 5, Advanced: 10, Elite: 20 } as const
+
 const actorOf = (req: Request): Actor => ({ id: req.identity!.agentId, via: req.identity!.via })
 
 function parsePetAction(body: Record<string, unknown>): PetAction {
   const type = requireEnum(body.type, PET_ACTION_TYPES, 'type')
   if (type === 'buy') return { type, itemId: requireNonEmptyString(body.itemId, 'itemId') }
+  if (type === 'quiz') {
+    if (!body.answers || typeof body.answers !== 'object' || Array.isArray(body.answers)) throw ApiError.validation('"answers" is required.')
+    return { type, answers: body.answers as Record<string, number> }
+  }
   if (type === 'equip') {
     if (!body.outfit || typeof body.outfit !== 'object') throw ApiError.validation('"outfit" is required.')
     return { type, outfit: body.outfit as Outfit }
@@ -201,6 +208,47 @@ export function createApiRouter(services: ApiServices): Router {
   router.delete('/admin/agents/:id', adminOnly, (req: Request, res: Response) => {
     const result = services.admin.deleteAgent(req.params.id!)
     services.pet.audit(req.params.id!, actorOf(req), 'admin.agent.deleted', null, clock.now())
+    res.json(result)
+  })
+
+  // Progress: XP bonus, raise to a level, unlock an evolution (all via XP_GRANT events).
+  router.post('/admin/agents/:id/xp', adminOnly, (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    const xp = requireInteger(body.xp, 'xp', 50_000)
+    if (xp < 0) throw ApiError.validation('"xp" must be positive — XP is never taken away.')
+    const reason = requireNonEmptyString(body.reason, 'reason').trim().slice(0, 200)
+    const result = services.admin.grantXp(req.params.id!, xp, reason, req.identity!.agentId)
+    services.pet.audit(
+      req.params.id!,
+      actorOf(req),
+      'admin.xp',
+      { delta: xp, reason, level: result.state.level, stage: result.state.evolutionStage },
+      clock.now(),
+    )
+    res.json(result)
+  })
+
+  router.post('/admin/agents/:id/level', adminOnly, (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    let level: number
+    let label: string
+    if (body.stage !== undefined) {
+      const stage = requireEnum(body.stage, ['Young', 'Advanced', 'Elite'] as const, 'stage')
+      level = EVOLUTION_LEVEL[stage]
+      label = `Evolution to ${stage} Rocky`
+    } else {
+      level = requireInteger(body.level, 'level', 20)
+      label = `Raised to level ${level}`
+    }
+    const reason = typeof body.reason === 'string' && body.reason.trim() ? body.reason.trim().slice(0, 200) : label
+    const result = services.admin.raiseToLevel(req.params.id!, level, reason, req.identity!.agentId)
+    services.pet.audit(
+      req.params.id!,
+      actorOf(req),
+      body.stage !== undefined ? 'admin.evolution' : 'admin.level',
+      { level: result.state.level, stage: result.state.evolutionStage, delta: result.xpGranted, reason },
+      clock.now(),
+    )
     res.json(result)
   })
 

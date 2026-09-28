@@ -38,7 +38,8 @@ export type { CheckInResult, CorrectionInput, CorrectionResult, DocumentationAle
 // persisted GameState against what replaying the persisted event history
 // independently produces, using the Game Engine's own, already-tested
 // replay function — never a reimplementation of it.
-export { recalculateStateFromEvents } from '../../../src/engine/gameEngine'
+export { processXpGrant, recalculateStateFromEvents } from '../../../src/engine/gameEngine'
+export { LEVEL_THRESHOLDS, MAX_DEFINED_LEVEL } from '../../../src/engine/levels'
 export { buildCorrectionMap, countCheckIns, countEffectiveAlerts, countEffectiveQaPasses } from '../../../src/engine/gameEngine'
 export { daysBetweenKeys, missedWorkingDays, todayKey } from '../../../src/engine/dateUtils'
 

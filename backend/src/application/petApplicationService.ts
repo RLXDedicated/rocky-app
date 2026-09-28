@@ -161,6 +161,7 @@ export function createPetApplicationService({ persistence, clock = systemClock }
         if ('itemId' in action) detail.itemId = action.itemId
         if (action.type === 'equip') detail.outfit = result.state.outfit
         if (result.ledger) detail.coins = result.ledger.delta
+        if (action.type === 'quiz') detail.score = `${result.state.quiz.lastScore}/${result.state.quiz.lastTotal}`
         audit(agentId, actor, `pet.${action.type}`, detail, now)
         return { ...view(result.state, f, nextRevision, now, overrides), ok: true, reason: null }
       })

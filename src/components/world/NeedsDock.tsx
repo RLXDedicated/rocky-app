@@ -6,6 +6,8 @@ interface Props {
   needs: Needs
   treats: number
   busy: boolean
+  /** A ball game is on. */
+  playing?: boolean
   onPet: () => void
   onFeed: () => void
   onPlay: () => void
@@ -69,7 +71,7 @@ function level(value: number): 'good' | 'mid' | 'low' {
 }
 
 /** Rocky's needs at a glance, plus the four ways to care for him. */
-export function NeedsDock({ needs, treats, busy, onPet, onFeed, onPlay, onBath }: Props) {
+export function NeedsDock({ needs, treats, busy, playing = false, onPet, onFeed, onPlay, onBath }: Props) {
   const clean = Math.round(100 - needs.dirt)
   const meters = [
     { key: 'health', label: 'Health', value: Math.round(needs.health), icon: ICON.health },
@@ -97,17 +99,37 @@ export function NeedsDock({ needs, treats, busy, onPet, onFeed, onPlay, onBath }
         ))}
       </ul>
       <div className={styles.careButtons}>
-        <button type="button" className={styles.careBtn} onClick={onPet} disabled={busy}>
-          <Icon>{ICON.pet}</Icon> Pet
+        <button type="button" className={styles.careBtn} data-tone="pet" onClick={onPet} disabled={busy}>
+          <span className={styles.careIcon}>
+            <Icon>{ICON.pet}</Icon>
+          </span>
+          Pet
         </button>
-        <button type="button" className={styles.careBtn} onClick={onFeed} disabled={busy} aria-label={`Give a treat (${treats} left)`}>
-          <Icon>{ICON.treat}</Icon> Treat <b className={styles.count}>{treats}</b>
+        <button
+          type="button"
+          className={styles.careBtn}
+          data-tone="treat"
+          onClick={onFeed}
+          disabled={busy}
+          aria-label={`Give a treat (${treats} left)`}
+        >
+          <span className={styles.careIcon}>
+            <Icon>{ICON.treat}</Icon>
+            <b className={styles.count}>{treats}</b>
+          </span>
+          Treat
         </button>
-        <button type="button" className={styles.careBtn} onClick={onPlay} disabled={busy}>
-          <Icon>{ICON.play}</Icon> Play
+        <button type="button" className={styles.careBtn} data-tone="play" onClick={onPlay} disabled={busy} aria-pressed={playing}>
+          <span className={styles.careIcon}>
+            <Icon>{ICON.play}</Icon>
+          </span>
+          {playing ? 'Playing' : 'Play'}
         </button>
-        <button type="button" className={`${styles.careBtn} ${dirty ? styles.careBtnNudge : ''}`} onClick={onBath} disabled={busy}>
-          <Icon>{ICON.bath}</Icon> Bath
+        <button type="button" className={`${styles.careBtn} ${dirty ? styles.careBtnNudge : ''}`} data-tone="bath" onClick={onBath} disabled={busy}>
+          <span className={styles.careIcon}>
+            <Icon>{ICON.bath}</Icon>
+          </span>
+          Bath
         </button>
       </div>
     </div>

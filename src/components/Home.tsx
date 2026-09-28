@@ -5,6 +5,8 @@ import { levelProgress } from '../engine/petProgress'
 import type { CheckInResult } from '../engine/gameEngine'
 import { gameService } from '../services/gameService'
 import { CHECKED_IN_EVENT, performCheckIn } from '../services/checkInAction'
+import { refreshFromServer } from '../services/remoteSync'
+import { EVOLUTION_LEVELS } from '../engine/petProgress'
 import type { Agent, GameState } from '../types/domain'
 import styles from './Home.module.css'
 import { LoadingRocky } from './LoadingRocky'
@@ -20,6 +22,8 @@ import { catalogFor, fetchPet, loadPetCache, performPetAction, type PetCache } f
 import { play as playSfx } from '../game/sfx'
 import { buildProgressFacts } from '../game/progressFacts'
 import { saveRockyName } from '../services/agentProfile'
+import { NOTE_TIPS, QUIZ_REWARD, QUIZ_ROUND_SIZE } from '../game/notesQuiz'
+import { todayKey } from '../engine/dateUtils'
 
 function isToday(dateKey: string | null): boolean {
   if (!dateKey) return false
@@ -33,10 +37,12 @@ function isToday(dateKey: string | null): boolean {
 interface Props {
   /** Opens the Progress view (stats, goals, evolution, diary). */
   onOpenProgress?: () => void
+  /** Opens Note Check, the daily notes mini-game. */
+  onOpenNotes?: () => void
 }
 
 /** The pet screen: Rocky's world is the whole page. Stats live in Progress, looks in the shop. */
-export function Home({ onOpenProgress }: Props) {
+export function Home({ onOpenProgress, onOpenNotes }: Props) {
   const [agent, setAgent] = useState<Agent | null>(null)
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [isCheckingIn, setIsCheckingIn] = useState(false)
@@ -85,6 +91,35 @@ export function Home({ onOpenProgress }: Props) {
     return () => window.removeEventListener(CHECKED_IN_EVENT, onCheckedIn)
   }, [])
 
+  // Coming back to the tab (or every few minutes) picks up changes made
+  // elsewhere — another device, or QA granting XP or an evolution — and
+  // celebrates them.
+  useEffect(() => {
+    let alive = true
+    const sync = async () => {
+      if (document.visibilityState !== 'visible') return
+      const before = gameService.getSnapshot().gameState
+      const fresh = await refreshFromServer()
+      if (!alive || !fresh) return
+      const next = fresh.gameState
+      setGameState(next)
+      refreshFacts(next)
+      setPet(loadPetCache())
+      if (next.evolutionStage !== before.evolutionStage) {
+        setCelebration({ kind: 'evolution', title: `Rocky evolved`, body: `${before.evolutionStage} Rocky is now ${next.evolutionStage} Rocky.` })
+      } else if (next.level > before.level) {
+        setCelebration({ kind: 'level-up', title: `Level ${next.level}`, body: `Rocky grew from level ${before.level} to ${next.level}.` })
+      }
+    }
+    document.addEventListener('visibilitychange', sync)
+    const t = window.setInterval(sync, 3 * 60_000)
+    return () => {
+      alive = false
+      document.removeEventListener('visibilitychange', sync)
+      window.clearInterval(t)
+    }
+  }, [])
+
   // Needs drift with real time: bring them up to date every minute.
   useEffect(() => {
     const t = window.setInterval(() => setPet((p) => ({ ...p, state: refreshPetState(p.state, new Date()) })), 60_000)
@@ -99,6 +134,13 @@ export function Home({ onOpenProgress }: Props) {
   const mood = useMemo(() => (gameState ? calculateMood(gameState) : 'Motivated'), [gameState])
   // Picked once per mood so the line doesn't reshuffle on every re-render.
   const moodLine = useMemo(() => moodMessage(mood), [mood])
+  // Rocky's core message: every so often his line becomes a note tip.
+  const [tipIndex, setTipIndex] = useState(-1)
+  useEffect(() => {
+    const t = window.setInterval(() => setTipIndex((i) => (i >= 0 ? -1 : Math.floor(Math.random() * NOTE_TIPS.length))), 20_000)
+    return () => window.clearInterval(t)
+  }, [])
+  const idleLine = tipIndex >= 0 ? NOTE_TIPS[tipIndex]! : moodLine
   const closeShop = useCallback(() => setShopOpen(false), [])
 
   if (!agent || !gameState || !facts) return <LoadingRocky />
@@ -201,11 +243,15 @@ export function Home({ onOpenProgress }: Props) {
   const catalog = catalogFor(pet)
   // Only what the agent can actually use is shown on Rocky.
   const outfit = pet.state.outfit
+  const usable = (id: string | null) => Boolean(id && catalog.some((i) => i.id === id && canUse(pet.state, i, facts)))
   const visibleOutfit: Outfit = {
-    hat: catalog.some((i) => i.id === outfit.hat && canUse(pet.state, i, facts)) ? outfit.hat : null,
-    scene: catalog.some((i) => i.id === outfit.scene && canUse(pet.state, i, facts)) ? outfit.scene : 'scene-route',
-    decor: outfit.decor.filter((d) => catalog.some((i) => i.id === d && canUse(pet.state, i, facts))),
-    fx: catalog.some((i) => i.id === outfit.fx && canUse(pet.state, i, facts)) ? outfit.fx : null,
+    hat: usable(outfit.hat) ? outfit.hat : null,
+    glasses: usable(outfit.glasses) ? outfit.glasses : null,
+    neck: usable(outfit.neck) ? outfit.neck : null,
+    back: usable(outfit.back) ? outfit.back : null,
+    scene: usable(outfit.scene) ? outfit.scene : 'scene-route',
+    decor: outfit.decor.filter(usable),
+    fx: usable(outfit.fx) ? outfit.fx : null,
   }
 
   function handleBuy(id: string): boolean {
@@ -226,7 +272,7 @@ export function Home({ onOpenProgress }: Props) {
           stage={gameState.evolutionStage}
           reaction={rockyReaction}
           outfit={visibleOutfit}
-          speech={reaction ?? moodLine}
+          speech={reaction ?? idleLine}
           treats={treats}
           needs={pet.state.needs}
           onPet={() => act({ type: 'pet' })}
@@ -235,7 +281,15 @@ export function Home({ onOpenProgress }: Props) {
           onBath={() => act({ type: 'bath' })}
           hud={
             <>
-              <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} />
+              <div className={styles.hudLeft}>
+                <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} />
+                {onOpenNotes && !(pet.state.quiz.date === todayKey() && pet.state.quiz.rewarded) && (
+                  <button type="button" className={styles.notesChip} onClick={onOpenNotes}>
+                    <span aria-hidden="true">📝</span> Today’s Note Check
+                    <b>+{QUIZ_ROUND_SIZE * QUIZ_REWARD.perCorrect + QUIZ_REWARD.perfectBonus}</b>
+                  </button>
+                )}
+              </div>
               <div className={styles.hudRight}>
                 <div className={styles.levelCard}>
                   <div className={styles.levelTop}>
@@ -254,6 +308,21 @@ export function Home({ onOpenProgress }: Props) {
                   >
                     <span style={{ width: `${progress.fraction * 100}%` }} />
                   </div>
+                  <ol className={styles.stages} aria-label={`Evolution: ${gameState.evolutionStage} Rocky`}>
+                    {(['Baby', 'Young', 'Advanced', 'Elite'] as const).map((st) => {
+                      const order = ['Baby', 'Young', 'Advanced', 'Elite']
+                      const reached = order.indexOf(st) <= order.indexOf(gameState.evolutionStage)
+                      return (
+                        <li
+                          key={st}
+                          className={`${styles.stage} ${reached ? styles.stageOn : ''} ${st === gameState.evolutionStage ? styles.stageNow : ''}`}
+                          title={`${st} · level ${EVOLUTION_LEVELS[st]}`}
+                        >
+                          <span>{st}</span>
+                        </li>
+                      )
+                    })}
+                  </ol>
                   <button type="button" className={styles.stats} onClick={onOpenProgress} aria-label="Energy and streak — open Progress">
                     <span className={gameState.energy < 40 ? styles.statLow : undefined}>
                       <span aria-hidden="true">⚡</span> {gameState.energy}

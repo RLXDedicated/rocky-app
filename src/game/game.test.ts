@@ -29,7 +29,7 @@ function run(state: PetState, action: PetAction, facts = worker, now = NOW) {
 describe('shop catalogue', () => {
   it('starts with only the starter items unlocked', () => {
     const unlocked = CLOSET.filter((i) => i.isUnlocked(newbie)).map((i) => i.id)
-    expect(unlocked).toEqual(['hat-rlx-cap', 'scene-route', 'decor-boxes'])
+    expect(unlocked).toEqual(['hat-rlx-cap', 'neck-lanyard', 'scene-route', 'decor-boxes'])
   })
 
   it('has unique ids and a price for every item', () => {
@@ -46,7 +46,15 @@ describe('shop catalogue', () => {
 
   it('repairs outfits: unknown, wrong-slot, unowned and duplicate items are dropped', () => {
     const outfit = sanitizeOutfit(
-      { hat: 'scene-night', scene: 'nope', decor: ['decor-boxes', 'decor-boxes', 'hat-crown'], fx: 'fx-confetti' },
+      {
+        hat: 'scene-night',
+        glasses: 'neck-tie',
+        neck: 'neck-lanyard',
+        back: 'back-wings',
+        scene: 'nope',
+        decor: ['decor-boxes', 'decor-boxes', 'hat-crown'],
+        fx: 'fx-confetti',
+      },
       worker,
       [],
     )
@@ -138,10 +146,10 @@ describe('needs and care', () => {
 
   it('equips only usable items; admin gifts bypass the unlock and can be taken back', () => {
     let s = initialPetState(NOW)
-    s = run(s, { type: 'equip', outfit: { hat: 'hat-crown', scene: 'scene-route', decor: [], fx: null } }).state
+    s = run(s, { type: 'equip', outfit: { ...DEFAULT_OUTFIT, hat: 'hat-crown', decor: [] } }).state
     expect(s.outfit.hat).toBeNull()
     s = adminGrantItem(s, 'hat-crown')
-    s = run(s, { type: 'equip', outfit: { hat: 'hat-crown', scene: 'scene-route', decor: [], fx: null } }).state
+    s = run(s, { type: 'equip', outfit: { ...DEFAULT_OUTFIT, hat: 'hat-crown', decor: [] } }).state
     expect(s.outfit.hat).toBe('hat-crown')
     s = adminRevokeItem(s, 'hat-crown', worker)
     expect(s.outfit.hat).toBeNull()
@@ -154,5 +162,35 @@ describe('needs and care', () => {
     expect(s.owned).toEqual(['a'])
     expect(s.coinsSpent).toBe(0)
     expect(normalizePetState(null, NOW)).toEqual(initialPetState(NOW))
+  })
+})
+
+describe('Note Check (notes quiz)', () => {
+  it('picks the same five questions for everyone on a day, and rewards only the first round', async () => {
+    const { dailyQuestions, QUIZ_BANK } = await import('./notesQuiz')
+    const round = dailyQuestions(NOW)
+    expect(round).toHaveLength(5)
+    expect(new Set(round.map((q) => q.id)).size).toBe(5)
+    expect(dailyQuestions(NOW).map((q) => q.id)).toEqual(round.map((q) => q.id))
+    for (const q of QUIZ_BANK) expect(q.answer).toBeLessThan(q.options.length)
+
+    const perfect = Object.fromEntries(round.map((q) => [q.id, q.answer]))
+    const first = run(initialPetState(NOW), { type: 'quiz', answers: perfect })
+    expect(first.ok).toBe(true)
+    expect(first.state.quiz.lastScore).toBe(5)
+    expect(first.state.gameCoins).toBe(30)
+    expect(first.state.bonusTreats).toBe(1)
+    expect(first.ok && first.ledger).toEqual({ delta: 30, kind: 'quiz', note: 'Note Check 5/5' })
+    expect(coinBalance(first.state, newbie)).toBe(30)
+
+    const again = run(first.state, { type: 'quiz', answers: perfect })
+    expect(again.state.gameCoins).toBe(30)
+    expect(again.ok && again.ledger).toBeUndefined()
+    expect(again.state.quiz.played).toBe(2)
+
+    const wrong = Object.fromEntries(round.map((q) => [q.id, (q.answer + 1) % q.options.length]))
+    const tomorrow = new Date(NOW.getTime() + 86_400_000)
+    const zero = run(first.state, { type: 'quiz', answers: wrong }, worker, tomorrow)
+    expect(zero.state.quiz.lastScore).toBeLessThanOrEqual(5)
   })
 })

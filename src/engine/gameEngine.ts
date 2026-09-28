@@ -530,6 +530,70 @@ export function processDevXpGrant(state: GameState, xpFloor: number, now: Date =
   return { state: nextState, events, leveledUp, evolved }
 }
 
+export interface XpGrantResult {
+  state: GameState
+  events: GameEvent[]
+  leveledUp: boolean
+  evolved: boolean
+}
+
+/**
+ * XP granted by QA/admin (a bonus, a level-up or unlocking an evolution in
+ * the admin console). Unlike processDevXpGrant it records an XP_GRANT event
+ * carrying the amount, so replaying the event log reproduces it, and the
+ * agent's diary shows it. Evolution follows the level, as always.
+ */
+export function processXpGrant(
+  state: GameState,
+  amount: number,
+  now: Date = new Date(),
+  agentId: string = DEFAULT_AGENT_ID,
+  meta: { reason?: string; grantedBy?: string } = {},
+): XpGrantResult {
+  const xpGained = Math.max(0, Math.round(amount))
+  const xp = state.xp + xpGained
+  const level = calculateLevel(xp)
+  const evolutionStage = evaluateEvolution(level, state.evolutionStage)
+  const leveledUp = level > state.level
+  const evolved = evolutionStage !== state.evolutionStage
+  const today = todayKey(now)
+  const at = now.toISOString()
+
+  const events: GameEvent[] = [
+    {
+      id: makeEventId(),
+      type: 'XP_GRANT',
+      agentId,
+      date: today,
+      timestamp: at,
+      payload: { xp: xpGained, reason: meta.reason ?? '', grantedBy: meta.grantedBy ?? '' },
+    },
+  ]
+  if (leveledUp) {
+    events.push({
+      id: makeEventId(),
+      type: 'LEVEL_UP',
+      agentId,
+      date: today,
+      timestamp: at,
+      payload: { previousLevel: state.level, newLevel: level, level },
+    })
+  }
+  if (evolved) {
+    events.push({
+      id: makeEventId(),
+      type: 'EVOLUTION',
+      agentId,
+      date: today,
+      timestamp: at,
+      payload: { previousStage: state.evolutionStage, newStage: evolutionStage, stage: evolutionStage },
+    })
+  }
+  const nextState: GameState = { ...state, xp, level, evolutionStage, lastActivityLabel: `+${xpGained} XP from QA`, lastActivityAt: at }
+  nextState.mood = calculateMood(nextState, now)
+  return { state: nextState, events, leveledUp, evolved }
+}
+
 export interface CorrectionInput {
   originalEventId: string
   correctedTo: QAOutcome
@@ -635,6 +699,11 @@ export function recalculateStateFromEvents(events: GameEvent[], agentId: string 
         effectiveAlertsAppliedToday[day] = countSoFar + 1
         state = applyAlertEffect(state, when, loss)
       }
+      continue
+    }
+
+    if (event.type === 'XP_GRANT') {
+      state = processXpGrant(state, Number(event.payload?.xp ?? 0), when, agentId).state
       continue
     }
 

@@ -250,3 +250,57 @@ describe('Pilot leaderboard', () => {
     expect(res.body.currentUser.rank).toBe(2)
   })
 })
+
+describe('Admin progress controls', () => {
+  it('grants XP, raises levels and unlocks evolutions through replayable events', async () => {
+    const app = build()
+    await request(app).get('/api/agent/me').set(as(AGENT))
+    const xp = await request(app).post(`/api/admin/agents/${AGENT}/xp`).set(as(ADMIN)).send({ xp: 120, reason: 'Great notes this week' })
+    expect(xp.status).toBe(200)
+    expect(xp.body.state.level).toBe(2)
+
+    const lvl = await request(app).post(`/api/admin/agents/${AGENT}/level`).set(as(ADMIN)).send({ level: 4 })
+    expect(lvl.body.state.level).toBe(4)
+    const evo = await request(app).post(`/api/admin/agents/${AGENT}/level`).set(as(ADMIN)).send({ stage: 'Advanced' })
+    expect(evo.body.state.evolutionStage).toBe('Advanced')
+    expect(evo.body.state.level).toBe(10)
+
+    // Never backwards, never negative.
+    expect((await request(app).post(`/api/admin/agents/${AGENT}/level`).set(as(ADMIN)).send({ stage: 'Young' })).status).toBe(409)
+    expect((await request(app).post(`/api/admin/agents/${AGENT}/xp`).set(as(ADMIN)).send({ xp: -50, reason: 'x' })).status).toBe(422)
+    expect((await request(app).post(`/api/admin/agents/${AGENT}/xp`).set(as(AGENT)).send({ xp: 50, reason: 'x' })).status).toBe(403)
+
+    // The agent sees it; the history carries it; coins follow the new levels.
+    const state = await request(app).get('/api/game-state').set(as(AGENT))
+    expect(state.body.evolutionStage).toBe('Advanced')
+    const events = await request(app).get('/api/events').set(as(AGENT))
+    expect(events.body.events.filter((e: { type: string }) => e.type === 'XP_GRANT')).toHaveLength(3)
+    const pet = await request(app).get('/api/pet').set(as(AGENT))
+    expect(pet.body.earned.levels).toBe(9 * 30)
+    const detail = await request(app).get(`/api/admin/agents/${AGENT}/pet`).set(as(ADMIN))
+    expect(detail.body.audit.map((a: { action: string }) => a.action)).toEqual(expect.arrayContaining(['admin.xp', 'admin.level', 'admin.evolution']))
+  })
+})
+
+describe('Note Check on the server', () => {
+  it('scores answers itself and pays out once a day, into the ledger', async () => {
+    const { dailyQuestions } = await import('../../src/game/notesQuiz')
+    const app = build()
+    const round = dailyQuestions(new Date('2026-09-08T12:00:00.000Z'))
+    const perfect = Object.fromEntries(round.map((q) => [q.id, q.answer]))
+    const first = await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'quiz', answers: perfect })
+    expect(first.body.ok).toBe(true)
+    expect(first.body.coins).toBe(30)
+    const second = await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'quiz', answers: perfect })
+    expect(second.body.coins).toBe(30)
+    // Made-up question ids score nothing.
+    const bogus = await request(app)
+      .post('/api/pet/actions')
+      .set(as(AGENT))
+      .send({ type: 'quiz', answers: { fake: 0 } })
+    expect(bogus.body.state.quiz.lastScore).toBe(0)
+    expect((await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'quiz' })).status).toBe(422)
+    const detail = await request(app).get(`/api/admin/agents/${AGENT}/pet`).set(as(ADMIN))
+    expect(detail.body.ledger.filter((l: { kind: string }) => l.kind === 'quiz')).toHaveLength(1)
+  })
+})

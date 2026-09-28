@@ -24,6 +24,9 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
   const [auditDate, setAuditDate] = useState(todayIso)
   const [editingName, setEditingName] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState('ALL')
+  const [xpAmount, setXpAmount] = useState('')
+  const [xpReason, setXpReason] = useState('')
+  const [targetLevel, setTargetLevel] = useState('')
 
   const load = useCallback(async () => {
     try {
@@ -173,6 +176,87 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
             <b>{m.achievements}</b>
           </div>
         </div>
+
+        <section className={styles.drawerSection}>
+          <h3>Progreso</h3>
+          <p className={styles.muted}>
+            El XP solo sube (nunca se quita) y queda en el historial del agente. La evolución sigue al nivel: Young en el 5, Advanced en el 10, Elite
+            en el 20. El agente lo ve en su pantalla al volver a abrir Rocky.
+          </p>
+          <form
+            className={styles.inlineForm}
+            onSubmit={(e) => {
+              e.preventDefault()
+              const xp = Number(xpAmount)
+              if (!Number.isInteger(xp) || xp <= 0 || !xpReason.trim()) return
+              void run(() => apiClient.grantXp(agent.id, xp, xpReason.trim()), `+${xp} XP para ${agent.id}.`).then((ok) => {
+                if (ok) {
+                  setXpAmount('')
+                  setXpReason('')
+                }
+              })
+            }}
+          >
+            <input
+              type="number"
+              min={1}
+              placeholder="XP"
+              value={xpAmount}
+              onChange={(e) => setXpAmount(e.target.value)}
+              aria-label="XP a otorgar"
+              style={{ width: 90 }}
+            />
+            <input
+              placeholder="Motivo (queda en el historial)"
+              value={xpReason}
+              maxLength={200}
+              onChange={(e) => setXpReason(e.target.value)}
+              aria-label="Motivo del XP"
+            />
+            <button className={styles.btnPrimary} disabled={busy || !(Number(xpAmount) > 0) || !xpReason.trim()}>
+              Otorgar XP
+            </button>
+          </form>
+          <div className={styles.actionRow}>
+            <select className={styles.select} value={targetLevel} onChange={(e) => setTargetLevel(e.target.value)} aria-label="Subir al nivel">
+              <option value="">Subir al nivel…</option>
+              {Array.from({ length: 20 - s.level }, (_, i) => s.level + 1 + i).map((l) => (
+                <option key={l} value={l}>
+                  Nivel {l}
+                </option>
+              ))}
+            </select>
+            <button
+              className={styles.btnGhost}
+              disabled={busy || !targetLevel}
+              onClick={() =>
+                void run(() => apiClient.raiseLevel(agent.id, Number(targetLevel)), `${agent.id} subió al nivel ${targetLevel}.`).then(() =>
+                  setTargetLevel(''),
+                )
+              }
+            >
+              Subir nivel
+            </button>
+            {(['Young', 'Advanced', 'Elite'] as const).map((stage) => {
+              const reached =
+                ['Baby', 'Young', 'Advanced', 'Elite'].indexOf(s.evolutionStage) >= ['Baby', 'Young', 'Advanced', 'Elite'].indexOf(stage)
+              return (
+                <button
+                  key={stage}
+                  className={styles.btnGhost}
+                  disabled={busy || reached}
+                  title={reached ? 'Ya alcanzada' : `Sube al nivel ${{ Young: 5, Advanced: 10, Elite: 20 }[stage]}`}
+                  onClick={() => {
+                    if (!window.confirm(`¿Activar ${stage} Rocky para ${agent.id}? Se otorga el XP que falta para ese nivel.`)) return
+                    void run(() => apiClient.unlockEvolution(agent.id, stage), `${agent.id} evolucionó a ${stage} Rocky.`)
+                  }}
+                >
+                  {reached ? `✓ ${stage}` : `Activar ${stage}`}
+                </button>
+              )
+            })}
+          </div>
+        </section>
 
         <section className={styles.drawerSection}>
           <h3>Registrar auditoría</h3>

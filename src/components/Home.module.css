@@ -13,6 +13,40 @@
 }
 
 /* HUD over the world */
+.hudLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.notesChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(15, 35, 65, 0.25);
+}
+
+.notesChip b {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--navy);
+  font-size: 0.78rem;
+}
+
+.notesChip:hover {
+  transform: translateY(-1px);
+}
 .hudRight {
   display: flex;
   align-items: flex-start;
@@ -128,6 +162,47 @@
   background: #ffffff;
   color: var(--rlx-green);
   box-shadow: 0 6px 20px rgba(15, 35, 65, 0.1);
+}
+
+.stages {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+  margin: 8px 0 6px;
+  padding: 0;
+}
+
+.stage {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.stage span {
+  display: none;
+  position: absolute;
+  top: 7px;
+  left: 0;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-on-dark-muted);
+  white-space: nowrap;
+}
+
+.stageOn {
+  background: var(--gold);
+}
+
+.stageNow span {
+  display: block;
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.stages + .stats {
+  margin-top: 16px;
 }
 
 .stats {
