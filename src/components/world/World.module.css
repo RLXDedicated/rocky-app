@@ -460,3 +460,28 @@
     max-width: 58vw;
   }
 }
+
+/* 3D Rocky — the model animates itself, so the 2.5D CSS poses are off. */
+.body3d {
+  animation: none;
+}
+
+.rocky3d {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.canvas3d {
+  display: block;
+}
+
+/* Until the model is ready the canvas sits invisibly behind the 2.5D art. */
+.body:not(.body3d) .rocky3d {
+  opacity: 0;
+}
+
+.hat3d {
+  transform-origin: 50% 100%;
+  will-change: left, top, transform;
+}

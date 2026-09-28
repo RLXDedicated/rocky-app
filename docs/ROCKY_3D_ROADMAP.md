@@ -1,6 +1,6 @@
 # Rocky: from 2.5D to an interactive pet (and maybe 3D)
 
-Status: proposal · Owner: RLX QA (Anibal Pereira) · Last updated: 2026-09-27
+Status: Baby Rocky live in 3D · Owner: RLX QA (Anibal Pereira) · Last updated: 2026-09-28
 
 ## Goal
 
@@ -28,6 +28,55 @@ Limits of this approach: Rocky can't turn around (mirroring the art would
 mirror the RLX logo on the vest), can't change pose beyond the 22 drawn
 images, and clothes can only go on the head (the torso and arms change shape
 between artworks).
+
+## 3D Rocky — what's live (Baby stage)
+
+The Baby Rocky GLB (Tripo model, Mixamo rig, 9 clips) now drives Rocky in
+the Home world whenever the agent's Rocky is Baby. Other stages keep the
+2.5D art until their models arrive.
+
+| Game moment | Clip |
+| --- | --- |
+| Rocky appears | `Wave` |
+| Standing / wandering | `Idle` / `Walk` (turns toward where he walks) |
+| Tap / Pet | `Happy` |
+| Treat | `Eat` |
+| Play (ball) | `Celebrate` |
+| Check-in, level up, evolution | `Celebrate` |
+| QA pass / alert / comeback | `Happy` / `Worried` / `Recovery` |
+| Every ~11 s while idle | the clip for the current mood (`Happy`, `Motivated`, `Worried`, `Recovery`) |
+
+How it's built (`src/components/world/`):
+
+- `rocky3dRuntime.ts` — three.js scene, clip crossfades, turning, and the
+  head pose each frame (closet hats follow the head bone, including tilt).
+  Loaded as a separate chunk only when needed.
+- `Rocky3D.tsx` — React wrapper; shows the 2.5D art until the model is
+  ready and falls back to it on any error or when WebGL is missing.
+- `rocky3dModels.ts` — which stage has a model. `?rocky3d=0` turns 3D off
+  on a browser (`?rocky3d=1` back on).
+- Reduced motion: Rocky holds still poses, no animation.
+
+### Known issue in the delivered file — no textures
+
+`docs/rocky-assets-source/3d/Baby_Rocky_AllAnimations.glb` has **no
+textures and no material colours** (Blender export dropped Tripo's
+texture), so as delivered it renders plain white. `tools/bake-rocky3d-colors.py`
+works around it by projecting the approved 2.5D Baby art onto the model as
+vertex colours (head fitted to the sculpted eyes, body to the silhouette,
+arms/horns flat, back never gets a face). It looks close to the art, but a
+real texture will look better. Re-export from Blender with the texture
+packed (File › External Data › Pack Resources, then glTF export with
+Materials: Export and Images: Automatic) and drop it in — the app uses a
+file's own textures automatically; skip the bake step for it.
+
+### Adding Young / Advanced / Elite
+
+1. Same format as Baby: GLB, Mixamo rig, clips named `Idle Walk Wave Eat
+   Celebrate Happy Motivated Worried Recovery`, feet at y=0, facing +Z,
+   ~1 unit tall, textures packed.
+2. Put it in `src/assets/rocky3d/<stage>.glb` and register it in
+   `rocky3dModels.ts`.
 
 ## Options
 
