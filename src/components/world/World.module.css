@@ -2646,3 +2646,150 @@
   margin-left: 4px;
   background: #c9463d;
 }
+
+/* ---------------------------------------------------------------------------
+   Live visits: other agents' Rockys in this world (GuestRocky).
+   ------------------------------------------------------------------------- */
+.guest {
+  position: absolute;
+  z-index: 3;
+  transform: translateX(-50%);
+  transition: left 1.2s cubic-bezier(0.45, 0, 0.3, 1);
+  pointer-events: none;
+  animation: guestIn 0.6s ease-out;
+}
+
+.guestBody {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 94%;
+  animation: breathe 3.8s ease-in-out infinite;
+}
+
+.guestHop {
+  animation: guestHop 0.7s ease-out;
+}
+
+.guestTag {
+  position: absolute;
+  left: 50%;
+  bottom: -26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(15, 35, 65, 0.82);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.guestTag > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1fbf68;
+  box-shadow: 0 0 0 2px rgba(31, 191, 104, 0.35);
+  animation: pulseDot 1.6s ease-in-out infinite;
+}
+
+.guestBubble {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: -6%;
+  max-width: 180px;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--navy, #0f2341);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 6px 16px rgba(15, 35, 65, 0.18);
+  transform: translateX(-50%);
+  animation: guestBubble 3s ease-out forwards;
+}
+
+/* Floating reactions over the main Rocky (from the host or visitors). */
+.floatReact {
+  position: absolute;
+  z-index: 6;
+  bottom: 60%;
+  font-size: 2rem;
+  pointer-events: none;
+  animation: floatReact 2.2s ease-out forwards;
+}
+
+@keyframes guestIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes guestHop {
+  30% {
+    transform: translateY(-16%) scale(1.03, 0.97);
+  }
+  60% {
+    transform: translateY(0) scale(0.97, 1.03);
+  }
+}
+
+@keyframes guestBubble {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.8);
+  }
+  10%,
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+}
+
+@keyframes floatReact {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120px) scale(1);
+  }
+}
+
+@keyframes pulseDot {
+  50% {
+    box-shadow: 0 0 0 5px rgba(31, 191, 104, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guest,
+  .guestBody,
+  .guestHop,
+  .guestBubble,
+  .floatReact,
+  .guestTag > i {
+    animation: none;
+  }
+}

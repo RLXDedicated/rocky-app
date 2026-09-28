@@ -7,6 +7,9 @@ import { Home } from "./components/Home";
 import { NavIcon, type NavIconName } from "./components/NavIcon";
 import { Friends } from "./components/Friends";
 import { Arcade } from "./components/Arcade";
+import { Chat } from "./components/chat/Chat";
+import { startChatBadge, useChatUnread } from "./components/chat/chatState";
+import { live, useLiveEvent } from "./services/liveClient";
 import { Leaderboard } from "./components/Leaderboard";
 import { Onboarding } from "./components/Onboarding";
 import { Progress } from "./components/Progress";
@@ -37,6 +40,7 @@ type View =
   | "progress"
   | "notes"
   | "arcade"
+  | "chat"
   | "friends"
   | "qa-simulator"
   | "admin"
@@ -74,6 +78,29 @@ function App() {
   const canUseAdmin = staff && isRemoteModeEnabled();
   const [qaModeSetting, setQaMode] = useState(() => isQaModeEnabled());
   const qaMode = qaModeSetting && canUseQaTools;
+  const [chatWith, setChatWith] = useState<string | null>(null);
+  const [arrival, setArrival] = useState<string | null>(null);
+  const unread = useChatUnread();
+
+  // The live channel (presence, live visits, chat) runs while signed in.
+  useEffect(() => {
+    if (!isRemoteModeEnabled() || needsLogin) return;
+    live.start();
+    startChatBadge();
+    return () => live.stop();
+  }, [needsLogin]);
+
+  useLiveEvent((e) => {
+    if (e.t === "visit.arrived") {
+      const name = (e.from as { name: string }).name;
+      setArrival(name);
+      window.setTimeout(() => setArrival((a) => (a === name ? null : a)), 9000);
+    }
+  });
+
+  useEffect(() => {
+    document.title = unread > 0 ? `(${unread}) Rocky` : "Rocky";
+  }, [unread]);
 
   useEffect(() => {
     if (!qaMode && view === "qa-simulator") setView("home");
@@ -131,6 +158,9 @@ function App() {
     { view: "home", label: "Rocky", icon: "home" },
     { view: "notes", label: "Note Check", icon: "note" },
     { view: "arcade", label: "Games", icon: "games" },
+    ...(isRemoteModeEnabled()
+      ? [{ view: "chat" as View, label: "Chat", icon: "chat" as NavIconName }]
+      : []),
     { view: "progress", label: "Progress", icon: "chart" },
     { view: "friends", label: "Friends", icon: "friends" },
     { view: "achievements", label: "Badges", icon: "medal" },
@@ -203,6 +233,7 @@ function App() {
             >
               <NavIcon name={item.icon} />
               <span>{item.label}</span>
+              {item.view === 'chat' && unread > 0 && <b className={styles.navBadge}>{unread > 99 ? '99+' : unread}</b>}
             </button>
           ))}
         </nav>
@@ -229,7 +260,17 @@ function App() {
         />
       )}
       {view === "progress" && <Progress />}
-      {view === "friends" && <Friends />}
+      {view === "friends" && (
+        <Friends
+          onChat={(id) => {
+            setChatWith(id);
+            setView("chat");
+          }}
+        />
+      )}
+      {view === "chat" && (
+        <Chat openWith={chatWith} onOpened={() => setChatWith(null)} />
+      )}
       {view === "arcade" && <Arcade onOpenNotes={() => setView("notes")} />}
       {view === "notes" && <NotesGame />}
       {view === "qa-simulator" && qaMode && <QASimulator />}
@@ -241,6 +282,21 @@ function App() {
       {view === "dev-controls" && import.meta.env.DEV && <DevControls />}
 
       <ReminderHost />
+
+      {arrival && view !== 'home' && (
+        <div className={styles.arrival} role="status">
+          <span>👋 {arrival} is visiting your Rocky right now!</span>
+          <button
+            type="button"
+            onClick={() => {
+              setArrival(null)
+              setView('home')
+            }}
+          >
+            Go home
+          </button>
+        </div>
+      )}
 
       {/* Unobtrusive corner toggle — not part of the agent's normal
           attention path, but always reachable for testers. */}

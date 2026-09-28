@@ -669,6 +669,12 @@ export function createPetApplicationService({
     getFriend(viewerId: string, key: string) {
       const agentId = this.resolveFriend(viewerId, key);
       if (!agentId) throw ApiError.notFound("That friend could not be found.");
+      return this.publicProfile(agentId);
+    },
+
+    /** An agent's Rocky as others see it (visits, live rooms). Never includes the email. */
+    publicProfile(agentId: string) {
+      const key = friendKey(agentId);
       const now = clock.now();
       const repo = persistence.repoStore.forAgent(agentId);
       const agent = repo.getAgent();

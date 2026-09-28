@@ -48,9 +48,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!res.ok) {
     // Surface the backend's own message (see backend/src/api/errors.ts) when there is one.
     let message = ''
+    let code = ''
     try {
-      const body = (await res.json()) as { error?: { message?: string } }
+      const body = (await res.json()) as { error?: { message?: string; code?: string } }
       message = body.error?.message ?? ''
+      code = body.error?.code ?? ''
     } catch {
       // non-JSON error body — keep the status-only message
     }
@@ -59,7 +61,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       throw new AuthRequiredError(message || 'Please sign in again.')
     }
     const error = new Error(message || `Rocky API ${init.method ?? 'GET'} ${path} failed with ${res.status}`)
-    ;(error as Error & { status?: number }).status = res.status
+    ;(error as Error & { status?: number; code?: string }).status = res.status
+    ;(error as Error & { status?: number; code?: string }).code = code
     throw error
   }
   // 204s and similar never occur on this API today, but guard anyway rather
@@ -322,6 +325,108 @@ function newIdempotencyKey(): string {
 // backend/src/types/dto.ts, which these responses match field-for-field.
 const post = (body: unknown = {}): RequestInit => ({ method: 'POST', body: JSON.stringify(body) })
 const agentPath = (agentId: string, rest = '') => `/api/admin/agents/${encodeURIComponent(agentId)}${rest}`
+
+/** The backend's origin, for the live WebSocket (null offline). */
+export function apiBaseUrl(): string | null {
+  return API_BASE_URL ?? null
+}
+
+// ---- Chat (mirrors backend chatApplicationService) ----
+export interface ChatPerson {
+  id: string
+  name: string
+  rockyName: string
+  stage: import('../types/domain').EvolutionStage
+  mood: import('../types/domain').Mood
+}
+export interface ChatChannel {
+  id: string
+  kind: 'general' | 'dm' | 'visit'
+  title: string
+  with: ChatPerson | null
+  unread: number
+  last: { name: string; body: string; at: string; mine: boolean } | null
+}
+export interface ChatMessage {
+  id: number
+  channel: string
+  from: string
+  name: string
+  mine: boolean
+  body: string
+  hidden: boolean
+  at: string
+}
+export interface ChatRules {
+  version: string
+  accepted: boolean
+  acceptedAt: string | null
+  retentionDays: number
+}
+export interface AdminChatChannel {
+  id: string
+  kind: 'general' | 'dm' | 'visit'
+  title: string
+  members: { email: string; name: string }[]
+  lastAt: string | null
+}
+export interface AdminChatMessage {
+  id: number
+  email: string
+  name: string
+  body: string
+  flagged: boolean
+  hidden: boolean
+  hiddenBy: string | null
+  at: string
+}
+export interface AdminChatReport {
+  id: number
+  reason: string | null
+  reporter: { email: string; name: string }
+  at: string
+  resolution: string | null
+  resolvedBy: string | null
+  message: { id: number; channel: string; email: string; name: string; body: string; hidden: boolean; at: string } | null
+}
+export interface ChatBackupStatus {
+  target: { local: boolean; bucket: boolean; encrypted: boolean }
+  last: { day: string; at: string; count: number; uploaded: boolean; encrypted: boolean; error?: string } | null
+  lastPurge: { at: string; removed: number } | null
+}
+
+const chatPath = (id: string) => `/api/chat/channels/${encodeURIComponent(id)}`
+
+export const chatApi = {
+  rules: () => request<ChatRules>('/api/chat/rules'),
+  acceptRules: (version: string) => request<ChatRules>('/api/chat/rules', post({ version })),
+  channels: () => request<{ channels: ChatChannel[]; mutedUntil: string | null }>('/api/chat/channels'),
+  openDirect: (friend: string) => request<ChatChannel>('/api/chat/direct', post({ friend })),
+  openVisit: (host: string | null) => request<ChatChannel>('/api/chat/visit', post({ host })),
+  messages: (id: string, opts: { before?: number; after?: number } = {}) => {
+    const q = new URLSearchParams()
+    if (opts.before !== undefined) q.set('before', String(opts.before))
+    if (opts.after !== undefined) q.set('after', String(opts.after))
+    return request<{ channel: string; messages: ChatMessage[]; more: boolean }>(`${chatPath(id)}/messages${q.size ? `?${q}` : ''}`)
+  },
+  send: (id: string, text: string, confirm = false) => request<ChatMessage>(`${chatPath(id)}/messages`, post({ text, confirm })),
+  markRead: (id: string, messageId: number) => request<{ ok: boolean }>(`${chatPath(id)}/read`, post({ id: messageId })),
+  report: (messageId: number, reason: string) => request<{ ok: boolean }>(`/api/chat/messages/${messageId}/report`, post({ reason })),
+
+  // Rocky admins only (quality-control copy; every read is audited).
+  adminChannels: () => request<{ channels: AdminChatChannel[] }>('/api/admin/chat/channels'),
+  adminRead: (id: string, before?: number) =>
+    request<{ channel: string; messages: AdminChatMessage[]; more: boolean }>(
+      `/api/admin/chat/channels/${encodeURIComponent(id)}${before !== undefined ? `?before=${before}` : ''}`,
+    ),
+  adminReports: (all = false) => request<{ reports: AdminChatReport[] }>(`/api/admin/chat/reports${all ? '?all=1' : ''}`),
+  adminResolve: (id: number, action: 'hide' | 'dismiss') => request<{ ok: boolean }>(`/api/admin/chat/reports/${id}`, post({ action })),
+  adminHide: (messageId: number) => request<{ ok: boolean }>(`/api/admin/chat/messages/${messageId}/hide`, post()),
+  adminMute: (email: string, hours: number, reason: string) => request<{ mutedUntil: string | null }>('/api/admin/chat/mute', post({ email, hours, reason })),
+  adminExport: (from: string, to: string) => request<{ from: string; to: string; exportedAt: string; messages: unknown[] }>(`/api/admin/chat/export?from=${from}&to=${to}`),
+  adminBackups: () => request<ChatBackupStatus>('/api/admin/chat/backups'),
+  adminBackupNow: (day: string) => request<{ count: number; uploaded: boolean; encrypted: boolean; file: string | null; error?: string }>('/api/admin/chat/backups', post({ day })),
+}
 
 export const apiClient = {
   // Sign-in (no identity needed).

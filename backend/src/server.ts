@@ -1,4 +1,6 @@
-import { createApp } from './app'
+import { createApp, type LiveContext } from './app'
+import { startChatJobs } from './application/chatJobs'
+import { attachLiveHub } from './infrastructure/live/liveHub'
 import { config } from './config/env'
 import { createPersistenceContext } from './infrastructure/persistenceContext'
 
@@ -7,6 +9,8 @@ process.env.TZ = config.timezone
 
 const persistence = createPersistenceContext(config)
 const app = createApp({ persistence })
+
+const live = app.locals.live as LiveContext
 
 const server = app.listen(config.port, () => {
   console.log(`[rocky-backend] listening on port ${config.port} (${config.nodeEnv})`)
@@ -26,8 +30,20 @@ const server = app.listen(config.port, () => {
   }
 })
 
+// Live channel (presence, live visits, chat pushes) on the same port.
+const hub = attachLiveHub(server, live, {
+  allowedOrigins: config.allowedOrigins,
+  acceptPilotEmail: config.authMode === 'pilot-header' && !config.requireLogin,
+})
+// Nightly chat housekeeping: 90-day retention and the daily backup.
+startChatJobs(live.jobs)
+const backup = live.jobs.status().target
+console.log(`[rocky-backend] live channel at /api/live; chat backups: volume ${backup.local ? 'on' : 'off'}, bucket ${backup.bucket ? 'on' : 'off'}, ${backup.encrypted ? 'encrypted' : 'NOT encrypted (set ROCKY_CHAT_BACKUP_KEY)'}`)
+
 function shutdown(): void {
   console.log('[rocky-backend] shutting down...')
+  hub.close()
+  live.jobs.stop()
   server.close(() => {
     persistence.close()
     process.exit(0)

@@ -6,6 +6,7 @@ export type NavIconName =
   | "note"
   | "friends"
   | "games"
+  | "chat"
   | "medal"
   | "podium"
   | "team"
@@ -16,6 +17,7 @@ export type NavIconName =
 
 const PATHS: Record<NavIconName, string> = {
   note: "M6 3h9l4 4v14H6zM15 3v4h4M9 12h7M9 16h5",
+  chat: "M4 5h16v11H9l-5 4zM8 9.5h8M8 12.5h5",
   games:
     "M6 9h12a4 4 0 0 1 4 4v1a3 3 0 0 1-5.4 1.8L15 14H9l-1.6 1.8A3 3 0 0 1 2 14v-1a4 4 0 0 1 4-4zM7 11.5v3M5.5 13h3M15.5 12.5h.01M17.5 14h.01",
   friends:

@@ -15,6 +15,9 @@ import { NameTag } from './pet/NameTag'
 import { type RockyReactionKey } from './rockyVisuals'
 import { Coin } from './world/Coin'
 import { RockyWorld } from './world/RockyWorld'
+import { useLiveRoom } from './live/useLiveRoom'
+import { LivePanel } from './chat/LivePanel'
+import { isRemoteModeEnabled } from '../services/apiClient'
 import { ShopPanel, type ShopTab } from './world/ShopPanel'
 import type { Outfit, ProgressFacts } from '../game/closet'
 import { canUse, coinBalance, refreshPetState, treatsAvailable, unreadInbox, type PetAction, type PetResult } from '../game/pet'
@@ -44,6 +47,9 @@ interface Props {
 /** The pet screen: Rocky's world is the whole page. Stats live in Progress, looks in the shop. */
 export function Home({ onOpenProgress, onOpenNotes }: Props) {
   const [agent, setAgent] = useState<Agent | null>(null)
+  // Live: friends visiting my Rocky right now appear in my world.
+  const [liveHome] = useState(() => (isRemoteModeEnabled() ? 'me' : null))
+  const room = useLiveRoom(liveHome)
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [isCheckingIn, setIsCheckingIn] = useState(false)
   const [reaction, setReaction] = useState<string | null>(null)
@@ -321,6 +327,9 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
     <div className={styles.page}>
       <div className={styles.layout}>
         <RockyWorld
+          guests={room.guests}
+          floatReacts={room.floatReacts}
+          onRockyMove={liveHome ? room.move : undefined}
           mood={mood}
           stage={gameState.evolutionStage}
           reaction={rockyReaction}
@@ -471,6 +480,9 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
             </button>
           }
         />
+        {liveHome && room.visitors.length > 0 && (
+          <LivePanel host="me" visitors={room.visitors} hostHere={false} onAct={(kind, emoji) => room.act(kind, emoji)} />
+        )}
       </div>
 
       <ShopPanel

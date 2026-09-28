@@ -7,6 +7,10 @@ import { gameService } from '../services/gameService'
 import { play as playSfx } from '../game/sfx'
 import { getRockyAsset } from './rockyVisuals'
 import { RockyWorld } from './world/RockyWorld'
+import type { Guest } from './world/GuestRocky'
+import { usePresence, type Presence } from '../services/liveClient'
+import { useLiveRoom } from './live/useLiveRoom'
+import { LivePanel } from './chat/LivePanel'
 import styles from './Friends.module.css'
 
 const FEELING: Record<FriendSummary['feeling'], string> = {
@@ -31,11 +35,19 @@ function lastSeen(at: string | null): string {
  * each friend a day earns a couple of coins; the friend's Rocky cheers up
  * and they see who came by.
  */
-export function Friends() {
+function presenceLine(p: Presence | null): string | null {
+  if (!p) return null
+  if (p.where === 'visiting') return `Online · visiting ${p.hostName ?? 'a friend'}`
+  if (p.where === 'home') return 'Online · at home with Rocky'
+  return 'Online now'
+}
+
+export function Friends({ onChat }: { onChat?: (friendId: string) => void } = {}) {
   const [friends, setFriends] = useState<FriendSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [visiting, setVisiting] = useState<FriendDetail | null>(null)
+  const presenceOf = usePresence()
 
   async function load() {
     try {
@@ -84,7 +96,11 @@ export function Friends() {
     )
   }
 
-  const shown = (friends ?? []).filter((f) => `${f.name} ${f.rockyName}`.toLowerCase().includes(query.trim().toLowerCase()))
+  const shown = (friends ?? [])
+    .filter((f) => `${f.name} ${f.rockyName}`.toLowerCase().includes(query.trim().toLowerCase()))
+    // Online teammates first.
+    .sort((a, b) => Number(!!presenceOf(b.id)) - Number(!!presenceOf(a.id)))
+  const onlineCount = (friends ?? []).filter((f) => presenceOf(f.id)).length
   return (
     <main className={styles.page}>
       <div className={styles.layout}>
@@ -93,7 +109,9 @@ export function Friends() {
             <h1 className={styles.title}>Friends</h1>
             <p className={styles.lede}>
               Every Rocky in the pilot. Visit a teammate’s Rocky: pet, wave or share a treat — your first visit to each friend today earns 2 coins.
+              If they’re online, you’ll see each other live.
             </p>
+            {onlineCount > 0 && <p className={styles.onlineNow}>● {onlineCount} online now</p>}
           </div>
           <input
             className={styles.search}
@@ -109,8 +127,11 @@ export function Friends() {
         {friends && friends.length === 0 && <p className={styles.lede}>No other Rockys yet — invite your teammates to sign in!</p>}
         <ul className={styles.grid}>
           {shown.map((f) => (
-            <li key={f.id} className={styles.card}>
-              <img src={getRockyAsset(f.stage, f.mood)} alt="" className={styles.avatar} />
+            <li key={f.id} className={`${styles.card} ${presenceOf(f.id) ? styles.cardOnline : ''}`}>
+              <span className={styles.avatarWrap}>
+                <img src={getRockyAsset(f.stage, f.mood)} alt="" className={styles.avatar} />
+                {presenceOf(f.id) && <i className={styles.onlineDot} aria-label="online" />}
+              </span>
               <div className={styles.info}>
                 <strong>{f.rockyName}</strong>
                 <span>{f.name}</span>
@@ -118,12 +139,19 @@ export function Friends() {
                   Level {f.level} · {f.stage} · 🔥 {f.streak}
                 </small>
                 <small className={styles.feeling} data-feeling={f.feeling}>
-                  {FEELING[f.feeling]} · {lastSeen(f.lastActiveAt)}
+                  {FEELING[f.feeling]} · {presenceLine(presenceOf(f.id)) ?? lastSeen(f.lastActiveAt)}
                 </small>
               </div>
-              <button type="button" className={styles.visit} onClick={() => void visit(f.id)}>
-                {f.visitedToday ? 'Visit again' : 'Visit'}
-              </button>
+              <div className={styles.cardActions}>
+                <button type="button" className={styles.visit} onClick={() => void visit(f.id)}>
+                  {presenceOf(f.id) ? 'Visit live' : f.visitedToday ? 'Visit again' : 'Visit'}
+                </button>
+                {onChat && (
+                  <button type="button" className={styles.chatBtn} onClick={() => onChat(f.id)} aria-label={`Chat with ${f.name}`}>
+                    💬
+                  </button>
+                )}
+              </div>
               {f.visitedToday && <span className={styles.visited}>✓ Visited today</span>}
             </li>
           ))}
@@ -140,6 +168,23 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
   const facts = buildProgressFacts(gameService.getSnapshot().gameState)
   const myTreats = treatsAvailable(mine.state, facts)
   const [sent, setSent] = useState<Set<string>>(new Set())
+  const room = useLiveRoom(friend.id)
+  const presenceOf = usePresence()
+  // My own Rocky walks in too (others see it the same way).
+  const self: Guest = {
+    id: 'me',
+    name: 'You',
+    rockyName: 'You',
+    stage: gameService.getSnapshot().gameState.evolutionStage,
+    mood: gameService.getSnapshot().gameState.mood,
+    outfit: mine.state.outfit,
+    x: 22,
+    hop: 0,
+  }
+  useEffect(() => {
+    const t = window.setTimeout(() => room.move(22), 800)
+    return () => window.clearTimeout(t)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function show(text: string) {
     setToast(text)
@@ -154,6 +199,7 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
       return false
     }
     setSent((s) => new Set(s).add(kind))
+    room.act(kind === 'treat' ? 'treat' : kind === 'wave' ? 'wave' : 'pet')
     void apiClient
       .visitFriend(friend.id, kind)
       .then((res) => {
@@ -191,6 +237,8 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
           treats={myTreats}
           needs={needs}
           visitor
+          guests={[self, ...room.guests]}
+          floatReacts={room.floatReacts}
           onPet={() => send('pet')}
           onFeed={() => send('treat')}
           onPlay={() => true}
@@ -204,6 +252,7 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
                 <strong>{friend.rockyName}</strong>
                 <span>
                   {friend.name} · Level {friend.level} {friend.stage} · 🔥 {friend.streak} · 🏅 {friend.badges}
+                  {room.hostHere ? ' · ● here live' : presenceOf(friend.id) ? ' · ● online' : ''}
                 </span>
               </div>
             </div>
@@ -227,6 +276,7 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
             </div>
           }
         />
+        <LivePanel host={friend.id} hostName={friend.name} visitors={room.visitors} hostHere={room.hostHere} onAct={(kind, emoji) => room.act(kind, emoji)} />
       </div>
     </main>
   )

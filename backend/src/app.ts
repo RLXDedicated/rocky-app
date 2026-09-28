@@ -25,6 +25,13 @@ import { createPetApplicationService } from './application/petApplicationService
 import { createAuthApplicationService } from './application/authApplicationService'
 import { createSessionIdentity } from './middleware/sessionIdentity'
 import { parseJsonBody } from './api/validation'
+import { createChatRouter } from './api/chatRoutes'
+import { createChatApplicationService, type ChatApplicationService } from './application/chatApplicationService'
+import { createChatJobs, type ChatJobs } from './application/chatJobs'
+import { createLiveBus, type LiveBus } from './application/liveBus'
+import { backupTargetFromEnv, type BackupTarget } from './infrastructure/chat/chatBackup'
+import type { PetApplicationService } from './application/petApplicationService'
+import type { AuthApplicationService } from './application/authApplicationService'
 import { todayKey, type Clock } from './domain/rockyEngine'
 
 // Reusing teamService/leaderboardService/reminderService UNCHANGED (see
@@ -40,6 +47,18 @@ export interface CreateAppOptions {
   persistence?: PersistenceContext
   /** Test-only: inject a config (e.g. to exercise authMode: 'pilot-header'). Defaults to the process's own `config`. */
   config?: AppConfig
+  /** Test-only: where chat backups go (defaults to the volume next to the database, plus the bucket if configured). */
+  backupTarget?: BackupTarget
+}
+
+/** What the live WebSocket hub (server.ts) needs from the app. */
+export interface LiveContext {
+  auth: AuthApplicationService
+  pet: PetApplicationService
+  chat: ChatApplicationService
+  bus: LiveBus
+  jobs: ChatJobs
+  persistence: PersistenceContext
 }
 
 export function createApp(options: CreateAppOptions = {}): Express {
@@ -77,6 +96,13 @@ export function createApp(options: CreateAppOptions = {}): Express {
   // behavior, which 401s every request when devIdentityEnabled is false.
   // A PIN sign-in session (Authorization: Bearer) always takes precedence.
   api.use(createSessionIdentity(auth, config.authMode === 'pilot-header' ? createPilotIdentity(config) : devIdentity, config.requireLogin))
+  const bus = createLiveBus()
+  const pet = createPetApplicationService({ persistence, clock: options.clock })
+  const chat = createChatApplicationService({ persistence, bus, clock: options.clock })
+  const jobs = createChatJobs(chat, options.backupTarget ?? backupTargetFromEnv(process.env, config.persistenceDriver === 'sqlite' ? config.dbPath : null), options.clock)
+  const live: LiveContext = { auth, pet, chat, bus, jobs, persistence }
+  app.locals.live = live
+  api.use(createChatRouter(chat, jobs))
   api.use(
     createApiRouter({
       game: createGameApplicationService({ persistence, clock: options.clock }),
@@ -85,7 +111,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
       leaderboard: createLeaderboardApplicationService({ persistence }),
       team: createTeamApplicationService({ persistence }),
       admin: createAdminApplicationService({ persistence, config, clock: options.clock }),
-      pet: createPetApplicationService({ persistence, clock: options.clock }),
+      pet,
       auth,
       clock: options.clock,
     }),

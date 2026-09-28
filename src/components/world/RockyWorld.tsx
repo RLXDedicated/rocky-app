@@ -67,6 +67,7 @@ import { ROCKY_RIG } from "../rockyRig";
 import { ROCKY_3D_MODELS, rocky3dEnabled } from "./rocky3dModels";
 import type { RockyClip } from "./rocky3dRuntime";
 import styles from "./World.module.css";
+import { GuestRocky, type Guest } from "./GuestRocky";
 
 type Pose = "idle" | "walk" | "run" | "pet" | "eat" | "hop" | "bath";
 
@@ -135,6 +136,12 @@ interface Props {
   onOpenPantry?: (tab: TrayTab) => void;
   /** Visiting a friend: no bag, no litter, no arranging. */
   visitor?: boolean;
+  /** Other agents' Rockys here live (visitors, or the host when you visit). */
+  guests?: Guest[];
+  /** Emoji reactions floating up from the main Rocky (sent live by others). */
+  floatReacts?: { id: number; emoji: string }[];
+  /** Called when Rocky walks somewhere (to mirror him to live visitors). */
+  onRockyMove?: (x: number) => void;
   /** Top overlay (name tag, level, shop). */
   hud: ReactNode;
   /** The primary action (check-in). */
@@ -308,8 +315,16 @@ export function RockyWorld({
   onLitter,
   onOpenPantry,
   visitor = false,
+  guests = [],
+  floatReacts = [],
+  onRockyMove,
 }: Props) {
   const [x, setX] = useState(50);
+  const onRockyMoveRef = useRef(onRockyMove);
+  onRockyMoveRef.current = onRockyMove;
+  useEffect(() => {
+    onRockyMoveRef.current?.(x);
+  }, [x]);
   const [pose, setPose] = useState<Pose>("idle");
   const [walkMs, setWalkMs] = useState(0);
   const [facingLeft, setFacingLeft] = useState(false);
@@ -1414,6 +1429,10 @@ export function RockyWorld({
           </div>
         )}
 
+        {guests.map((g) => (
+          <GuestRocky key={g.id} guest={g} size={Math.round(size * 0.78)} floor={floorPx} />
+        ))}
+
         <div
           ref={actorRef}
           className={`${styles.actor} ${held && held.what !== "litter" && held.over ? styles.actorTarget : ""}`}
@@ -1428,6 +1447,11 @@ export function RockyWorld({
           <p key={line} className={styles.speech} aria-live="polite">
             {line}
           </p>
+          {floatReacts.map((r, i) => (
+            <span key={r.id} className={styles.floatReact} style={{ left: `${30 + ((r.id * 37 + i * 11) % 40)}%` }} aria-hidden="true">
+              {r.emoji}
+            </span>
+          ))}
           <span
             className={styles.shadow}
             style={{ bottom: feetGap - 6 }}

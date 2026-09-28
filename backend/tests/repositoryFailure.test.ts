@@ -3,6 +3,7 @@ import request from 'supertest'
 import type { PersistenceContext } from '../src/infrastructure/persistenceContext'
 import { AGENT_HEADER, buildTestApp } from './testApp'
 import { InMemoryAccountStore } from '../src/infrastructure/accounts/InMemoryAccountStore'
+import { InMemoryChatStore } from '../src/infrastructure/chat/InMemoryChatStore'
 
 /** A persistence context whose repository always throws — simulates a durable-store outage. */
 function brokenPersistence(): PersistenceContext {
@@ -29,6 +30,7 @@ function brokenPersistence(): PersistenceContext {
       record: () => {},
     },
     accounts: new InMemoryAccountStore(),
+    chat: new InMemoryChatStore(),
     withTransaction<T>(fn: () => T): T {
       return fn()
     },

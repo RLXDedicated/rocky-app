@@ -183,3 +183,61 @@ export const MIGRATION_004_COLLECTION_WINDOWS = `
   ALTER TABLE catalog_overrides ADD COLUMN starts_on TEXT;
   ALTER TABLE catalog_overrides ADD COLUMN ends_on TEXT;
 `
+
+// Internal chat between agents (docs/REALTIME_CHAT_PLAN.md). Messages are
+// kept 90 days (purged nightly); Rocky admins keep a full copy for quality
+// control, and every admin read is written to audit_log.
+export const MIGRATION_005_CHAT = `
+  CREATE TABLE chat_channels (
+    channel_id TEXT PRIMARY KEY,
+    kind       TEXT NOT NULL,
+    title      TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE chat_members (
+    channel_id   TEXT NOT NULL,
+    agent_id     TEXT NOT NULL,
+    last_read_id INTEGER NOT NULL DEFAULT 0,
+    joined_at    TEXT NOT NULL,
+    PRIMARY KEY (channel_id, agent_id)
+  );
+  CREATE INDEX idx_chat_members_agent ON chat_members(agent_id);
+
+  CREATE TABLE chat_messages (
+    message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel_id TEXT NOT NULL,
+    author_id  TEXT NOT NULL,
+    body       TEXT NOT NULL,
+    flagged    INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    hidden_at  TEXT,
+    hidden_by  TEXT
+  );
+  CREATE INDEX idx_chat_messages_channel ON chat_messages(channel_id, message_id);
+  CREATE INDEX idx_chat_messages_created ON chat_messages(created_at);
+
+  CREATE TABLE chat_reports (
+    report_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id  INTEGER NOT NULL,
+    reporter_id TEXT NOT NULL,
+    reason      TEXT,
+    created_at  TEXT NOT NULL,
+    resolved_at TEXT,
+    resolved_by TEXT,
+    resolution  TEXT
+  );
+
+  CREATE TABLE chat_consents (
+    agent_id    TEXT PRIMARY KEY,
+    version     TEXT NOT NULL,
+    accepted_at TEXT NOT NULL
+  );
+
+  CREATE TABLE chat_mutes (
+    agent_id TEXT PRIMARY KEY,
+    until    TEXT NOT NULL,
+    muted_by TEXT NOT NULL,
+    reason   TEXT
+  );
+`

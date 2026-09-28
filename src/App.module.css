@@ -192,3 +192,52 @@
     bottom: 84px;
   }
 }
+
+.navBadge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e2445c;
+  color: #ffffff;
+  font-size: 0.7rem;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* "Someone is visiting your Rocky" — shown anywhere but Home. */
+.arrival {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 12px 10px 18px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 12px 30px rgba(15, 35, 65, 0.3);
+  transform: translateX(-50%);
+  animation: arrivalIn 0.4s ease-out;
+}
+
+.arrival button {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--green-bright);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@keyframes arrivalIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+}

@@ -6,6 +6,7 @@ import { BarList, ColumnChart, SERIES_ALERT, SERIES_GREEN } from './AdminCharts'
 import { AgentDrawer } from './AgentDrawer'
 import { AuditTab, EconomyTab, ShopTab } from './AdminEconomy'
 import { BulkTab } from './AdminBulk'
+import { ChatsTab } from './AdminChats'
 import {
   EVENT_TYPE_ES,
   MOOD_ES,
@@ -25,7 +26,7 @@ import {
 // same QA event endpoints an audit integration would use (never a direct
 // XP/Energy edit). See backend/src/application/adminApplicationService.ts.
 
-type Tab = 'overview' | 'agents' | 'bulk' | 'economy' | 'shop' | 'audit' | 'activity' | 'system'
+type Tab = 'overview' | 'agents' | 'bulk' | 'economy' | 'shop' | 'chats' | 'audit' | 'activity' | 'system'
 type SortKey = 'id' | 'level' | 'xp' | 'energy' | 'streak' | 'lastCheckIn' | 'checkIns' | 'qaPasses' | 'alerts'
 type Filter = 'all' | 'atRisk' | 'checkedIn' | 'notCheckedIn'
 
@@ -110,6 +111,7 @@ export function AdminConsole() {
               ['bulk', '⚡ Acciones masivas'],
               ['economy', 'Economía'],
               ['shop', 'Tienda'],
+              ['chats', '💬 Chats'],
               ['audit', 'Auditoría'],
               ['activity', 'Actividad'],
               ['system', 'Sistema'],
@@ -148,6 +150,7 @@ export function AdminConsole() {
         {tab === 'bulk' && <BulkTab agents={agents} onChanged={onChanged} onError={onError} />}
         {tab === 'economy' && <EconomyTab onOpen={setSelected} onError={onError} />}
         {tab === 'shop' && <ShopTab onChanged={onChanged} onError={onError} />}
+        {tab === 'chats' && <ChatsTab onChanged={onChanged} onError={onError} />}
         {tab === 'audit' && <AuditTab onOpen={setSelected} onError={onError} />}
       </div>
 

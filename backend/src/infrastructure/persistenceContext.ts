@@ -14,12 +14,17 @@ import { SqliteRepositoryStore } from './persistence/sqliteRepository'
 import type { AccountStore } from './accounts/AccountStore'
 import { InMemoryAccountStore } from './accounts/InMemoryAccountStore'
 import { SqliteAccountStore } from './accounts/SqliteAccountStore'
+import type { ChatStore } from './chat/ChatStore'
+import { InMemoryChatStore } from './chat/InMemoryChatStore'
+import { SqliteChatStore } from './chat/SqliteChatStore'
 
 export interface PersistenceContext {
   repoStore: RepositoryStore
   idempotency: IdempotencyPort
   /** Pet, coin ledger, audit trail, shop edits, PIN credentials and sessions. */
   accounts: AccountStore
+  /** Internal chat: channels, messages, reports, consents and mutes. */
+  chat: ChatStore
   /** One atomic unit of work spanning both the repository and idempotency writes — see RepositoryStore.withTransaction. */
   withTransaction<T>(fn: () => T): T
   /** Releases the underlying resource (a no-op for the in-memory driver; closes the SQLite connection otherwise). Call on graceful shutdown and always in tests. */
@@ -34,6 +39,7 @@ export function createPersistenceContext(config: Pick<AppConfig, 'persistenceDri
       repoStore: store,
       idempotency,
       accounts: new SqliteAccountStore(store.connection),
+      chat: new SqliteChatStore(store.connection),
       withTransaction: (fn) => store.withTransaction(fn),
       close: () => store.close(),
     }
@@ -45,6 +51,7 @@ export function createPersistenceContext(config: Pick<AppConfig, 'persistenceDri
     repoStore: store,
     idempotency,
     accounts: new InMemoryAccountStore(),
+    chat: new InMemoryChatStore(),
     withTransaction: (fn) => store.withTransaction(fn),
     close: () => {},
   }
