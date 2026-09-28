@@ -1,8 +1,9 @@
 // Small stroke icons for the app navigation. Inline SVG so they inherit
 // `currentColor` and need no icon library.
-export type NavIconName = 'home' | 'medal' | 'podium' | 'team' | 'teams' | 'admin' | 'flask' | 'wrench'
+export type NavIconName = 'home' | 'chart' | 'medal' | 'podium' | 'team' | 'teams' | 'admin' | 'flask' | 'wrench'
 
 const PATHS: Record<NavIconName, string> = {
+  chart: 'M4 20h16M7 16v-4M12 16V7M17 16v-7M5 9l4-3 4 3 6-5',
   home: 'M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z',
   medal: 'M8 3h8l-2 6h-4zM12 21a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM12 13.2l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 15.3l2-.3z',
   podium: 'M9 9h6v12H9zM3 13h6v8H3zM15 15h6v6h-6zM12 3l.9 1.8 2 .3-1.45 1.4.35 2L12 7.55 10.2 8.5l.35-2L9.1 5.1l2-.3z',

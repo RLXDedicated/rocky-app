@@ -2,8 +2,8 @@
 // much simpler). The approved artwork is drawn on a 32x32 grid mesh that the
 // vertex shader bends: the head (above the neck line) rotates, bobs and
 // turns around the neck pivot with a smooth blend into the body, and the
-// chest breathes. Eyelids in the fur colour close over each open eye for
-// blinks. The art itself is never cut, redrawn or edited — no seams.
+// chest breathes. The art itself is never cut, redrawn or painted over — no
+// seams, no fake eyelids: the face always stays exactly as it was drawn.
 import type { RockyRigPoints } from '../rockyRig'
 
 export interface RigPose {
@@ -16,8 +16,6 @@ export interface RigPose {
   turn: number
   /** 0..1 breathing phase amplitude. */
   breath: number
-  /** 0 open .. 1 fully closed. */
-  blink: number
 }
 
 /** Extra canvas margin around the 512 art square, so a tilted head never clips. */
@@ -58,38 +56,9 @@ void main() {
 const FRAG = `
 precision mediump float;
 uniform sampler2D uTex;
-uniform vec4 uEye0;
-uniform vec4 uEye1;
-uniform float uBlink;
-uniform vec3 uLid;
 varying vec2 vUv;
-
-vec4 lid(vec4 c, vec4 eye) {
-  if (eye.z <= 0.0 || uBlink <= 0.001) return c;
-  vec2 d = (vUv - eye.xy) / eye.z;
-  d.y *= 1.1;
-  // Soft edge so the lid melts into the surrounding fur.
-  float inside = 1.0 - smoothstep(0.78, 1.04, length(d));
-  if (inside <= 0.0) return c;
-  // The lid comes down from the top; its edge is an arc (lower in the
-  // middle), and when fully closed it rests as a smile-shaped lash line.
-  float edge = -1.1 + 2.0 * uBlink + 0.32 * d.x * d.x * uBlink;
-  float covered = 1.0 - smoothstep(edge - 0.04, edge + 0.04, d.y);
-  // The lid is the art's own skin just above the eye, stretched down — it
-  // carries the real fur tone and shading instead of a flat colour.
-  vec4 skin = texture2D(uTex, vec2(vUv.x, eye.y - eye.z * 1.18));
-  vec3 lidCol = mix(uLid * skin.a, skin.rgb, 0.85) * (0.97 - 0.1 * clamp(d.y - edge + 0.4, 0.0, 1.0));
-  float lash = (1.0 - smoothstep(0.02, 0.1, abs(d.y - edge))) * smoothstep(0.08, 0.3, uBlink) * (1.0 - smoothstep(0.55, 0.85, abs(d.x)));
-  vec3 col = mix(c.rgb, lidCol * c.a, covered * inside);
-  col = mix(col, vec3(0.2, 0.1, 0.06) * c.a, lash * 0.85);
-  return vec4(col, c.a);
-}
-
 void main() {
-  vec4 c = texture2D(uTex, vUv);
-  c = lid(c, uEye0);
-  c = lid(c, uEye1);
-  gl_FragColor = c;
+  gl_FragColor = texture2D(uTex, vUv);
 }
 `
 
@@ -148,10 +117,6 @@ export function createRigRenderer(canvas: HTMLCanvasElement): RigRenderer | null
     turn: u('uTurn'),
     breath: u('uBreath'),
     margin: u('uMargin'),
-    eye0: u('uEye0'),
-    eye1: u('uEye1'),
-    blink: u('uBlink'),
-    lid: u('uLid'),
   }
   gl.uniform1f(loc.margin, RIG_MARGIN)
 
@@ -175,10 +140,6 @@ export function createRigRenderer(canvas: HTMLCanvasElement): RigRenderer | null
       gl.uniform2f(loc.pivot, rig.pivot.x, rig.pivot.y)
       gl.uniform1f(loc.neck, rig.neck)
       gl.uniform1f(loc.chest, rig.chest)
-      const [e0, e1] = rig.eyes
-      gl.uniform4f(loc.eye0, e0?.x ?? 0, e0?.y ?? 0, e0?.r ?? 0, 0)
-      gl.uniform4f(loc.eye1, e1?.x ?? 0, e1?.y ?? 0, e1?.r ?? 0, 0)
-      gl.uniform3f(loc.lid, rig.lid[0], rig.lid[1], rig.lid[2])
       ready = true
     },
     draw(pose) {
@@ -190,7 +151,6 @@ export function createRigRenderer(canvas: HTMLCanvasElement): RigRenderer | null
       gl.uniform2f(loc.head, pose.headX, pose.headY)
       gl.uniform1f(loc.turn, pose.turn)
       gl.uniform1f(loc.breath, pose.breath)
-      gl.uniform1f(loc.blink, pose.blink)
       gl.drawArrays(gl.TRIANGLES, 0, verts.length / 2)
     },
     resize(px) {

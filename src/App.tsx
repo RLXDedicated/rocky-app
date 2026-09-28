@@ -7,6 +7,7 @@ import { Home } from './components/Home'
 import { NavIcon, type NavIconName } from './components/NavIcon'
 import { Leaderboard } from './components/Leaderboard'
 import { Onboarding } from './components/Onboarding'
+import { Progress } from './components/Progress'
 import { QASimulator } from './components/QASimulator'
 import { ReminderHost } from './components/ReminderHost'
 import { TeamLeaderboard } from './components/TeamLeaderboard'
@@ -16,7 +17,7 @@ import { isQaModeEnabled, setQaModeEnabled } from './services/appModeService'
 import { isQaStaff } from './services/identityService'
 import { hasCompletedOnboarding } from './services/onboardingService'
 
-type View = 'home' | 'qa-simulator' | 'admin' | 'achievements' | 'leaderboard' | 'team' | 'team-leaderboard' | 'dev-controls'
+type View = 'home' | 'progress' | 'qa-simulator' | 'admin' | 'achievements' | 'leaderboard' | 'team' | 'team-leaderboard' | 'dev-controls'
 
 // Agent Mode (the everyday experience) vs QA Mode (Phase 8 §23-24): QA
 // Simulator is an internal testing tool, not part of what an agent normally
@@ -53,6 +54,7 @@ function App() {
 
   const navItems: { view: View; label: string; icon: NavIconName; internal?: boolean }[] = [
     { view: 'home', label: 'Rocky', icon: 'home' },
+    { view: 'progress', label: 'Progress', icon: 'chart' },
     { view: 'achievements', label: 'Badges', icon: 'medal' },
     { view: 'leaderboard', label: 'Ranking', icon: 'podium' },
     { view: 'team', label: 'My team', icon: 'team' },
@@ -85,7 +87,8 @@ function App() {
         </nav>
       </header>
 
-      {view === 'home' && <Home />}
+      {view === 'home' && <Home onOpenProgress={() => setView('progress')} />}
+      {view === 'progress' && <Progress />}
       {view === 'qa-simulator' && qaMode && <QASimulator />}
       {view === 'admin' && canUseAdmin && <AdminConsole />}
       {view === 'achievements' && <Achievements />}

@@ -109,21 +109,26 @@ describe('calculateStreak', () => {
 })
 
 describe('calculateMood', () => {
-  it('streak 0 -> Worried', () => {
+  it('new agent (streak 0, no alerts) -> Motivated, never Worried by default', () => {
     expect(calculateMood({ energy: 80, currentStreak: 0, lastAlertAt: null, lastPositiveActionAt: null })).toBe(
-      'Worried',
+      'Motivated',
     )
   })
 
-  it('streak 1 + energy 75 -> Worried (habit still forming)', () => {
+  it('streak 1-2 with healthy energy -> Motivated (habit still forming, no problem)', () => {
     expect(calculateMood({ energy: 75, currentStreak: 1, lastAlertAt: null, lastPositiveActionAt: null })).toBe(
-      'Worried',
+      'Motivated',
+    )
+    expect(calculateMood({ energy: 80, currentStreak: 2, lastAlertAt: null, lastPositiveActionAt: null })).toBe(
+      'Motivated',
     )
   })
 
-  it('streak 2 + energy 80 -> Worried (habit still forming)', () => {
-    expect(calculateMood({ energy: 80, currentStreak: 2, lastAlertAt: null, lastPositiveActionAt: null })).toBe(
-      'Worried',
+  it('an unanswered alert stops worrying Rocky once the alert window passes', () => {
+    const alertAt = new Date('2026-09-01T09:00:00').toISOString()
+    const now = new Date('2026-09-05T09:00:00')
+    expect(calculateMood({ energy: 60, currentStreak: 0, lastAlertAt: alertAt, lastPositiveActionAt: null }, now)).toBe(
+      'Motivated',
     )
   })
 

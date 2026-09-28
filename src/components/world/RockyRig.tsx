@@ -30,23 +30,10 @@ const PERSONALITY: Record<Mood, { breath: number; sway: number; speed: number; d
 }
 
 const DEG = Math.PI / 180
-// A blink peaks just short of fully shut (reads cleanly at blink speed);
-// the "content" squint while being petted is a softer half-close.
-const BLINK_PEAK = 0.85
-const CONTENT_SQUINT = 0.62
-
-function blinkCurve(ms: number): number {
-  // close in 70 ms, hold 30 ms, open in 90 ms
-  if (ms < 0) return 0
-  if (ms < 70) return ms / 70
-  if (ms < 100) return 1
-  if (ms < 190) return 1 - (ms - 100) / 90
-  return 0
-}
 
 /**
  * The 2.5D animated Rocky: the approved artwork, gently deformed on a mesh
- * so he breathes, blinks, sways his head, looks toward the pointer and
+ * so he breathes, sways his head, looks toward the pointer and
  * reacts to care — instead of a stiff image hopping around. Falls back to
  * the plain image (onFail) without WebGL.
  */
@@ -54,7 +41,7 @@ export function RockyRig({ src, rig, size, mood, action, animate, hatRef, onRead
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<RigRenderer | null>(null)
   const state = useRef({ mood, action, actionSince: 0, rig, size })
-  const lastPose = useRef<RigPose>({ headAngle: 0, headX: 0, headY: PERSONALITY[mood].drop, turn: 0, breath: 0.5, blink: 0 })
+  const lastPose = useRef<RigPose>({ headAngle: 0, headX: 0, headY: PERSONALITY[mood].drop, turn: 0, breath: 0.5 })
   const failRef = useRef(onFail)
   const readyRef = useRef(onReady)
   const animateRef = useRef(animate)
@@ -115,7 +102,7 @@ export function RockyRig({ src, rig, size, mood, action, animate, hatRef, onRead
         r.setImage(img, rig)
         // Reduced motion never runs the loop — draw one relaxed still frame.
         if (!animateRef.current) {
-          lastPose.current = { headAngle: 0, headX: 0, headY: PERSONALITY[state.current.mood].drop, turn: 0, breath: 0.5, blink: 0 }
+          lastPose.current = { headAngle: 0, headX: 0, headY: PERSONALITY[state.current.mood].drop, turn: 0, breath: 0.5 }
           r.draw(lastPose.current)
         }
         readyRef.current()
@@ -139,9 +126,6 @@ export function RockyRig({ src, rig, size, mood, action, animate, hatRef, onRead
     let raf = 0
     let turn = 0
     let lookY = 0
-    let nextBlink = performance.now() + 1200
-    let blinkAt = -1e9
-    let doubleBlink = false
     const start = performance.now()
 
     const frame = () => {
@@ -164,14 +148,6 @@ export function RockyRig({ src, rig, size, mood, action, animate, hatRef, onRead
         turn += (targetTurn - turn) * 0.06
         lookY += (targetLookY - lookY) * 0.06
 
-        // Blinks at natural, slightly random intervals; sometimes a double blink.
-        if (now >= nextBlink) {
-          blinkAt = now
-          doubleBlink = Math.random() < 0.2
-          nextBlink = now + 2400 + Math.random() * 3200
-        }
-        let blink = Math.max(blinkCurve(now - blinkAt), doubleBlink ? blinkCurve(now - blinkAt - 260) : 0) * BLINK_PEAK
-
         const breathWave = Math.sin((t * 2 * Math.PI) / p.breath)
         const pose: RigPose = {
           headAngle: (Math.sin(t * p.speed) * p.sway + turn * 2.5) * DEG,
@@ -179,22 +155,20 @@ export function RockyRig({ src, rig, size, mood, action, animate, hatRef, onRead
           headY: p.drop - breathWave * p.bob + lookY * 0.004,
           turn,
           breath: 0.5 + 0.5 * breathWave,
-          blink: 0,
         }
 
         switch (s.action) {
           case 'pet': {
-            // Eyes close happily and the head leans into the scratch.
+            // The head leans into the scratch and nuzzles back up.
             const k = Math.min(1, since / 180) * (since < 900 ? 1 : 0)
-            blink = Math.max(blink, k * CONTENT_SQUINT)
             pose.headAngle += Math.sin(Math.min(1, since / 700) * Math.PI) * 8 * DEG
             pose.headY -= 0.005 * k
             break
           }
           case 'eat':
             // Chewing nods.
-            pose.headY += 0.007 * Math.abs(Math.sin(since / 1000 * 13))
-            pose.headAngle += Math.sin(since / 1000 * 6.5) * 1.5 * DEG
+            pose.headY += 0.007 * Math.abs(Math.sin((since / 1000) * 13))
+            pose.headAngle += Math.sin((since / 1000) * 6.5) * 1.5 * DEG
             break
           case 'walk':
             pose.headAngle += Math.sin(t * 9) * 2.5 * DEG
@@ -205,8 +179,6 @@ export function RockyRig({ src, rig, size, mood, action, animate, hatRef, onRead
             pose.headY += Math.sin(Math.min(1, since / 550) * Math.PI * 2) * 0.008
             break
         }
-        pose.blink = s.rig.eyes.length ? blink : 0
-
         r.draw(pose)
         lastPose.current = pose
 

@@ -36,20 +36,46 @@ WebGL mesh-deformation rig (`src/components/world/RockyRig.tsx` +
 `rigRenderer.ts`), Live2D-style: no cutting, no redrawing.
 
 - Head sways, bobs and turns toward the pointer, bending smoothly at the
-  neck; the chest breathes; eyelids made from the art's own skin blink at
-  natural intervals (sometimes a double blink).
+  neck; the chest breathes. The face is never painted over — the earlier
+  fake eyelids were removed because they cheapened the approved art. Real
+  blinks need layered art (option B).
 - Personality per mood (Happy lively, Worried slower with the head low,
   Recovery slow deep breaths), plus reactions: content squint and head lean
   when petted, chewing nods when eating, head bob when walking.
 - Closet hats follow the head every frame.
-- Rig points per artwork (neck, pivot, chest, eyes, lid colour) are measured
-  by `tools/build-rocky-rig.py` → `src/components/rockyRig.ts`; eyes on
-  artworks whose eyes are already closed/heavy-lidded don't blink.
+- Rig points per artwork (neck, pivot, chest, feet) are measured by
+  `tools/build-rocky-rig.py` → `src/components/rockyRig.ts`.
 - Falls back to the still image without WebGL; reduced motion shows a
   still frame.
 
 To swap in new art (e.g. high-res exports of Visual Canon v2), replace the
 PNGs and re-run the tool; check `eyecheck`-style overlays for the eyes.
+
+## Mood: calm by default
+
+Rocky's default mood is **Motivated** (calm, ready). He is only **Worried**
+for a concrete reason: energy under 40, or a QA alert with no check-in or
+QA pass since (for up to 72 h, `GAME_CONFIG.mood.unansweredAlertHours`). A
+new agent or a short streak is not a reason to worry. Happy still needs
+energy 70+ and a 7-day streak; Recovery is unchanged.
+
+## Coins and Rocky's shop
+
+The pet screen is only Rocky's world. Stats, goals, evolution and the diary
+moved to the **Progress** tab; looks moved to **Rocky's shop** (side panel,
+so Rocky stays visible while trying things on).
+
+- Coins are earned only by real work (`src/game/economy.ts`): check-in 10,
+  clean QA audit 25, badge 40, each level 30, each full streak week 50.
+  The earned total is recomputed from progress; only purchases are stored,
+  so the balance can't be inflated by editing a number.
+- Shop items (`src/game/closet.ts`) are unlocked by progress, then bought:
+  hats, places (incl. Sunset route), decor, ambience (falling leaves,
+  fireflies, confetti) and treat bags (+3 treats).
+- Coins never change XP, Energy, Streak or Mood.
+- Today the wallet lives in the browser per agent. Next step: move it to
+  the backend (`GET/POST /api/wallet`) so purchases follow the agent across
+  PCs and admins can see coin activity.
 
 ## 3D Rocky — preview (Baby stage)
 

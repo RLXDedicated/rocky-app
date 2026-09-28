@@ -13,6 +13,12 @@
 }
 
 /* HUD over the world */
+.hudRight {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
 .levelCard {
   position: relative;
   min-width: 220px;
@@ -42,12 +48,6 @@
   color: var(--text-on-dark-muted);
 }
 
-.dressUp {
-  color: var(--sprout);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
 .xpTrack {
   margin: 10px 0 6px;
   height: 10px;
@@ -65,7 +65,7 @@
 }
 
 .xpText {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-on-dark-muted);
 }
 
@@ -130,252 +130,94 @@
   box-shadow: 0 6px 20px rgba(15, 35, 65, 0.1);
 }
 
-/* Needs — the three meters a pet owner watches. */
-.needs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.need,
-.panel {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-md);
-  padding: 20px 22px;
-  min-width: 0;
-}
-
-.needHead {
+.stats {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.needHead h2,
-.panelTitle {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--navy);
-}
-
-.needValue {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.9rem;
-  line-height: 1;
-}
-
-.needValue small {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  font-family: var(--font-body);
-}
-
-.streakValue span[aria-hidden] {
-  font-size: 1.3rem;
-}
-
-.needNote {
-  margin: 12px 0 0;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.cells {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 4px;
-}
-
-.cell {
-  height: 18px;
-  border-radius: 5px;
-  background: var(--track-bg);
-}
-
-.cellOn {
-  background: var(--rlx-green);
-}
-
-.cellLow {
-  background: var(--alert);
-}
-
-.week {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-}
-
-.day {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-}
-
-.dayDot {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px dashed #c9d6c8;
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: var(--navy);
-}
-
-.dayDone .dayDot {
+  gap: 12px;
+  width: 100%;
+  margin-top: 2px;
+  padding: 0;
   border: none;
-  background: var(--rlx-green);
-  color: #fff;
-}
-
-.dayToday .dayDot {
-  border-color: var(--rlx-green);
-  border-style: solid;
-}
-
-.dayToday.dayDone .dayDot {
-  box-shadow: 0 0 0 3px var(--mint);
-}
-
-.dayLabel {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-
-.dayToday .dayLabel {
+  background: none;
+  color: var(--text-on-dark);
+  font: inherit;
+  font-size: 0.82rem;
   font-weight: 700;
-  color: var(--navy);
+  cursor: pointer;
 }
 
-.moodChip {
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 0.9rem;
+.statLow {
+  color: #ffb4a8;
 }
 
-.moodHappy {
-  background: #dff3e4;
-  color: #155b33;
+.statMore {
+  margin-left: auto;
+  color: var(--sprout);
+  font-weight: 600;
 }
 
-.moodMotivated {
-  background: #e3effa;
-  color: #1d4f7a;
+.stats:hover .statMore {
+  text-decoration: underline;
 }
 
-.moodWorried {
-  background: #fdf0d8;
-  color: var(--gold-ink);
-}
-
-.moodRecovery {
-  background: #efe6f7;
-  color: #5b3a80;
-}
-
-.moodGuide {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--text-strong);
-}
-
-.split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.panelTitle {
-  margin-bottom: 14px;
-}
-
-.panelNote {
-  margin: 14px 0 0;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.goals {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
+.shopButton {
+  position: relative;
+  display: inline-flex;
   flex-direction: column;
-}
-
-.goals li {
-  display: grid;
-  grid-template-columns: 26px 1fr auto;
   align-items: center;
-  gap: 12px;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--divider);
-  font-size: 0.95rem;
+  gap: 2px;
+  min-width: 72px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 18px;
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(15, 35, 65, 0.16);
+  transition: transform 0.15s ease;
 }
 
-.goals li:last-child {
-  border-bottom: none;
+.shopButton:hover {
+  transform: translateY(-2px);
 }
 
-.goalCheck {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  border: 2px solid #c9d6c8;
-  color: #fff;
-  font-size: 0.8rem;
+.shopButton b {
+  font-size: 1rem;
   font-weight: 800;
-}
-
-.goalDone .goalCheck {
-  background: var(--rlx-green);
-  border-color: var(--rlx-green);
-}
-
-.goalDone .goalText {
-  color: var(--text-muted);
-}
-
-.goalReward {
-  font-size: 0.8rem;
-  font-weight: 700;
   color: var(--gold-ink);
-  white-space: nowrap;
 }
 
-.goalDone .goalReward {
+.shopButton > span:not(.coinBurst) {
+  font-size: 0.72rem;
+  font-weight: 700;
   color: var(--rlx-green);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-@media (max-width: 900px) {
-  .needs {
-    grid-template-columns: 1fr;
-  }
-
-  .split {
-    grid-template-columns: 1fr;
-  }
+.coinBurst {
+  position: absolute;
+  top: -12px;
+  right: -6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--navy);
+  font-weight: 800;
+  font-size: 0.85rem;
+  animation: burst 2s ease-out forwards;
 }
 
 @media (max-width: 640px) {
+  .hudRight {
+    align-items: stretch;
+  }
+
+  .hudRight .levelCard {
+    flex: 1;
+  }
+
   .levelCard {
     min-width: 0;
     padding: 10px 14px;
@@ -390,16 +232,3 @@
   }
 }
 
-@media (max-width: 420px) {
-  .page {
-    padding: 16px 12px 48px;
-  }
-
-  .goals li {
-    grid-template-columns: 26px 1fr;
-  }
-
-  .goalReward {
-    grid-column: 2;
-  }
-}

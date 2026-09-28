@@ -4,6 +4,7 @@ import type { Outfit } from '../../game/closet'
 import { ROCKY_HEAD_ANCHORS } from '../rockyAnchors'
 import { getReactionAsset, getRockyAsset, ROCKY_VISUALS, type RockyReactionKey } from '../rockyVisuals'
 import { DECOR_ART, HAT_ART, SceneArt, hatPlacement } from './art'
+import { FxLayer } from './FxLayer'
 import { Rocky3D, type ClipRequest } from './Rocky3D'
 import { RockyRig, type RigAction } from './RockyRig'
 import { ROCKY_RIG } from '../rockyRig'
@@ -237,7 +238,7 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, hear
   }
 
   // Rocky's size follows the world's height.
-  const size = Math.round(Math.min(300, Math.max(170, worldH * 0.62)))
+  const size = Math.round(Math.min(340, Math.max(170, worldH * 0.6)))
   const anchor = ROCKY_HEAD_ANCHORS[stage][mood]
   const src = reaction ? getReactionAsset(reaction) : getRockyAsset(stage, mood)
   const equippedHat = outfit.hat ? HAT_ART[outfit.hat] : undefined
@@ -254,8 +255,9 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, hear
 
       <div className={styles.stage} ref={worldRef}>
         <div className={styles.scene}>
-          <SceneArt id={outfit.scene} />
+          <SceneArt id={outfit.scene} live={!prefersReducedMotion()} />
         </div>
+        <div className={styles.spotlight} aria-hidden="true" />
 
         {outfit.decor.map((id) => {
           const d = DECOR_ART[id]
@@ -356,6 +358,9 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, hear
             {p.kind === 'heart' ? '❤' : ''}
           </span>
         ))}
+
+        <FxLayer id={outfit.fx} />
+        <div className={styles.vignette} aria-hidden="true" />
       </div>
 
       <div className={styles.dock}>

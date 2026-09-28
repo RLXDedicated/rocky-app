@@ -64,7 +64,7 @@ export function calculateMood(
   state: Pick<GameState, 'energy' | 'currentStreak' | 'lastAlertAt' | 'lastPositiveActionAt'>,
   now: Date = new Date(),
 ): Mood {
-  const { recoveryWindowHours, happyEnergyThreshold, happyStreakThreshold, motivatedEnergyThreshold, motivatedStreakThreshold, worriedEnergyThreshold } =
+  const { recoveryWindowHours, happyEnergyThreshold, happyStreakThreshold, motivatedEnergyThreshold, worriedEnergyThreshold, unansweredAlertHours } =
     GAME_CONFIG.mood
 
   // Recovery: there was a recent alert, AND a positive action (Check-in or QA
@@ -80,16 +80,22 @@ export function calculateMood(
     }
   }
 
-  if (state.energy < worriedEnergyThreshold || state.currentStreak === 0) return 'Worried'
+  // Worried only has specific causes — Rocky is never sad by default:
+  //   1. Energy has run low (repeated alerts / neglect), or
+  //   2. a QA alert is still unanswered: no Check-in or QA Pass since it,
+  //      within the alert window.
+  if (state.energy < worriedEnergyThreshold) return 'Worried'
+  if (state.lastAlertAt) {
+    const alertAt = new Date(state.lastAlertAt).getTime()
+    const positiveAt = state.lastPositiveActionAt ? new Date(state.lastPositiveActionAt).getTime() : -Infinity
+    const hoursSinceAlert = (now.getTime() - alertAt) / (1000 * 60 * 60)
+    if (positiveAt < alertAt && hoursSinceAlert < unansweredAlertHours) return 'Worried'
+  }
   if (state.energy >= happyEnergyThreshold && state.currentStreak >= happyStreakThreshold) return 'Happy'
-  if (state.energy >= motivatedEnergyThreshold && state.currentStreak >= motivatedStreakThreshold) return 'Motivated'
 
-  // Undefined zone per spec: energy is fine but the streak (1-2 days) hasn't
-  // built up enough to call it "Motivated" yet. Documented decision: resolve
-  // to 'Worried', framed encouragingly in copy ("early days, keep going")
-  // rather than reporting full motivation before a habit is established.
-  // This keeps Mood honest about progress without ever being punitive.
-  return 'Worried'
+  // Everything else is Rocky's calm, ready default ("Motivated"): a new
+  // agent, a streak that's still building, or a day off without problems.
+  return 'Motivated'
 }
 
 export function evaluateEvolution(level: number, previousStage: EvolutionStage): EvolutionStage {
@@ -278,11 +284,7 @@ export function processCheckIn(
   agentId: string = DEFAULT_AGENT_ID,
 ): CheckInResult {
   const today = todayKey(now)
-  const { currentStreak, alreadyCheckedInToday } = calculateStreak(
-    state.currentStreak,
-    state.lastCheckInDate,
-    today,
-  )
+  const { currentStreak, alreadyCheckedInToday } = calculateStreak(state.currentStreak, state.lastCheckInDate, today)
 
   if (alreadyCheckedInToday) {
     return { state, events: [], newAchievements: [], alreadyCheckedInToday: true, leveledUp: false, evolved: false }
@@ -453,9 +455,7 @@ export function processDocumentationAlert(
 ): DocumentationAlertResult {
   const today = todayKey(now)
   const correctionMap = buildCorrectionMap(events)
-  const effectiveAlertsToday = events.filter(
-    (e) => e.date === today && e.agentId === agentId && isEffectiveAlert(e, correctionMap),
-  ).length
+  const effectiveAlertsToday = events.filter((e) => e.date === today && e.agentId === agentId && isEffectiveAlert(e, correctionMap)).length
   const energyLoss = energyLossForNextAlert(effectiveAlertsToday)
 
   const nextState = applyAlertEffect(state, now, energyLoss)
@@ -487,12 +487,7 @@ export interface DevXpGrantResult {
  * XP (XP is permanent, even from a dev tool), and never touches Streak,
  * Energy, or Achievements.
  */
-export function processDevXpGrant(
-  state: GameState,
-  xpFloor: number,
-  now: Date = new Date(),
-  agentId: string = DEFAULT_AGENT_ID,
-): DevXpGrantResult {
+export function processDevXpGrant(state: GameState, xpFloor: number, now: Date = new Date(), agentId: string = DEFAULT_AGENT_ID): DevXpGrantResult {
   const xp = Math.max(state.xp, xpFloor)
   const level = calculateLevel(xp)
   const evolutionStage = evaluateEvolution(level, state.evolutionStage)

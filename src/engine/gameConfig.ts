@@ -40,8 +40,9 @@ export const GAME_CONFIG = {
     happyEnergyThreshold: 70,
     happyStreakThreshold: 7,
     motivatedEnergyThreshold: 40,
-    motivatedStreakThreshold: 3,
     worriedEnergyThreshold: 40,
+    /** Hours an unanswered QA alert keeps Rocky Worried (until a Check-in or QA Pass). */
+    unansweredAlertHours: 72,
   },
   levels: {
     thresholds: LEVEL_THRESHOLDS,

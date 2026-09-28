@@ -290,34 +290,122 @@ function House({ x, y, roof = '#d9695f' }: { x: number; y: number; roof?: string
   )
 }
 
-function RouteScene({ night = false }: { night?: boolean }) {
-  const sky = night ? NAVY : '#f2f6f8'
-  const ground = night ? '#16305a' : '#ffffff'
-  const road = night ? '#243f6b' : '#e8ecef'
+type TimeOfDay = 'day' | 'sunset' | 'night'
+
+const ROUTE_PALETTE: Record<
+  TimeOfDay,
+  { sky: [string, string]; far: string; mid: string; ground: [string, string]; road: string; line: string; glow: string }
+> = {
+  day: {
+    sky: ['#bfe3f6', '#f3fbf6'],
+    far: '#cfe8dc',
+    mid: '#a9dcb9',
+    ground: ['#e9f6ec', '#ffffff'],
+    road: '#e3e8ec',
+    line: '#ffffff',
+    glow: '#fff7d6',
+  },
+  sunset: {
+    sky: ['#ff9f7a', '#ffe0b8'],
+    far: '#e9a98f',
+    mid: '#c98f86',
+    ground: ['#f6dcc8', '#fff4ea'],
+    road: '#ecd2c2',
+    line: '#fff6ec',
+    glow: '#ffd08a',
+  },
+  night: {
+    sky: ['#0b1a33', '#1b3358'],
+    far: '#1d3a63',
+    mid: '#17325a',
+    ground: ['#16305a', '#1c3a68'],
+    road: '#243f6b',
+    line: '#f5b82e',
+    glow: '#f7e9b8',
+  },
+}
+
+function Cloud({ x, y, s = 1, opacity = 0.9 }: { x: number; y: number; s?: number; opacity?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`} opacity={opacity}>
+      <ellipse cx="0" cy="0" rx="46" ry="16" fill="#ffffff" />
+      <circle cx="-16" cy="-8" r="18" fill="#ffffff" />
+      <circle cx="12" cy="-14" r="22" fill="#ffffff" />
+      <circle cx="34" cy="-4" r="14" fill="#ffffff" />
+    </g>
+  )
+}
+
+function RouteScene({ time = 'day', live = false }: { time?: TimeOfDay; live?: boolean }) {
+  const c = ROUTE_PALETTE[time]
+  const night = time === 'night'
+  const id = `route-${time}`
   return (
     <>
-      <rect width="1000" height="400" fill={sky} />
-      {night && (
+      <defs>
+        <linearGradient id={`${id}-sky`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={c.sky[0]} />
+          <stop offset="1" stopColor={c.sky[1]} />
+        </linearGradient>
+        <linearGradient id={`${id}-ground`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={c.ground[0]} />
+          <stop offset="1" stopColor={c.ground[1]} />
+        </linearGradient>
+        <radialGradient id={`${id}-sun`}>
+          <stop offset="0" stopColor={c.glow} stopOpacity="0.9" />
+          <stop offset="1" stopColor={c.glow} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="1000" height="400" fill={`url(#${id}-sky)`} />
+      {/* Sun / moon with a soft halo. */}
+      <circle cx={time === 'sunset' ? 760 : 840} cy={time === 'sunset' ? 170 : 70} r="110" fill={`url(#${id}-sun)`} />
+      {night ? (
         <>
           <circle cx="840" cy="70" r="30" fill="#f7e9b8" />
-          <circle cx="828" cy="62" r="30" fill={NAVY} />
-          {[80, 190, 300, 420, 560, 660, 760, 930].map((x, i) => (
-            <circle key={x} cx={x} cy={40 + ((i * 37) % 90)} r={i % 3 === 0 ? 2.5 : 1.6} fill="#ffffff" opacity="0.8" />
+          <circle cx="828" cy="62" r="30" fill="#0f2341" />
+          {[80, 190, 300, 420, 560, 660, 760, 930, 130, 500, 700].map((x, i) => (
+            <circle
+              key={i}
+              cx={x}
+              cy={30 + ((i * 37) % 110)}
+              r={i % 3 === 0 ? 2.4 : 1.4}
+              fill="#ffffff"
+              opacity={0.5 + (i % 3) * 0.2}
+              className={live ? 'rocky-twinkle' : undefined}
+              style={{ animationDelay: `${i * 0.37}s` }}
+            />
           ))}
         </>
+      ) : (
+        <circle
+          cx={time === 'sunset' ? 760 : 840}
+          cy={time === 'sunset' ? 170 : 70}
+          r={time === 'sunset' ? 40 : 28}
+          fill={time === 'sunset' ? '#ffcf73' : '#fff4c9'}
+        />
       )}
-      <path d="M0 250 C200 230 380 270 520 250 C700 225 850 250 1000 238 L1000 400 L0 400 Z" fill={ground} />
+      {!night && (
+        <g className={live ? 'rocky-drift' : undefined}>
+          <Cloud x={160} y={70} s={1.1} />
+          <Cloud x={520} y={46} s={0.8} opacity={0.75} />
+          <Cloud x={1080} y={90} s={0.9} opacity={0.8} />
+        </g>
+      )}
+      {/* Far and mid hills for depth. */}
+      <path d="M0 210 C120 170 240 190 360 176 C500 160 600 200 720 182 C840 166 930 184 1000 176 L1000 400 L0 400 Z" fill={c.far} />
+      <path d="M0 240 C160 214 300 236 460 222 C620 208 760 236 1000 214 L1000 400 L0 400 Z" fill={c.mid} opacity="0.8" />
+      <path d="M0 258 C200 238 380 276 520 258 C700 234 850 258 1000 246 L1000 400 L0 400 Z" fill={`url(#${id}-ground)`} />
       {/* The winding RLX route. */}
       <path
         d="M-20 380 C160 330 240 250 420 262 C600 274 640 180 820 170 C920 164 980 190 1040 176"
-        stroke={road}
+        stroke={c.road}
         strokeWidth="54"
         fill="none"
         strokeLinecap="round"
       />
       <path
         d="M-20 380 C160 330 240 250 420 262 C600 274 640 180 820 170 C920 164 980 190 1040 176"
-        stroke={night ? '#f5b82e' : '#ffffff'}
+        stroke={c.line}
         strokeWidth="3"
         strokeDasharray="14 14"
         fill="none"
@@ -336,6 +424,18 @@ function RouteScene({ night = false }: { night?: boolean }) {
         <circle r="16" fill={WHITE} />
         <circle r="8" fill={GREEN} />
       </g>
+      {/* Grass tufts along the floor Rocky walks on. */}
+      {[40, 170, 260, 610, 700, 930].map((x, i) => (
+        <path
+          key={x}
+          d={`M${x} 352 q4 -14 8 0 q4 -10 8 0`}
+          stroke={night ? '#2f5a8a' : '#7cc48f'}
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          opacity={0.7 - (i % 2) * 0.2}
+        />
+      ))}
       {night &&
         [150, 450, 750].map((x) => (
           <g key={x} transform={`translate(${x} 200)`}>
@@ -383,11 +483,12 @@ function WarehouseScene() {
       <path d="M500 0 L500 30" stroke={NAVY2} strokeWidth="3" />
       <path d="M470 30 L530 30 L520 44 L480 44 Z" fill={NAVY} />
       <path d="M480 44 L380 200 L620 200 L520 44 Z" fill="#fff6d6" opacity="0.35" />
+      <ellipse cx="500" cy="352" rx="260" ry="26" fill="#fff6d6" opacity="0.5" />
     </>
   )
 }
 
-function BallparkScene() {
+function BallparkScene({ live = false }: { live?: boolean }) {
   return (
     <>
       <defs>
@@ -398,6 +499,10 @@ function BallparkScene() {
       </defs>
       <rect width="1000" height="400" fill="url(#bp-sky)" />
       <circle cx="140" cy="70" r="36" fill="#fff4c9" />
+      <g className={live ? 'rocky-drift' : undefined}>
+        <Cloud x={420} y={50} s={0.7} opacity={0.8} />
+        <Cloud x={820} y={36} s={0.9} opacity={0.85} />
+      </g>
       {/* Stands */}
       <path d="M0 120 L1000 90 L1000 220 L0 230 Z" fill={NAVY2} />
       {Array.from({ length: 5 }, (_, row) => (
@@ -421,18 +526,75 @@ function BallparkScene() {
   )
 }
 
-export function SceneArt({ id }: { id: string }) {
+export function SceneArt({ id, live = false }: { id: string; live?: boolean }) {
   return (
     <svg viewBox="0 0 1000 400" preserveAspectRatio="xMidYMax slice" width="100%" height="100%" aria-hidden="true">
       {id === 'scene-warehouse' ? (
         <WarehouseScene />
       ) : id === 'scene-ballpark' ? (
-        <BallparkScene />
+        <BallparkScene live={live} />
       ) : id === 'scene-night' ? (
-        <RouteScene night />
+        <RouteScene time="night" live={live} />
+      ) : id === 'scene-sunset' ? (
+        <RouteScene time="sunset" live={live} />
       ) : (
-        <RouteScene />
+        <RouteScene live={live} />
       )}
     </svg>
   )
+}
+
+// ---------------------------------------------------------------------------
+// Ambience previews for the shop (the live effect is FxLayer in RockyWorld).
+// ---------------------------------------------------------------------------
+export const FX_ART: Record<string, ReactElement> = {
+  'fx-leaves': (
+    <>
+      {[
+        [20, 20, 20],
+        [60, 14, -30],
+        [40, 44, 60],
+        [78, 50, 10],
+      ].map(([x, y, r], i) => (
+        <path
+          key={i}
+          d="M0 0 C6 -8 14 -6 16 0 C10 6 4 6 0 0 Z"
+          fill={i % 2 ? '#e8963a' : '#f5b82e'}
+          transform={`translate(${x} ${y}) rotate(${r}) scale(1.2)`}
+        />
+      ))}
+    </>
+  ),
+  'fx-fireflies': (
+    <>
+      {[
+        [22, 30],
+        [50, 18],
+        [70, 42],
+        [36, 56],
+        [84, 22],
+      ].map(([x, y], i) => (
+        <g key={i}>
+          <circle cx={x} cy={y} r="7" fill="#fff3a6" opacity="0.25" />
+          <circle cx={x} cy={y} r="2.6" fill="#fff6c2" />
+        </g>
+      ))}
+    </>
+  ),
+  'fx-confetti': (
+    <>
+      {Array.from({ length: 14 }, (_, i) => (
+        <rect
+          key={i}
+          x={8 + ((i * 29) % 84)}
+          y={8 + ((i * 17) % 58)}
+          width="6"
+          height="3"
+          rx="1"
+          fill={[GREEN2, GOLD, WHITE, '#e2445c'][i % 4]}
+          transform={`rotate(${i * 37} ${11 + ((i * 29) % 84)} ${9 + ((i * 17) % 58)})`}
+        />
+      ))}
+    </>
+  ),
 }

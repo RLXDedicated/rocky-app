@@ -8,8 +8,6 @@ export interface RockyRigPoints {
   chest: number
   feet: number
   top: number
-  eyes: { x: number; y: number; r: number }[]
-  lid: [number, number, number]
 }
 
 export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
@@ -17,56 +15,22 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
     "Happy": {
       "neck": 0.4629,
       "pivot": {
-        "x": 0.5424,
+        "x": 0.544,
         "y": 0.4512
       },
       "chest": 0.5958,
       "feet": 0.9375,
-      "top": 0.0586,
-      "eyes": [
-        {
-          "x": 0.4637,
-          "y": 0.2865,
-          "r": 0.0429
-        },
-        {
-          "x": 0.6211,
-          "y": 0.295,
-          "r": 0.0429
-        }
-      ],
-      "lid": [
-        0.727,
-        0.28,
-        0.115
-      ]
+      "top": 0.0586
     },
     "Motivated": {
       "neck": 0.4707,
       "pivot": {
-        "x": 0.542,
+        "x": 0.544,
         "y": 0.459
       },
       "chest": 0.6014,
       "feet": 0.9375,
-      "top": 0.0586,
-      "eyes": [
-        {
-          "x": 0.4647,
-          "y": 0.2869,
-          "r": 0.0423
-        },
-        {
-          "x": 0.6193,
-          "y": 0.3054,
-          "r": 0.0423
-        }
-      ],
-      "lid": [
-        0.659,
-        0.24,
-        0.099
-      ]
+      "top": 0.0586
     },
     "Recovery": {
       "neck": 0.4551,
@@ -76,40 +40,17 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       },
       "chest": 0.5721,
       "feet": 0.873,
-      "top": 0.1211,
-      "eyes": [],
-      "lid": [
-        0.55,
-        0.32,
-        0.18
-      ]
+      "top": 0.1211
     },
     "Worried": {
       "neck": 0.4688,
       "pivot": {
-        "x": 0.5306,
+        "x": 0.5323,
         "y": 0.457
       },
       "chest": 0.6011,
       "feet": 0.9414,
-      "top": 0.0625,
-      "eyes": [
-        {
-          "x": 0.4545,
-          "y": 0.2923,
-          "r": 0.0448
-        },
-        {
-          "x": 0.6066,
-          "y": 0.3041,
-          "r": 0.0448
-        }
-      ],
-      "lid": [
-        0.605,
-        0.251,
-        0.109
-      ]
+      "top": 0.0625
     }
   },
   "Baby": {
@@ -121,51 +62,17 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       },
       "chest": 0.6759,
       "feet": 0.9375,
-      "top": 0.0586,
-      "eyes": [
-        {
-          "x": 0.4492,
-          "y": 0.3633,
-          "r": 0.0547
-        },
-        {
-          "x": 0.6328,
-          "y": 0.3555,
-          "r": 0.0547
-        }
-      ],
-      "lid": [
-        0.489,
-        0.227,
-        0.119
-      ]
+      "top": 0.0586
     },
     "Motivated": {
       "neck": 0.5098,
       "pivot": {
-        "x": 0.5405,
+        "x": 0.5417,
         "y": 0.498
       },
       "chest": 0.6295,
       "feet": 0.9375,
-      "top": 0.0586,
-      "eyes": [
-        {
-          "x": 0.4508,
-          "y": 0.333,
-          "r": 0.0468
-        },
-        {
-          "x": 0.6302,
-          "y": 0.3335,
-          "r": 0.0468
-        }
-      ],
-      "lid": [
-        0.523,
-        0.235,
-        0.107
-      ]
+      "top": 0.0586
     },
     "Recovery": {
       "neck": 0.5508,
@@ -175,96 +82,39 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       },
       "chest": 0.6591,
       "feet": 0.9375,
-      "top": 0.0586,
-      "eyes": [],
-      "lid": [
-        0.55,
-        0.32,
-        0.18
-      ]
+      "top": 0.0586
     },
     "Worried": {
       "neck": 0.5645,
       "pivot": {
-        "x": 0.5367,
+        "x": 0.5352,
         "y": 0.5527
       },
       "chest": 0.6689,
       "feet": 0.9375,
-      "top": 0.0586,
-      "eyes": [
-        {
-          "x": 0.4417,
-          "y": 0.3675,
-          "r": 0.0471
-        },
-        {
-          "x": 0.6318,
-          "y": 0.362,
-          "r": 0.0471
-        }
-      ],
-      "lid": [
-        0.46,
-        0.224,
-        0.101
-      ]
+      "top": 0.0586
     }
   },
   "Elite": {
     "Happy": {
       "neck": 0.4414,
       "pivot": {
-        "x": 0.5581,
+        "x": 0.5584,
         "y": 0.4297
       },
       "chest": 0.5803,
       "feet": 0.9375,
-      "top": 0.0586,
-      "eyes": [
-        {
-          "x": 0.4889,
-          "y": 0.2716,
-          "r": 0.0428
-        },
-        {
-          "x": 0.6273,
-          "y": 0.2742,
-          "r": 0.0428
-        }
-      ],
-      "lid": [
-        0.688,
-        0.314,
-        0.175
-      ]
+      "top": 0.0586
     },
     "Motivated": {
       "neck": 0.4414,
       "pivot": {
-        "x": 0.5614,
+        "x": 0.5599,
         "y": 0.4297
       },
       "chest": 0.5803,
       "feet": 0.9375,
-      "top": 0.0586,
-      "eyes": [
-        {
-          "x": 0.4889,
-          "y": 0.2677,
-          "r": 0.0437
-        },
-        {
-          "x": 0.6338,
-          "y": 0.2657,
-          "r": 0.0437
-        }
-      ],
-      "lid": [
-        0.775,
-        0.303,
-        0.143
-      ]
+      "top": 0.0586
     },
     "Recovery": {
       "neck": 0.4121,
@@ -274,40 +124,17 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       },
       "chest": 0.5516,
       "feet": 0.9102,
-      "top": 0.0605,
-      "eyes": [],
-      "lid": [
-        0.55,
-        0.32,
-        0.18
-      ]
+      "top": 0.0605
     },
     "Worried": {
       "neck": 0.4336,
       "pivot": {
-        "x": 0.5318,
+        "x": 0.5307,
         "y": 0.4219
       },
       "chest": 0.5747,
       "feet": 0.9375,
-      "top": 0.0586,
-      "eyes": [
-        {
-          "x": 0.4626,
-          "y": 0.2672,
-          "r": 0.0341
-        },
-        {
-          "x": 0.6009,
-          "y": 0.2835,
-          "r": 0.0341
-        }
-      ],
-      "lid": [
-        0.575,
-        0.257,
-        0.135
-      ]
+      "top": 0.0586
     }
   },
   "Young": {
@@ -319,24 +146,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       },
       "chest": 0.6245,
       "feet": 0.8594,
-      "top": 0.2109,
-      "eyes": [
-        {
-          "x": 0.4961,
-          "y": 0.4238,
-          "r": 0.0332
-        },
-        {
-          "x": 0.5977,
-          "y": 0.4238,
-          "r": 0.0332
-        }
-      ],
-      "lid": [
-        0.698,
-        0.436,
-        0.273
-      ]
+      "top": 0.2109
     },
     "Motivated": {
       "neck": 0.4883,
@@ -346,24 +156,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       },
       "chest": 0.6152,
       "feet": 0.9414,
-      "top": 0.0605,
-      "eyes": [
-        {
-          "x": 0.4414,
-          "y": 0.3184,
-          "r": 0.0469
-        },
-        {
-          "x": 0.5957,
-          "y": 0.3164,
-          "r": 0.0469
-        }
-      ],
-      "lid": [
-        0.625,
-        0.234,
-        0.103
-      ]
+      "top": 0.0605
     },
     "Recovery": {
       "neck": 0.5586,
@@ -373,13 +166,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       },
       "chest": 0.6455,
       "feet": 0.8691,
-      "top": 0.2441,
-      "eyes": [],
-      "lid": [
-        0.55,
-        0.32,
-        0.18
-      ]
+      "top": 0.2441
     },
     "Worried": {
       "neck": 0.5488,
@@ -389,24 +176,7 @@ export const ROCKY_RIG: Record<EvolutionStage, Record<Mood, RockyRigPoints>> = {
       },
       "chest": 0.6571,
       "feet": 0.9355,
-      "top": 0.0605,
-      "eyes": [
-        {
-          "x": 0.4277,
-          "y": 0.3496,
-          "r": 0.0508
-        },
-        {
-          "x": 0.582,
-          "y": 0.3496,
-          "r": 0.0508
-        }
-      ],
-      "lid": [
-        0.515,
-        0.219,
-        0.093
-      ]
+      "top": 0.0605
     }
   }
 }

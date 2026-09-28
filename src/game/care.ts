@@ -49,8 +49,9 @@ export function treatsEarned(checkIns: number, qaPasses: number): number {
   return checkIns + qaPasses * 2
 }
 
-export function treatsAvailable(state: CareState, checkIns: number, qaPasses: number): number {
-  return Math.max(0, treatsEarned(checkIns, qaPasses) - state.treatsUsed)
+/** `bonus` = treats bought with Coins (treat bags). */
+export function treatsAvailable(state: CareState, checkIns: number, qaPasses: number, bonus = 0): number {
+  return Math.max(0, treatsEarned(checkIns, qaPasses) + bonus - state.treatsUsed)
 }
 
 export function pet(state: CareState): CareState {
