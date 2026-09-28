@@ -1,7 +1,9 @@
 # Rocky en vivo: visitas en tiempo real, chat interno e infraestructura
 
-Análisis y propuesta (septiembre 2026). Nada de esto está construido todavía;
-es el plan para decidir alcance y orden.
+Análisis y propuesta (septiembre 2026). **Estado: construido** (pasos 1, 2,
+3 y el backup; la pelota compartida y el chat fase 2 quedan pendientes).
+El texto de uso aceptable fue aprobado por RLX el 2026-09-28. Ver
+"Cómo quedó construido" al final.
 
 ## 1. Lo que existe hoy
 
@@ -202,3 +204,65 @@ servidor, plan ni base de datos. Recomendaciones de bajo costo:
 Decidido: retención de 90 días; los supervisores no leen chats; los admins
 tienen copia completa con backup. Antes del paso 3 solo falta que
 Legal/RRHH de RLX apruebe el texto de uso aceptable.
+
+## 6. Cómo quedó construido
+
+### Para los agentes
+- **Pestaña Chat** (con contador de no leídos en la barra y en el título de
+  la pestaña): canal **General** para todo el piloto, conversaciones **1 a 1**
+  ("+ New chat" o el botón 💬 en Friends) y los chats de las visitas.
+- **Reglas**: antes del primer mensaje el agente lee el texto aprobado y
+  pulsa "I understand and agree". Queda registrado quién aceptó y cuándo
+  (`chat.rules.accepted` en Auditoría). Si el texto cambia, se sube
+  `RULES_VERSION` y todos aceptan de nuevo.
+- **Datos de clientes**: si un mensaje parece tener un correo, teléfono,
+  número de pedido o dirección, no se envía y aparece un aviso. El agente
+  puede editarlo o confirmar que no es un dato de cliente; en ese caso el
+  mensaje queda marcado ⚠️ para los admins.
+- Límite de 20 mensajes por minuto. Cualquier mensaje se puede reportar (⚑).
+- **Presencia**: en Friends aparece un punto verde y "Online · at home" o
+  "visiting Ana"; los conectados salen primero y el botón dice "Visit live".
+- **Visita en vivo**: el Rocky del visitante (con su ropa, alas y sombrero)
+  aparece en el mundo del anfitrión y viceversa, con su nombre y un punto
+  "live". Debajo hay un panel con quién está, reacciones (❤️ 😂 👏 🎉 👋 😮
+  🔥 ⭐), Wave / Dance / Cheer y el chat de esa casa. Si el anfitrión está en
+  otra parte de la app, le aparece "👋 Luis is visiting your Rocky right
+  now!" con un botón para ir a casa.
+
+### Para los admins (pestaña Admin → 💬 Chats)
+- **Reportes**: pendientes y resueltos, con el mensaje, quién reportó y el
+  motivo; ocultar o descartar.
+- **Conversaciones**: todas (General, 1 a 1 y visitas), con participantes y
+  correos; ocultar mensajes. **Cada lectura queda en Auditoría**
+  (`chat.admin.read`).
+- **Pausar el chat** de un agente (1 hora a 7 días) y levantar la pausa.
+- **Exportar** un rango de fechas a JSON (incluye ocultos y marcados;
+  queda en Auditoría).
+- **Backup**: estado de la copia en el volumen, en el bucket y el cifrado;
+  botón "Hacer backup de hoy ahora".
+- Los supervisores no tienen acceso: todo esto exige rol ADMIN
+  (`ROCKY_ADMIN_EMAILS`).
+
+### Técnico
+- WebSocket en `/api/live` del mismo servicio de Railway
+  (`backend/src/infrastructure/live/liveHub.ts`). Entra con el token de la
+  sesión PIN o, mientras el piloto use enlaces sin PIN
+  (`ROCKY_AUTH_MODE=pilot-header` sin `ROCKY_REQUIRE_LOGIN`), con la misma
+  dirección que ya usa la API. Latido cada 30 s y reconexión automática en
+  el navegador (1 s, 2 s, 4 s… hasta 30 s).
+- Chat: migración 005 (`chat_channels`, `chat_members`, `chat_messages`,
+  `chat_reports`, `chat_consents`, `chat_mutes`),
+  `backend/src/application/chatApplicationService.ts` y
+  `backend/src/api/chatRoutes.ts`.
+- **Retención**: cada noche se borran los mensajes de más de 90 días
+  (`chat.retention.purge` en Auditoría).
+- **Backup diario** (`backend/src/infrastructure/chat/chatBackup.ts`): los
+  mensajes del día anterior, cifrados con AES-256-GCM, en
+  `/data/chat-backups/` y en un bucket de Railway (copia fuera del servidor).
+  Variables: `ROCKY_CHAT_BACKUP_KEY` y `ROCKY_BACKUP_S3_ENDPOINT`, `_BUCKET`,
+  `_REGION`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`. Para abrir un backup:
+  `ROCKY_CHAT_BACKUP_KEY=<clave> node tools/decrypt-chat-backup.mjs chat-AAAA-MM-DD.enc.json`.
+  La clave está en las variables del servicio en Railway; sin ella los
+  backups no se pueden leer, así que no hay que borrarla ni cambiarla.
+- Pendiente: pelota compartida en la visita, notificaciones del navegador,
+  canales por equipo, menciones y stickers (chat fase 2).

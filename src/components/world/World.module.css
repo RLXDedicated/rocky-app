@@ -2673,8 +2673,9 @@
 
 .guestTag {
   position: absolute;
+  z-index: 4;
   left: 50%;
-  bottom: -26px;
+  top: -2%;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -2701,7 +2702,7 @@
   position: absolute;
   z-index: 5;
   left: 50%;
-  top: -6%;
+  top: -20%;
   max-width: 180px;
   margin: 0;
   padding: 6px 12px;

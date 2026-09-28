@@ -104,9 +104,9 @@
   font-size: 0.78rem;
 }
 
-.feeling[data-feeling='sad'],
-.feeling[data-feeling='dirty'],
-.feeling[data-feeling='unwell'] {
+.feeling[data-feeling="sad"],
+.feeling[data-feeling="dirty"],
+.feeling[data-feeling="unwell"] {
   color: #b45309;
   font-weight: 600;
 }
