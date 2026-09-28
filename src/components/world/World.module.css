@@ -485,3 +485,15 @@
   transform-origin: 50% 100%;
   will-change: left, top, transform;
 }
+
+/* 2.5D animated rig: the canvas is a little larger than Rocky's box so a
+   tilted head never clips; it breathes on its own, so the CSS breathe is off
+   (pose animations — squish, chomp, hop, waddle — still apply). */
+.rigCanvas {
+  position: absolute;
+  pointer-events: none;
+}
+
+.bodyRig {
+  animation: none;
+}

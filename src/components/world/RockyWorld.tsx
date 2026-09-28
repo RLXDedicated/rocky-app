@@ -5,6 +5,8 @@ import { ROCKY_HEAD_ANCHORS } from '../rockyAnchors'
 import { getReactionAsset, getRockyAsset, ROCKY_VISUALS, type RockyReactionKey } from '../rockyVisuals'
 import { DECOR_ART, HAT_ART, SceneArt, hatPlacement } from './art'
 import { Rocky3D, type ClipRequest } from './Rocky3D'
+import { RockyRig, type RigAction } from './RockyRig'
+import { ROCKY_RIG } from '../rockyRig'
 import { ROCKY_3D_MODELS, rocky3dEnabled } from './rocky3dModels'
 import type { RockyClip } from './rocky3dRuntime'
 import styles from './World.module.css'
@@ -87,6 +89,9 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, hear
   const is3d = mode3d === 'ready'
   const is3dRef = useRef(false)
   is3dRef.current = is3d
+  // 2.5D animated rig (the default): 'loading' until the art is on the canvas.
+  const [rigMode, setRigMode] = useState<'loading' | 'ready' | 'off'>(() => (import.meta.env.MODE === 'test' ? 'off' : 'loading'))
+  const hatRef = useRef<SVGSVGElement>(null)
 
   // Evolving into a stage with (or without) a 3D model switches renderer.
   // Only on a real change: on mount this must not undo a failure Rocky3D
@@ -296,7 +301,7 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, hear
           <span className={styles.shadow} style={{ bottom: feetGap - 6 }} aria-hidden="true" />
           <button
             type="button"
-            className={`${styles.body} ${is3d ? styles.body3d : (styles[`pose-${pose}`] ?? '')}`}
+            className={`${styles.body} ${is3d ? styles.body3d : (styles[`pose-${pose}`] ?? '')} ${!is3d && rigMode === 'ready' && pose === 'idle' ? styles.bodyRig : ''}`}
             onClick={handlePet}
             aria-label={`Pet ${ROCKY_VISUALS[stage].label}`}
           >
@@ -314,9 +319,22 @@ export function RockyWorld({ mood, stage, reaction, outfit, speech, treats, hear
                   onFail={() => setMode3d('off')}
                 />
               )}
-              {!is3d && <img key={src} src={src} alt="" className={styles.art} draggable={false} />}
+              {!is3d && !reaction && rigMode !== 'off' && (
+                <RockyRig
+                  src={src}
+                  rig={ROCKY_RIG[stage][mood]}
+                  size={size}
+                  mood={mood}
+                  action={pose as RigAction}
+                  animate={!prefersReducedMotion()}
+                  hatRef={hatRef}
+                  onReady={() => setRigMode('ready')}
+                  onFail={() => setRigMode('off')}
+                />
+              )}
+              {!is3d && (reaction || rigMode !== 'ready') && <img key={src} src={src} alt="" className={styles.art} draggable={false} />}
               {!is3d && hat && hatBox && (
-                <svg className={styles.hat} viewBox="0 0 100 60" style={hatBox} aria-hidden="true">
+                <svg ref={hatRef} className={styles.hat} viewBox="0 0 100 60" style={hatBox} aria-hidden="true">
                   {hat.svg}
                 </svg>
               )}

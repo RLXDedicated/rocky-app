@@ -29,7 +29,29 @@ mirror the RLX logo on the vest), can't change pose beyond the 22 drawn
 images, and clothes can only go on the head (the torso and arms change shape
 between artworks).
 
-## 3D Rocky — what's live (Baby stage)
+## 2.5D animated Rocky — live (all stages)
+
+The default Rocky is the approved 2.5D artwork brought to life by a small
+WebGL mesh-deformation rig (`src/components/world/RockyRig.tsx` +
+`rigRenderer.ts`), Live2D-style: no cutting, no redrawing.
+
+- Head sways, bobs and turns toward the pointer, bending smoothly at the
+  neck; the chest breathes; eyelids made from the art's own skin blink at
+  natural intervals (sometimes a double blink).
+- Personality per mood (Happy lively, Worried slower with the head low,
+  Recovery slow deep breaths), plus reactions: content squint and head lean
+  when petted, chewing nods when eating, head bob when walking.
+- Closet hats follow the head every frame.
+- Rig points per artwork (neck, pivot, chest, eyes, lid colour) are measured
+  by `tools/build-rocky-rig.py` → `src/components/rockyRig.ts`; eyes on
+  artworks whose eyes are already closed/heavy-lidded don't blink.
+- Falls back to the still image without WebGL; reduced motion shows a
+  still frame.
+
+To swap in new art (e.g. high-res exports of Visual Canon v2), replace the
+PNGs and re-run the tool; check `eyecheck`-style overlays for the eyes.
+
+## 3D Rocky — preview (Baby stage)
 
 The Baby Rocky GLB (Tripo model, Mixamo rig, 9 clips) is wired into the
 Home world, but it is **off by default**: the delivered file has no texture
