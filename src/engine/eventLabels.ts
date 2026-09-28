@@ -26,6 +26,8 @@ export function labelForEvent(event: GameEvent): string {
     case 'ACHIEVEMENT':
       return `Achievement unlocked: ${event.payload?.name ?? ''}`
     case 'XP_GRANT':
+      if (event.payload?.grantedBy === 'rocky-games')
+        return `+${Number(event.payload?.xp ?? 0)} XP playing with Rocky${typeof event.payload?.reason === 'string' && event.payload.reason ? `: ${event.payload.reason}` : ''}`
       return `+${Number(event.payload?.xp ?? 0)} XP bonus from your QA team${typeof event.payload?.reason === 'string' && event.payload.reason ? `: ${event.payload.reason}` : ''}`
     case 'CORRECTION':
       return 'A correction was recorded'

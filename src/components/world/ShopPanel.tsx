@@ -1,16 +1,20 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { isUsable, itemsFor, MAX_DECOR, SINGLE_SLOTS, type ClosetItem, type ItemSlot, type Outfit, type ProgressFacts } from '../../game/closet'
 import { WEAR_ART, WEAR_VIEWBOX, type WearSlot } from './wearables'
 import { TREAT_BAG } from '../../game/economy'
+import { FOODS, SOAPS, STARTER_SOAP, type Season } from '../../game/pantry'
 import { DECOR_ART, FX_ART, HAT_ART, SceneArt } from './art'
+import { FOOD_ART, SOAP_ART } from './items'
+import { fxPreview } from './FxLayer'
 import { Coin } from './Coin'
 import styles from './Shop.module.css'
 
-type Tab = Exclude<ItemSlot, 'neck' | 'back'> | 'clothes' | 'treats'
+type Tab = Exclude<ItemSlot, 'neck' | 'back'> | 'clothes' | 'treats' | 'food' | 'soap' | 'spooky' | 'holiday'
+export type ShopTab = Tab
 
-type Section = 'rocky' | 'world' | 'treats'
+type Section = 'rocky' | 'world' | 'pantry' | 'seasonal'
 
-/** Two shops in one: things Rocky wears, and things that make up his world. */
+/** Four shops in one: what Rocky wears, his world, his pantry and the seasonal specials. */
 const SECTIONS: { id: Section; label: string; hint: string; tabs: { id: Tab; label: string }[] }[] = [
   {
     id: 'rocky',
@@ -25,14 +29,32 @@ const SECTIONS: { id: Section; label: string; hint: string; tabs: { id: Tab; lab
   {
     id: 'world',
     label: 'World',
-    hint: 'Backgrounds, things that live with Rocky, and ambience.',
+    hint: 'Backgrounds, things that live with Rocky, and ambience effects.',
     tabs: [
       { id: 'scene', label: 'Backgrounds' },
       { id: 'decor', label: 'Items' },
-      { id: 'fx', label: 'Ambience' },
+      { id: 'fx', label: 'Effects' },
     ],
   },
-  { id: 'treats', label: 'Treats', hint: 'Snacks for Rocky.', tabs: [{ id: 'treats', label: 'Treats' }] },
+  {
+    id: 'pantry',
+    label: 'Pantry',
+    hint: 'Snacks to drag onto Rocky, and soaps to scrub him with.',
+    tabs: [
+      { id: 'food', label: 'Food' },
+      { id: 'soap', label: 'Soaps' },
+      { id: 'treats', label: 'Treat bags' },
+    ],
+  },
+  {
+    id: 'seasonal',
+    label: 'Seasonal',
+    hint: 'Limited specials for Spooky season and the holidays.',
+    tabs: [
+      { id: 'spooky', label: '🎃 Spooky' },
+      { id: 'holiday', label: '🎄 Holidays' },
+    ],
+  },
 ]
 const sectionOf = (tab: Tab): Section => SECTIONS.find((s) => s.tabs.some((t) => t.id === tab))!.id
 
@@ -56,15 +78,19 @@ interface Props {
   onArrange?: () => void
   /** Which part of the shop opens first. */
   initialTab?: Tab
+  /** Foods (counts) and soaps the agent has. */
+  inventory?: Record<string, number>
+  /** Admin price/availability edits for pantry items. */
+  pantryOverrides?: Record<string, { price?: number; enabled?: boolean }>
+  onBuyFood?: (id: string) => void
+  onBuySoap?: (id: string) => void
 }
 
-export type ShopTab = Tab
-
 /**
- * Rocky's shop: looks, places, decor and ambience for Rocky's world. Items
- * unlock through real progress (level, streaks, badges) and are bought with
- * coins earned by the same work. Rocky stays visible while shopping so every
- * item can be tried on.
+ * Rocky's shop. Looks and world items unlock through real progress (level,
+ * streaks, badges) and are bought with coins earned by the same work;
+ * seasonal specials and the pantry are open to everyone. Rocky stays
+ * visible while shopping so every item can be tried on.
  */
 export function ShopPanel({
   open,
@@ -81,13 +107,16 @@ export function ShopPanel({
   onBuyTreats,
   onArrange,
   initialTab = 'hat',
+  inventory = {},
+  pantryOverrides = {},
+  onBuyFood,
+  onBuySoap,
 }: Props) {
   const [tab, setTab] = useState<Tab>(initialTab)
+  const closeRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     if (open) setTab(initialTab)
   }, [open, initialTab])
-  const section = SECTIONS.find((s) => s.id === sectionOf(tab))!
-  const closeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!open) return
@@ -98,6 +127,7 @@ export function ShopPanel({
   }, [open, onClose])
 
   if (!open) return null
+  const section = SECTIONS.find((s) => s.id === sectionOf(tab))!
 
   const isSingle = (slot: ItemSlot): slot is (typeof SINGLE_SLOTS)[number] => (SINGLE_SLOTS as readonly string[]).includes(slot)
 
@@ -118,8 +148,23 @@ export function ShopPanel({
   }
 
   // Items taken out of the shop by an admin stay visible only to agents who already have them.
-  const tabItems = tab === 'treats' ? [] : tab === 'clothes' ? [...itemsFor('neck', catalog), ...itemsFor('back', catalog)] : itemsFor(tab, catalog)
-  const items = tabItems.filter((i) => i.enabled !== false || isUsable(i, facts, owned, granted))
+  const visible = (i: ClosetItem) => i.enabled !== false || isUsable(i, facts, owned, granted)
+  const closetFor = (t: Tab): ClosetItem[] => {
+    if (t === 'clothes') return [...itemsFor('neck', catalog), ...itemsFor('back', catalog)]
+    if (t === 'spooky' || t === 'holiday') return catalog.filter((i) => i.season === t)
+    if (t === 'hat' || t === 'glasses' || t === 'scene' || t === 'decor' || t === 'fx') return itemsFor(t, catalog)
+    return []
+  }
+  const items = closetFor(tab).filter(visible)
+  const season: Season | null = tab === 'spooky' || tab === 'holiday' ? tab : null
+  const pantryPrice = (id: string, base: number) => {
+    const p = pantryOverrides[id]?.price
+    return typeof p === 'number' ? p : base
+  }
+  const foods = FOODS.filter((f) => pantryOverrides[f.id]?.enabled !== false && (tab === 'food' ? true : season !== null && f.season === season))
+  const soaps = SOAPS.filter(
+    (s) => s.price > 0 && pantryOverrides[s.id]?.enabled !== false && (tab === 'soap' ? true : season !== null && s.season === season),
+  )
 
   return (
     <div className={styles.backdrop} onClick={onClose}>
@@ -143,28 +188,26 @@ export function ShopPanel({
               key={sec.id}
               role="tab"
               aria-selected={section.id === sec.id}
-              className={`${styles.tab} ${section.id === sec.id ? styles.tabOn : ''}`}
+              className={`${styles.tab} ${section.id === sec.id ? styles.tabOn : ''} ${sec.id === 'seasonal' ? styles.tabSeasonal : ''}`}
               onClick={() => setTab(sec.tabs[0]!.id)}
             >
               {sec.label}
             </button>
           ))}
         </div>
-        {section.tabs.length > 1 && (
-          <div className={styles.subTabs} role="tablist" aria-label={`${section.label} categories`}>
-            {section.tabs.map((t) => (
-              <button
-                key={t.id}
-                role="tab"
-                aria-selected={tab === t.id}
-                className={`${styles.subTab} ${tab === t.id ? styles.subTabOn : ''}`}
-                onClick={() => setTab(t.id)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className={styles.subTabs} role="tablist" aria-label={`${section.label} categories`}>
+          {section.tabs.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
+              className={`${styles.subTab} ${tab === t.id ? styles.subTabOn : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
         <p className={styles.sectionHint}>{section.hint}</p>
         {section.id === 'world' && onArrange && (
           <button type="button" className={styles.arrange} onClick={onArrange}>
@@ -185,7 +228,7 @@ export function ShopPanel({
           </button>
         )}
 
-        {tab === 'treats' ? (
+        {tab === 'treats' && (
           <div className={styles.treats}>
             <div className={styles.treatCard}>
               <span className={styles.treatArt} aria-hidden="true">
@@ -203,8 +246,44 @@ export function ShopPanel({
             </div>
             <p className={styles.count}>Every check-in also brings 1 treat, and every clean QA audit 2.</p>
           </div>
-        ) : (
+        )}
+
+        {(foods.length > 0 || soaps.length > 0) && (tab === 'food' || tab === 'soap' || season) && (
           <>
+            {season && <h3 className={styles.groupTitle}>Pantry specials</h3>}
+            <ul className={styles.grid}>
+              {foods.map((f) => (
+                <PantryCard
+                  key={f.id}
+                  name={f.name}
+                  art={FOOD_ART[f.id]}
+                  price={pantryPrice(f.id, f.price)}
+                  coins={coins}
+                  status={inventory[f.id] ? `You have ${inventory[f.id]}` : `+${f.health} health · +${f.happiness} happy`}
+                  onBuy={() => onBuyFood?.(f.id)}
+                />
+              ))}
+              {soaps.map((s) => (
+                <PantryCard
+                  key={s.id}
+                  name={s.name}
+                  art={SOAP_ART[s.id] ?? SOAP_ART[STARTER_SOAP]}
+                  price={pantryPrice(s.id, s.price)}
+                  coins={coins}
+                  owned={Boolean(inventory[s.id])}
+                  status={inventory[s.id] ? 'In your bag' : `Bath +${s.happiness} happiness`}
+                  onBuy={() => onBuySoap?.(s.id)}
+                />
+              ))}
+            </ul>
+            {tab === 'food' && <p className={styles.count}>Food goes into Rocky's bag — open it with the Food button and drag a snack onto him.</p>}
+            {tab === 'soap' && <p className={styles.count}>Soaps are yours for good. Open the bag with the Bath button and scrub away!</p>}
+          </>
+        )}
+
+        {items.length > 0 && (
+          <>
+            {season && <h3 className={styles.groupTitle}>Looks and world</h3>}
             <p className={styles.count}>
               {items.filter((i) => isUsable(i, facts, owned, granted)).length} of {items.length} owned
               {tab === 'decor' ? ` · ${outfit.decor.length}/${MAX_DECOR} placed · tap them in the world and Rocky plays with them` : ''}
@@ -238,26 +317,11 @@ export function ShopPanel({
                       }}
                     >
                       <span className={styles.preview} data-slot={item.slot}>
-                        {item.slot === 'hat' && HAT_ART[item.id] && (
-                          <svg viewBox="-4 -4 108 68" aria-hidden="true">
-                            {HAT_ART[item.id]!.svg}
-                          </svg>
-                        )}
-                        {item.slot === 'decor' && DECOR_ART[item.id] && (
-                          <svg viewBox={DECOR_ART[item.id]!.viewBox} aria-hidden="true">
-                            {DECOR_ART[item.id]!.svg}
-                          </svg>
-                        )}
-                        {item.slot === 'scene' && <SceneArt id={item.id} />}
-                        {(item.slot === 'glasses' || item.slot === 'neck' || item.slot === 'back') && WEAR_ART[item.slot as WearSlot][item.id] && (
-                          <svg viewBox={WEAR_VIEWBOX[item.slot as WearSlot]} aria-hidden="true">
-                            {WEAR_ART[item.slot as WearSlot][item.id]}
-                          </svg>
-                        )}
-                        {item.slot === 'fx' && FX_ART[item.id] && (
-                          <svg viewBox="0 0 100 75" aria-hidden="true">
-                            {FX_ART[item.id]}
-                          </svg>
+                        <ItemPreview item={item} />
+                        {item.season && (
+                          <span className={styles.seasonTag} aria-hidden="true">
+                            {item.season === 'spooky' ? '🎃' : '🎄'}
+                          </span>
                         )}
                         {!unlocked && (
                           <span className={styles.lock} aria-hidden="true">
@@ -284,5 +348,78 @@ export function ShopPanel({
         )}
       </aside>
     </div>
+  )
+}
+
+function ItemPreview({ item }: { item: ClosetItem }) {
+  if (item.slot === 'hat' && HAT_ART[item.id])
+    return (
+      <svg viewBox="-4 -4 108 68" aria-hidden="true">
+        {HAT_ART[item.id]!.svg}
+      </svg>
+    )
+  if (item.slot === 'decor' && DECOR_ART[item.id])
+    return (
+      <svg viewBox={DECOR_ART[item.id]!.viewBox} aria-hidden="true">
+        {DECOR_ART[item.id]!.svg}
+      </svg>
+    )
+  if (item.slot === 'scene') return <SceneArt id={item.id} />
+  if ((item.slot === 'glasses' || item.slot === 'neck' || item.slot === 'back') && WEAR_ART[item.slot as WearSlot][item.id])
+    return (
+      <svg viewBox={WEAR_VIEWBOX[item.slot as WearSlot]} aria-hidden="true">
+        {WEAR_ART[item.slot as WearSlot][item.id]}
+      </svg>
+    )
+  if (item.slot === 'fx' && (FX_ART[item.id] || fxPreview(item.id)))
+    return (
+      <svg viewBox="0 0 100 75" aria-hidden="true">
+        {FX_ART[item.id] ?? fxPreview(item.id)}
+      </svg>
+    )
+  return null
+}
+
+function PantryCard({
+  name,
+  art,
+  price,
+  coins,
+  status,
+  owned = false,
+  onBuy,
+}: {
+  name: string
+  art: ReactElement | undefined
+  price: number
+  coins: number
+  status: string
+  owned?: boolean
+  onBuy: () => void
+}) {
+  return (
+    <li>
+      <button
+        className={`${styles.item} ${owned ? styles.itemOn : ''}`}
+        disabled={owned || coins < price}
+        onClick={onBuy}
+        aria-label={`Buy ${name} for ${price} coins`}
+      >
+        <span className={styles.preview} data-slot="pantry">
+          {art && (
+            <svg viewBox="0 0 40 40" aria-hidden="true">
+              {art}
+            </svg>
+          )}
+          {!owned && (
+            <span className={styles.price}>
+              <Coin /> {price}
+            </span>
+          )}
+        </span>
+        <span className={styles.name}>{name}</span>
+        <span className={styles.state}>{owned ? 'Owned' : coins < price ? `${price - coins} more coins` : status}</span>
+      </button>
+    </li>
   )
 }

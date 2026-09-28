@@ -187,6 +187,115 @@ the streak). `missedWorkingDays` in `src/engine/dateUtils.ts` already
 implements the counting; changing the rule is a one-function change in
 `calculateStreak` plus its tests.
 
+## Rocky's bag: food and soaps
+
+- **Food** (`src/game/pantry.ts`): the basic treat is still earned by work
+  (1 per check-in, 2 per clean audit); on top of that the Pantry sells foods
+  by the unit (apple, carrot, hay cookie, veggie wrap, smoothie, cake, plus
+  seasonal candy corn, caramel apple, pumpkin pie, gingerbread, hot cocoa,
+  candy cane), each with its own health/happiness boost. New agents start
+  with 2 apples.
+- **Feeding**: the Food button opens the bag; the agent **drags** a snack
+  onto Rocky (he glows when it's over him) and he eats it. Tap or Enter also
+  works (accessibility).
+- **Bathing**: the Bath button opens the soaps. The agent **holds the soap
+  and scrubs Rocky** — foam appears where the soap passes and a "Scrub %"
+  meter fills; at 100% the shower rinses him. Soaps are bought once
+  (RLX soap bar is free; bubble-gum, lavender, pumpkin spice, peppermint add
+  happiness and tint the foam).
+- **Dirty Rocky** now shows wavy stink lines rising beside him (and flies
+  when it's bad) instead of the brown spots.
+
+## Mini-games that pay (capped)
+
+Both are server-scored in `applyPetAction` and share daily caps
+(`GAME_CAPS`: 60 coins and 12 XP a day). XP is recorded as an `XP_GRANT`
+event with `grantedBy: "rocky-games"` (it replays, shows in the diary as
+"XP playing with Rocky", and can level Rocky up).
+
+- **Keep it up**: during Play, taps on (or within ~100 px of) the ball kick
+  it up; each tap in a row without the ball touching the ground counts. The
+  session keeps going while the rally lasts (up to 90 s). 3+ touches pay:
+  `keepyReward` (e.g. 5 → 1 coin + 1 XP, 10 → 6 coins + 2 XP, 20 → 14 coins
+  + 3 XP). Streaks above 80 are clamped. The ball's hit area is 34 px larger
+  than the ball on every side.
+- **Litter**: a piece (can, paper, banana peel, bottle, box, wrapper) drops
+  in Rocky's world every 3 hours, up to 4 (deterministic, so browser and
+  server agree). Drag it into the green bin: 1–5 coins, and a 35% chance of
+  1–3 XP. Picked-up pieces can't be claimed twice.
+
+## Seasonal specials and more effects
+
+- Shop sections: **Rocky** (hats, glasses, clothes), **World**
+  (backgrounds, items, effects), **Pantry** (food, soaps, treat bags) and
+  **Seasonal** (🎃 Spooky, 🎄 Holidays). Seasonal items are open to
+  everyone (no progress lock) and carry a badge.
+- Spooky: witch hat, pumpkin hat, masquerade mask, spooky bow tie, bat
+  wings, Haunted hill and Pumpkin patch backgrounds, jack-o'-lantern, candy
+  bucket, "RIP typos" tombstone, friendly ghost, bubbling cauldron, bat
+  swarm, spooky mist, floating ghosts, candy rain.
+- Holidays: elf hat, reindeer antlers, snowflake glasses, jingle bell
+  collar, candy-stripe scarf, gift sack, Winter village and North Pole
+  lights backgrounds, candy cane, gift pile, snowman, holiday tree, mini
+  sleigh, twinkle lights, snowflake storm, northern lights.
+- New effects for everyone: flying notes, maple swirl, summer rain, bubble
+  party, cherry blossoms, dandelion wishes, butterflies, shooting stars,
+  rainbow sparkle, fireworks show, coin shower. All are CSS animations on
+  small SVGs (no per-frame JS) and are hidden with reduced motion.
+- Shop bug fixed: in the scrolling shop column the section tabs were
+  squashed to 8 px by flex-shrink, so sections overlapped. Every block now
+  keeps its height.
+
+## Friends and visits
+
+- Every agent in the pilot is a friend (`GET /api/friends`): Rocky name,
+  public name, level, stage, mood, streak, how Rocky feels and when they
+  were last active. Friends are identified by an opaque id (a hash of the
+  email); emails never reach other agents.
+- **Visit** (`GET /api/friends/:id`) shows the friend's real world: their
+  background, placed items, effects and Rocky. Visitors can **pet**,
+  **wave** or **give one of their own treats**
+  (`POST /api/friends/:id/visit`). The first visit to each friend a day
+  pays the visitor 2 coins (up to 5 friends a day); the host's Rocky gets
+  +3 happiness, a treat if one was given, and a note in the inbox ("Ana
+  visited and petted Rocky").
+- **Inbox**: visits, gifts and QA messages. A new QA message is the first
+  thing Rocky says on the home screen; the ✉️ chip opens the list.
+
+### Going real-time (research, next step)
+
+What's built is asynchronous (like Pet Society's visits): you visit a
+friend's world and they see it later. Making Rockys meet *live* would add:
+
+1. **Presence**: a lightweight Server-Sent Events stream
+   (`GET /api/friends/live`) pushing "who is online" and new inbox entries.
+   SSE works through the Vercel → Railway setup without extra services; the
+   backend keeps a map of open streams per agent.
+2. **Live visits**: when both are online, the visitor's Rocky appears in the
+   host's world (a second, read-only Rocky on the stage) and their actions
+   (wave, ball kick) are broadcast over the same stream. The ball could be
+   shared by sending kick impulses, not positions, so each browser
+   simulates it.
+3. **Scale**: 56 agents fit comfortably in one Node process. Beyond a few
+   hundred concurrent streams, move fan-out to Redis pub/sub (Railway has a
+   Redis template) so multiple backend instances can share it.
+4. **Safety**: only preset interactions (no free-text chat) keeps
+   moderation out of scope; rate-limit visits per agent.
+
+## Admin superpowers
+
+- **⚡ Acciones masivas** tab: pick agents (all, filtered or by hand) and
+  run one operation for all of them — coins, XP, gift any item, food or
+  soap, treats, a message Rocky reads to the agent, restore needs, clear
+  litter, reset today's mini-game caps. One-click events: 🎃 Halloween kit,
+  🎄 Holiday kit, 🌟 Perfect week. Each agent gets their own ledger and
+  audit entries (`POST /api/admin/bulk`, plus one `admin.bulk` summary).
+- Per agent (drawer): the bag (give/remove food and soaps), mini-game stats
+  (best keep-it-up, litter picked, today's coins/XP vs the caps), send a
+  message, clear litter, reset caps, see the inbox.
+- Pantry items can be repriced or taken out of the shop from the Tienda tab
+  like any other item.
+
 ## Next improvements (identified)
 
 1. **Link Note Check to real QA findings**: when an audit raises a

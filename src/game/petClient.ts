@@ -6,7 +6,7 @@
 // local one. Without a backend the cache IS the pet (offline/demo mode).
 import { apiClient, isRemoteModeEnabled, type PetView } from '../services/apiClient'
 import { resolveCatalog, type CatalogOverrides, type ClosetItem, type ProgressFacts } from './closet'
-import { applyPetAction, initialPetState, normalizePetState, type PetAction, type PetResult, type PetState } from './pet'
+import { applyPetAction, initialPetState, normalizePetState, refreshPetState, type PetAction, type PetResult, type PetState } from './pet'
 import { scopedKey } from './storage'
 
 const KEY = 'rocky.pet.v1'
@@ -49,7 +49,8 @@ function migrateLegacy(now: Date): PetState | null {
 
 export function loadPetCache(now: Date = new Date()): PetCache {
   const raw = readJson(KEY) as Partial<PetCache> | undefined
-  if (raw?.state) return { state: normalizePetState(raw.state, now), overrides: raw.overrides ?? {} }
+  // Brought up to date right away (needs, daily counters, litter that fell while away).
+  if (raw?.state) return { state: refreshPetState(normalizePetState(raw.state, now), now), overrides: raw.overrides ?? {} }
   const legacy = isRemoteModeEnabled() ? null : migrateLegacy(now)
   return { state: legacy ?? initialPetState(now), overrides: {} }
 }
@@ -67,7 +68,7 @@ export function catalogFor(cache: PetCache): ClosetItem[] {
 }
 
 export function fromView(view: PetView): PetCache {
-  return { state: normalizePetState(view.state), overrides: view.catalog ?? {} }
+  return { state: refreshPetState(normalizePetState(view.state), new Date()), overrides: view.catalog ?? {} }
 }
 
 /** Pulls the server's copy (remote mode). Returns null offline or on failure. */
@@ -92,7 +93,7 @@ let pending = 0
  * still waiting, so quick taps never flicker back to an older state.
  */
 export function performPetAction(cache: PetCache, action: PetAction, facts: ProgressFacts, onServer: (cache: PetCache) => void): PetResult {
-  const result = applyPetAction(cache.state, action, { facts, now: new Date(), catalog: catalogFor(cache) })
+  const result = applyPetAction(cache.state, action, { facts, now: new Date(), catalog: catalogFor(cache), overrides: cache.overrides })
   if (!result.ok) return result
   savePetCache({ ...cache, state: result.state })
 

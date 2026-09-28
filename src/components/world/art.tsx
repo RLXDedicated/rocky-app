@@ -246,6 +246,72 @@ export const HAT_ART: Record<string, HatArt> = {
       </>
     ),
   },
+  'hat-witch': {
+    width: 1.0,
+    sink: 0.36,
+    svg: (
+      <>
+        <ellipse cx="50" cy="52" rx="49" ry="7" fill="#2a1f3d" />
+        <path d="M26 50 C34 36 38 20 50 10 C58 4 70 2 78 8 C70 8 64 14 62 22 C60 32 66 42 72 50 Z" fill="#3b2a5a" />
+        <path d="M30 44 C44 40 58 40 70 44 L71 50 C58 46 44 46 29 50 Z" fill="#f28c28" />
+        <rect x="46" y="41" width="10" height="9" rx="1.5" fill="none" stroke={GOLD} strokeWidth="2" />
+        <path d="M40 24 C46 20 52 18 56 18" stroke="#5a4580" strokeWidth="3" fill="none" strokeLinecap="round" />
+      </>
+    ),
+  },
+  'hat-pumpkin': {
+    width: 0.8,
+    sink: 0.38,
+    svg: (
+      <>
+        <ellipse cx="50" cy="36" rx="44" ry="22" fill="#f28c28" />
+        <path d="M30 16 C24 26 24 46 30 56 M50 14 L50 58 M70 16 C76 26 76 46 70 56" stroke="#d0661a" strokeWidth="3" fill="none" />
+        <path d="M46 16 C46 8 50 2 56 2 L58 6 C54 6 52 10 52 16 Z" fill="#3f7d2a" />
+        <path d="M56 8 C66 2 76 6 76 12 C68 10 62 12 58 12 Z" fill="#5cb85c" />
+        <path d="M32 34 L38 28 L44 34 Z M56 34 L62 28 L68 34 Z" fill="#3a1d05" />
+        <path d="M34 42 L40 46 L46 42 L50 47 L54 42 L60 46 L66 42 C62 52 38 52 34 42 Z" fill="#3a1d05" />
+      </>
+    ),
+  },
+  'hat-elf': {
+    width: 0.86,
+    sink: 0.4,
+    svg: (
+      <>
+        <path d="M14 48 C22 28 40 14 62 10 C76 8 90 14 98 22 C88 22 78 26 76 34 C74 40 76 46 78 48 Z" fill="#1f9d55" />
+        <circle cx="98" cy="24" r="6" fill={GOLD} />
+        <path d="M10 42 L82 42 L84 56 L8 56 Z" fill="#d6333a" />
+        <path
+          d="M14 42 L20 56 M26 42 L32 56 M38 42 L44 56 M50 42 L56 56 M62 42 L68 56 M74 42 L80 56"
+          stroke={WHITE}
+          strokeWidth="2.5"
+          opacity="0.7"
+        />
+        <path d="M44 18 C54 14 64 14 72 18" stroke="#34c26f" strokeWidth="3" fill="none" strokeLinecap="round" />
+      </>
+    ),
+  },
+  'hat-reindeer': {
+    width: 1.3,
+    sink: 0.46,
+    svg: (
+      <>
+        {['', 'translate(100 0) scale(-1 1)'].map((t) => (
+          <g key={t} transform={t || undefined}>
+            <path
+              d="M30 56 C26 40 22 30 12 22 M22 32 C14 32 8 26 6 18 M16 26 C18 16 14 8 8 4 M26 40 C32 30 32 20 28 12"
+              stroke="#8a5a2b"
+              strokeWidth="6"
+              fill="none"
+              strokeLinecap="round"
+            />
+          </g>
+        ))}
+        <path d="M20 58 C30 46 70 46 80 58" stroke="#c9463d" strokeWidth="5" fill="none" strokeLinecap="round" />
+        <circle cx="50" cy="50" r="4" fill={GOLD} />
+      </>
+    ),
+  },
 }
 
 // ---------------------------------------------------------------------------
@@ -486,6 +552,206 @@ export const DECOR_ART: Record<string, DecorArt> = {
         <ellipse cx="80" cy="38" rx="50" ry="9" fill="#a9c8ea" />
         <ellipse cx="36" cy="32" rx="18" ry="8" fill={WHITE} />
         <path d="M60 56 L70 56 M90 56 L100 56" stroke={GREEN} strokeWidth="4" strokeLinecap="round" />
+      </>
+    ),
+  },
+  'decor-jack': {
+    play: 'peek',
+    viewBox: '0 0 100 80',
+    left: 12,
+    width: 7,
+    svg: (
+      <>
+        <ellipse cx="50" cy="77" rx="44" ry="4" fill="#000" opacity="0.1" />
+        <ellipse cx="50" cy="46" rx="44" ry="30" fill="#f28c28" />
+        <path d="M28 20 C20 34 20 60 28 72 M50 16 L50 76 M72 20 C80 34 80 60 72 72" stroke="#d0661a" strokeWidth="3" fill="none" />
+        <path d="M46 18 C46 8 50 2 58 2 L60 6 C54 6 52 12 54 18 Z" fill="#3f7d2a" />
+        <path d="M28 40 L36 30 L44 40 Z M56 40 L64 30 L72 40 Z" fill="#ffd54a" />
+        <path d="M30 52 L38 58 L44 52 L50 58 L56 52 L62 58 L70 52 C66 66 34 66 30 52 Z" fill="#ffd54a" />
+        <ellipse cx="50" cy="46" rx="30" ry="18" fill="#ffd54a" opacity="0.12" className="rocky-twinkle" />
+      </>
+    ),
+  },
+  'decor-candy-bucket': {
+    play: 'eat',
+    viewBox: '0 0 80 80',
+    left: 55,
+    width: 5,
+    svg: (
+      <>
+        <ellipse cx="40" cy="77" rx="34" ry="3.5" fill="#000" opacity="0.1" />
+        <path d="M14 20 C10 4 70 4 66 20" stroke="#3a1d05" strokeWidth="3" fill="none" />
+        <circle cx="26" cy="22" r="7" fill="#e2445c" />
+        <circle cx="40" cy="18" r="7" fill="#7a4fd1" />
+        <circle cx="54" cy="22" r="7" fill={GOLD} />
+        <path d="M8 26 L72 26 L64 76 L16 76 Z" fill="#f28c28" />
+        <path d="M24 42 L32 36 L38 42 Z M42 42 L50 36 L56 42 Z" fill="#3a1d05" />
+        <path d="M24 54 C32 62 48 62 56 54" stroke="#3a1d05" strokeWidth="3" fill="none" strokeLinecap="round" />
+      </>
+    ),
+  },
+  'decor-tombstone': {
+    play: 'sniff',
+    viewBox: '0 0 80 100',
+    left: 82,
+    width: 6,
+    svg: (
+      <>
+        <ellipse cx="40" cy="96" rx="36" ry="4" fill="#3f7d2a" opacity="0.5" />
+        <path d="M10 96 L10 36 C10 10 70 10 70 36 L70 96 Z" fill="#9aa3ad" />
+        <path d="M10 96 L10 36 C10 10 70 10 70 36 L70 44 C60 30 20 30 10 44 Z" fill="#b8c0c8" />
+        <text x="21" y="56" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize="15" fill="#5b6570">
+          RIP
+        </text>
+        <text x="16" y="74" fontFamily="Poppins, sans-serif" fontWeight="700" fontSize="8.5" fill="#5b6570">
+          typos
+        </text>
+        <path d="M6 96 C12 88 18 90 20 96 M58 96 C62 88 70 88 74 96" stroke="#3f7d2a" strokeWidth="3" fill="none" />
+      </>
+    ),
+  },
+  'decor-ghost': {
+    play: 'cheer',
+    viewBox: '0 0 80 90',
+    left: 30,
+    width: 6,
+    lift: 40,
+    svg: (
+      <g className="rocky-drift">
+        <path d="M10 40 C10 10 70 10 70 40 L70 80 L60 72 L50 82 L40 72 L30 82 L20 72 L10 80 Z" fill={WHITE} opacity="0.92" />
+        <ellipse cx="30" cy="40" rx="5" ry="7" fill="#2a1f3d" />
+        <ellipse cx="50" cy="40" rx="5" ry="7" fill="#2a1f3d" />
+        <ellipse cx="40" cy="56" rx="6" ry="4" fill="#2a1f3d" />
+        <ellipse cx="24" cy="50" rx="4" ry="2.5" fill="#ffb3c7" />
+        <ellipse cx="56" cy="50" rx="4" ry="2.5" fill="#ffb3c7" />
+      </g>
+    ),
+  },
+  'decor-cauldron': {
+    play: 'sniff',
+    viewBox: '0 0 100 100',
+    left: 68,
+    width: 8,
+    svg: (
+      <>
+        <ellipse cx="50" cy="97" rx="44" ry="3.5" fill="#000" opacity="0.12" />
+        <path d="M20 94 L26 84 M80 94 L74 84" stroke="#1b1b1b" strokeWidth="6" strokeLinecap="round" />
+        <ellipse cx="50" cy="44" rx="42" ry="10" fill="#2a2a2a" />
+        <path d="M10 46 C10 92 90 92 90 46 Z" fill="#1b1b1b" />
+        <ellipse cx="50" cy="44" rx="36" ry="7" fill="#7ee06a" />
+        <g className="rocky-twinkle">
+          <circle cx="36" cy="32" r="7" fill="#9df08a" opacity="0.9" />
+          <circle cx="56" cy="24" r="5" fill="#9df08a" opacity="0.8" />
+          <circle cx="64" cy="34" r="4" fill="#b8ff9f" opacity="0.8" />
+          <circle cx="48" cy="12" r="3" fill="#b8ff9f" opacity="0.7" />
+        </g>
+        <path d="M26 62 C34 66 44 66 50 64" stroke="#3a3a3a" strokeWidth="3" fill="none" />
+      </>
+    ),
+  },
+  'decor-candy-cane': {
+    play: 'eat',
+    viewBox: '0 0 60 140',
+    left: 6,
+    width: 4,
+    svg: (
+      <>
+        <ellipse cx="30" cy="137" rx="20" ry="3" fill="#000" opacity="0.1" />
+        <path d="M38 136 L38 40 C38 12 10 12 10 36" stroke={WHITE} strokeWidth="14" fill="none" strokeLinecap="round" />
+        <path d="M38 136 L38 40 C38 12 10 12 10 36" stroke="#d6333a" strokeWidth="14" fill="none" strokeLinecap="round" strokeDasharray="9 9" />
+        <path d="M32 132 L32 44" stroke={WHITE} strokeWidth="3" opacity="0.5" />
+      </>
+    ),
+  },
+  'decor-gifts': {
+    play: 'peek',
+    viewBox: '0 0 120 90',
+    left: 58,
+    width: 9,
+    svg: (
+      <>
+        <ellipse cx="60" cy="87" rx="56" ry="4" fill="#000" opacity="0.1" />
+        <rect x="6" y="40" width="50" height="46" rx="3" fill="#d6333a" />
+        <rect x="27" y="40" width="8" height="46" fill={GOLD} />
+        <rect x="6" y="58" width="50" height="8" fill={GOLD} />
+        <rect x="60" y="50" width="54" height="36" rx="3" fill="#1f9d55" />
+        <rect x="83" y="50" width="8" height="36" fill={WHITE} />
+        <rect x="30" y="14" width="40" height="30" rx="3" fill="#3a78c2" />
+        <rect x="46" y="14" width="8" height="30" fill={WHITE} />
+        <path d="M50 14 C40 2 32 8 42 14 M50 14 C60 2 68 8 58 14" stroke={WHITE} strokeWidth="4" fill="none" />
+      </>
+    ),
+  },
+  'decor-snowman': {
+    play: 'cheer',
+    viewBox: '0 0 90 140',
+    left: 84,
+    width: 7,
+    svg: (
+      <>
+        <ellipse cx="45" cy="137" rx="38" ry="4" fill="#000" opacity="0.1" />
+        <circle cx="45" cy="104" r="32" fill={WHITE} stroke="#d7e4ef" strokeWidth="2" />
+        <circle cx="45" cy="56" r="24" fill={WHITE} stroke="#d7e4ef" strokeWidth="2" />
+        <circle cx="45" cy="22" r="17" fill={WHITE} stroke="#d7e4ef" strokeWidth="2" />
+        <circle cx="39" cy="19" r="2.2" fill="#1b2433" />
+        <circle cx="51" cy="19" r="2.2" fill="#1b2433" />
+        <path d="M45 24 L60 28 L45 28 Z" fill="#f28c28" />
+        <path d="M28 38 Q45 46 62 38 L62 44 Q45 52 28 44 Z" fill="#d6333a" />
+        <path d="M58 42 L64 60 L58 62 L54 44 Z" fill="#d6333a" />
+        <circle cx="45" cy="56" r="2.5" fill="#1b2433" />
+        <circle cx="45" cy="68" r="2.5" fill="#1b2433" />
+        <path d="M22 54 L4 42 M68 54 L86 42" stroke="#8a5a2b" strokeWidth="3" strokeLinecap="round" />
+        <rect x="32" y="0" width="26" height="8" rx="2" fill="#1b2433" />
+        <rect x="28" y="6" width="34" height="5" rx="2" fill="#1b2433" />
+      </>
+    ),
+  },
+  'decor-xmas-tree': {
+    play: 'cheer',
+    viewBox: '0 0 120 160',
+    left: 70,
+    width: 11,
+    svg: (
+      <>
+        <ellipse cx="60" cy="156" rx="50" ry="4" fill="#000" opacity="0.1" />
+        <rect x="52" y="130" width="16" height="24" fill="#8a5a2b" />
+        <path d="M60 10 L100 70 L80 70 L108 112 L84 112 L112 138 L8 138 L36 112 L12 112 L40 70 L20 70 Z" fill="#1f7a45" />
+        <path d="M60 10 L100 70 L80 70 L108 112 L84 112 L112 138 L60 138 Z" fill="#17663a" />
+        <path d="M34 72 Q60 84 88 70 M24 114 Q60 128 98 112" stroke={GOLD} strokeWidth="3" fill="none" />
+        <g className="rocky-twinkle">
+          {[
+            [48, 56, '#e2445c'],
+            [72, 62, GOLD],
+            [40, 94, '#3a78c2'],
+            [66, 96, '#e2445c'],
+            [86, 100, GOLD],
+            [30, 128, GOLD],
+            [58, 126, '#3a78c2'],
+            [90, 128, '#e2445c'],
+          ].map(([x, y, c], i) => (
+            <circle key={i} cx={x as number} cy={y as number} r="5" fill={c as string} />
+          ))}
+        </g>
+        <polygon points="60,0 64,10 75,10 66,16 69,27 60,20 51,27 54,16 45,10 56,10" fill={GOLD} />
+      </>
+    ),
+  },
+  'decor-sleigh': {
+    play: 'vroom',
+    viewBox: '0 0 160 90',
+    left: 40,
+    width: 13,
+    svg: (
+      <>
+        <ellipse cx="80" cy="87" rx="74" ry="4" fill="#000" opacity="0.1" />
+        <path d="M6 80 L140 80 C152 80 156 70 150 64" stroke={GOLD} strokeWidth="5" fill="none" strokeLinecap="round" />
+        <path d="M30 80 L34 68 M110 80 L106 68" stroke={GOLD} strokeWidth="4" />
+        <path d="M16 20 C16 50 22 68 40 68 L120 68 C132 68 136 58 132 44 L124 20 C120 34 110 38 96 38 L40 38 C28 38 22 30 16 20 Z" fill="#c9463d" />
+        <path d="M40 38 L96 38 C110 38 120 34 124 20" stroke={GOLD} strokeWidth="4" fill="none" />
+        <rect x="46" y="16" width="26" height="24" rx="3" fill="#1f9d55" />
+        <rect x="56" y="16" width="6" height="24" fill={GOLD} />
+        <rect x="74" y="22" width="22" height="18" rx="3" fill="#3a78c2" />
+        <rect x="83" y="22" width="5" height="18" fill={WHITE} />
       </>
     ),
   },
@@ -870,10 +1136,354 @@ function BeachScene({ live = false }: { live?: boolean }) {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Seasonal scenes (1000x400, floor line around y≈340).
+// ---------------------------------------------------------------------------
+function Stars({ live, count = 14, seed = 3 }: { live: boolean; count?: number; seed?: number }) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => (
+        <circle
+          key={i}
+          cx={(i * 71 * seed) % 1000}
+          cy={20 + ((i * 37 * seed) % 150)}
+          r={i % 3 === 0 ? 2.4 : 1.4}
+          fill="#ffffff"
+          opacity={0.45 + (i % 3) * 0.2}
+          className={live ? 'rocky-twinkle' : undefined}
+          style={{ animationDelay: `${i * 0.31}s` }}
+        />
+      ))}
+    </>
+  )
+}
+
+function Pumpkin({ x, y, s = 1, face = false }: { x: number; y: number; s?: number; face?: boolean }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <ellipse cx="0" cy="0" rx="26" ry="18" fill="#f28c28" />
+      <path d="M-12 -16 C-18 -6 -18 8 -12 16 M0 -18 L0 18 M12 -16 C18 -6 18 8 12 16" stroke="#d0661a" strokeWidth="2.5" fill="none" />
+      <path d="M-2 -18 C-2 -24 2 -28 6 -28" stroke="#3f7d2a" strokeWidth="4" fill="none" strokeLinecap="round" />
+      {face && (
+        <>
+          <path d="M-14 -4 L-9 -10 L-4 -4 Z M4 -4 L9 -10 L14 -4 Z" fill="#ffd54a" />
+          <path d="M-14 4 L-8 8 L-3 4 L2 8 L7 4 L14 4 C10 14 -10 14 -14 4 Z" fill="#ffd54a" />
+        </>
+      )}
+    </g>
+  )
+}
+
+function Pine({ x, y, s = 1, snow = false }: { x: number; y: number; s?: number; snow?: boolean }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <rect x="-5" y="-6" width="10" height="16" fill="#6b4423" />
+      <path d="M0 -90 L28 -44 L16 -44 L36 -8 L-36 -8 L-16 -44 L-28 -44 Z" fill="#1f5f3f" />
+      {snow && (
+        <path d="M0 -90 L14 -67 L6 -64 L0 -70 L-6 -64 L-14 -67 Z M-22 -44 L22 -44 L26 -38 L10 -36 L0 -40 L-10 -36 L-26 -38 Z" fill="#ffffff" />
+      )}
+    </g>
+  )
+}
+
+function HauntedScene({ live }: { live: boolean }) {
+  return (
+    <>
+      <defs>
+        <linearGradient id="haunt-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#1d1236" />
+          <stop offset="1" stopColor="#4a2a5e" />
+        </linearGradient>
+        <radialGradient id="haunt-moon">
+          <stop offset="0" stopColor="#fff6c9" stopOpacity="0.9" />
+          <stop offset="1" stopColor="#fff6c9" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="1000" height="400" fill="url(#haunt-sky)" />
+      <Stars live={live} />
+      <circle cx="780" cy="90" r="130" fill="url(#haunt-moon)" />
+      <circle cx="780" cy="90" r="54" fill="#fff1b8" />
+      <circle cx="764" cy="80" r="8" fill="#efdc97" />
+      <circle cx="792" cy="104" r="6" fill="#efdc97" />
+      {/* Bats crossing the moon. */}
+      <g className={live ? 'rocky-drift' : undefined} fill="#1d1236">
+        {[
+          [730, 70, 1],
+          [820, 60, 0.7],
+          [760, 120, 0.8],
+        ].map(([x, y, k], i) => (
+          <path
+            key={i}
+            transform={`translate(${x} ${y}) scale(${k})`}
+            d="M0 0 C-6 -8 -16 -8 -22 -2 C-16 -2 -14 2 -14 6 C-10 2 -4 2 0 6 C4 2 10 2 14 6 C14 2 16 -2 22 -2 C16 -8 6 -8 0 0 Z"
+          />
+        ))}
+      </g>
+      {/* The haunted house on the hill. */}
+      <path d="M0 250 C180 170 340 180 480 216 C620 250 760 200 1000 226 L1000 400 L0 400 Z" fill="#2b1d3f" />
+      <g transform="translate(180 120)">
+        <path d="M0 110 L0 40 L50 0 L100 40 L100 110 Z" fill="#241634" />
+        <path d="M62 18 L62 -18 L78 -18 L78 30 Z" fill="#241634" />
+        <path d="M-8 44 L50 -6 L108 44" stroke="#3b2a5a" strokeWidth="6" fill="none" />
+        {[
+          [18, 54],
+          [64, 54],
+          [18, 84],
+        ].map(([x, y], i) => (
+          <rect
+            key={i}
+            x={x}
+            y={y}
+            width="18"
+            height="18"
+            fill="#ffd54a"
+            opacity="0.85"
+            className={live ? 'rocky-twinkle' : undefined}
+            style={{ animationDelay: `${i * 0.8}s` }}
+          />
+        ))}
+        <path d="M60 110 L60 82 C60 74 80 74 80 82 L80 110 Z" fill="#120a1c" />
+      </g>
+      <path d="M0 290 C200 262 380 300 540 282 C720 262 860 290 1000 276 L1000 400 L0 400 Z" fill="#3a2a4e" />
+      {/* Crooked trees and a fence. */}
+      <path
+        d="M860 290 L870 200 C850 180 830 186 820 170 M870 200 C890 176 910 180 922 164 M866 240 C890 232 900 220 912 222"
+        stroke="#150d20"
+        strokeWidth="9"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path
+        d="M60 300 L66 220 C50 206 38 210 28 196 M66 220 C80 200 96 204 104 190"
+        stroke="#150d20"
+        strokeWidth="8"
+        fill="none"
+        strokeLinecap="round"
+      />
+      {Array.from({ length: 12 }, (_, i) => (
+        <path
+          key={i}
+          d={`M${420 + i * 22} 300 L${420 + i * 22} 268 L${426 + i * 22} 262 L${432 + i * 22} 268 L${432 + i * 22} 300 Z`}
+          fill="#241634"
+        />
+      ))}
+      <rect x="416" y="276" width="270" height="5" fill="#241634" />
+      <path d="M0 330 C240 312 520 344 760 322 C860 314 940 322 1000 318 L1000 400 L0 400 Z" fill="#2e2140" />
+      <Pumpkin x={120} y={336} s={1.1} face />
+      <Pumpkin x={610} y={330} s={0.8} face />
+      <Pumpkin x={940} y={338} s={1} />
+      {/* Low mist. */}
+      <g className={live ? 'rocky-drift' : undefined} opacity="0.35">
+        <ellipse cx="220" cy="350" rx="260" ry="22" fill="#c9b8e8" />
+        <ellipse cx="760" cy="356" rx="300" ry="20" fill="#c9b8e8" />
+      </g>
+    </>
+  )
+}
+
+function PumpkinPatchScene({ live }: { live: boolean }) {
+  return (
+    <>
+      <defs>
+        <linearGradient id="patch-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f6a15b" />
+          <stop offset="0.6" stopColor="#ffd39a" />
+          <stop offset="1" stopColor="#ffe9c4" />
+        </linearGradient>
+      </defs>
+      <rect width="1000" height="400" fill="url(#patch-sky)" />
+      <circle cx="200" cy="150" r="46" fill="#ffe08a" />
+      <circle cx="200" cy="150" r="90" fill="#ffe08a" opacity="0.25" />
+      <g className={live ? 'rocky-drift' : undefined}>
+        <Cloud x={560} y={70} s={0.9} opacity={0.8} />
+        <Cloud x={880} y={110} s={0.7} opacity={0.7} />
+      </g>
+      <path d="M0 220 C160 190 320 206 480 196 C660 184 820 206 1000 196 L1000 400 L0 400 Z" fill="#d98b4a" opacity="0.6" />
+      <path d="M0 250 C220 226 420 256 600 240 C780 226 900 244 1000 238 L1000 400 L0 400 Z" fill="#b8753a" />
+      {/* The red barn and the scarecrow. */}
+      <g transform="translate(720 150)">
+        <path d="M0 100 L0 40 L60 0 L120 40 L120 100 Z" fill="#b93b32" />
+        <path d="M-6 44 L60 -4 L126 44" stroke="#ffffff" strokeWidth="5" fill="none" />
+        <rect x="40" y="52" width="40" height="48" fill="#8f2c25" />
+        <path d="M40 52 L80 100 M80 52 L40 100" stroke="#ffffff" strokeWidth="4" />
+      </g>
+      <g transform="translate(300 170)">
+        <path d="M30 0 L30 130" stroke="#6b4423" strokeWidth="6" />
+        <path d="M0 40 L60 40" stroke="#6b4423" strokeWidth="6" />
+        <circle cx="30" cy="20" r="16" fill="#e3b94f" />
+        <path d="M8 16 L52 16 L42 0 L18 0 Z" fill="#6b4423" />
+        <rect x="14" y="36" width="32" height="44" rx="6" fill="#3a78c2" />
+        <path d="M0 40 L-8 50 M60 40 L68 50" stroke="#e3b94f" strokeWidth="4" strokeLinecap="round" />
+        <circle cx="24" cy="20" r="2" fill="#1b2433" />
+        <circle cx="36" cy="20" r="2" fill="#1b2433" />
+      </g>
+      {/* Rows of pumpkins and vines. */}
+      <path d="M0 300 C200 284 480 312 700 294 C840 284 930 296 1000 290 L1000 400 L0 400 Z" fill="#8f5a2a" />
+      <path d="M0 330 C180 320 420 340 640 326 C820 316 920 326 1000 322" stroke="#3f7d2a" strokeWidth="5" fill="none" />
+      {[
+        [70, 318, 0.9],
+        [190, 332, 1.2],
+        [330, 318, 0.8],
+        [470, 336, 1.1],
+        [560, 320, 0.7],
+        [860, 334, 1.2],
+        [960, 320, 0.8],
+      ].map(([x, y, k], i) => (
+        <Pumpkin key={i} x={x} y={y} s={k} face={i === 3} />
+      ))}
+      {Array.from({ length: 14 }, (_, i) => (
+        <path key={i} d={`M${i * 75 + 20} 360 q10 -14 20 0`} stroke="#5f8f2a" strokeWidth="3" fill="none" />
+      ))}
+    </>
+  )
+}
+
+function WinterScene({ live }: { live: boolean }) {
+  return (
+    <>
+      <defs>
+        <linearGradient id="winter-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#9fc6e8" />
+          <stop offset="1" stopColor="#e6f2fb" />
+        </linearGradient>
+      </defs>
+      <rect width="1000" height="400" fill="url(#winter-sky)" />
+      <g className={live ? 'rocky-drift' : undefined}>
+        <Cloud x={200} y={60} s={1} opacity={0.9} />
+        <Cloud x={700} y={80} s={1.2} opacity={0.85} />
+      </g>
+      <path d="M0 200 L120 120 L220 190 L340 100 L470 200 L600 130 L720 200 L860 110 L1000 190 L1000 400 L0 400 Z" fill="#c9dcec" />
+      <path
+        d="M100 133 L120 120 L140 133 L130 140 L120 134 L110 140 Z M320 112 L340 100 L360 112 L350 120 L340 114 L330 120 Z M840 122 L860 110 L880 122 L870 130 L860 124 L850 130 Z"
+        fill="#ffffff"
+      />
+      <path d="M0 250 C200 230 400 260 600 244 C780 230 900 246 1000 240 L1000 400 L0 400 Z" fill="#eef5fb" />
+      {/* Cabins with warm windows and smoke. */}
+      {[
+        [140, 200, '#b93b32'],
+        [620, 190, '#3a78c2'],
+      ].map(([x, y, c], i) => (
+        <g key={i} transform={`translate(${x} ${y})`}>
+          <rect x="0" y="30" width="110" height="60" fill={c as string} />
+          <path d="M-12 34 L55 -8 L122 34 Z" fill="#ffffff" />
+          <rect x="16" y="46" width="22" height="20" fill="#ffd54a" className={live ? 'rocky-twinkle' : undefined} />
+          <rect
+            x="72"
+            y="46"
+            width="22"
+            height="20"
+            fill="#ffd54a"
+            className={live ? 'rocky-twinkle' : undefined}
+            style={{ animationDelay: '1.2s' }}
+          />
+          <rect x="44" y="60" width="20" height="30" fill="#6b4423" />
+          <rect x="80" y="-2" width="12" height="22" fill="#6b4423" />
+          <g className={live ? 'rocky-drift' : undefined} opacity="0.7">
+            <circle cx="86" cy="-12" r="7" fill="#ffffff" />
+            <circle cx="92" cy="-26" r="9" fill="#ffffff" />
+          </g>
+        </g>
+      ))}
+      <Pine x={60} y={300} s={1.1} snow />
+      <Pine x={420} y={290} s={0.9} snow />
+      <Pine x={520} y={300} s={1.2} snow />
+      <Pine x={900} y={300} s={1.3} snow />
+      <path d="M0 310 C240 292 520 324 760 304 C860 296 940 304 1000 300 L1000 400 L0 400 Z" fill="#ffffff" />
+      {Array.from({ length: 18 }, (_, i) => (
+        <circle
+          key={i}
+          cx={(i * 59) % 1000}
+          cy={30 + ((i * 43) % 240)}
+          r={i % 2 ? 2 : 3}
+          fill="#ffffff"
+          opacity="0.9"
+          className={live ? 'rocky-twinkle' : undefined}
+        />
+      ))}
+    </>
+  )
+}
+
+function NorthPoleScene({ live }: { live: boolean }) {
+  return (
+    <>
+      <defs>
+        <linearGradient id="pole-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#0b1a3a" />
+          <stop offset="1" stopColor="#1f3f6e" />
+        </linearGradient>
+        <linearGradient id="pole-aurora" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#3ff2a4" stopOpacity="0" />
+          <stop offset="0.3" stopColor="#3ff2a4" stopOpacity="0.6" />
+          <stop offset="0.6" stopColor="#7a8bff" stopOpacity="0.5" />
+          <stop offset="1" stopColor="#d27aff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <rect width="1000" height="400" fill="url(#pole-sky)" />
+      <Stars live={live} count={22} seed={5} />
+      <g className={live ? 'rocky-drift' : undefined}>
+        <path
+          d="M-40 120 C120 40 260 150 420 80 C580 10 700 130 860 60 C940 30 1000 60 1060 40 L1060 110 C980 140 900 110 820 150 C660 220 560 90 400 160 C240 230 120 120 -40 190 Z"
+          fill="url(#pole-aurora)"
+          opacity="0.75"
+        />
+      </g>
+      <path d="M0 250 C200 230 420 262 620 242 C800 226 900 246 1000 240 L1000 400 L0 400 Z" fill="#d7e8f7" />
+      {/* The striped pole and a workshop full of lights. */}
+      <g transform="translate(470 150)">
+        <rect x="0" y="0" width="16" height="170" fill="#ffffff" />
+        {Array.from({ length: 8 }, (_, i) => (
+          <path key={i} d={`M0 ${i * 22 + 4} L16 ${i * 22 - 6} L16 ${i * 22 + 4} L0 ${i * 22 + 14} Z`} fill="#d6333a" />
+        ))}
+        <circle cx="8" cy="-6" r="12" fill="#f5b82e" />
+      </g>
+      <g transform="translate(640 170)">
+        <rect x="0" y="36" width="180" height="84" fill="#b93b32" />
+        <path d="M-16 40 L90 -20 L196 40 Z" fill="#ffffff" />
+        {[20, 70, 120].map((x, i) => (
+          <rect
+            key={i}
+            x={x}
+            y="56"
+            width="30"
+            height="26"
+            fill="#ffd54a"
+            className={live ? 'rocky-twinkle' : undefined}
+            style={{ animationDelay: `${i * 0.6}s` }}
+          />
+        ))}
+        {Array.from({ length: 9 }, (_, i) => (
+          <circle
+            key={i}
+            cx={4 + i * 21}
+            cy={38 + (i % 2) * 5}
+            r="4"
+            fill={['#e2445c', '#f5b82e', '#3ff2a4', '#7a8bff'][i % 4]}
+            className={live ? 'rocky-twinkle' : undefined}
+            style={{ animationDelay: `${i * 0.25}s` }}
+          />
+        ))}
+      </g>
+      <Pine x={120} y={300} s={1.2} snow />
+      <Pine x={250} y={290} s={0.9} snow />
+      <Pine x={930} y={300} s={1.1} snow />
+      <path d="M0 312 C240 294 520 326 760 306 C860 298 940 306 1000 302 L1000 400 L0 400 Z" fill="#f4f9fe" />
+    </>
+  )
+}
+
 export function SceneArt({ id, live = false }: { id: string; live?: boolean }) {
   return (
     <svg viewBox="0 0 1000 400" preserveAspectRatio="xMidYMax slice" width="100%" height="100%" aria-hidden="true">
-      {id === 'scene-warehouse' ? (
+      {id === 'scene-haunted' ? (
+        <HauntedScene live={live} />
+      ) : id === 'scene-pumpkin-patch' ? (
+        <PumpkinPatchScene live={live} />
+      ) : id === 'scene-winter' ? (
+        <WinterScene live={live} />
+      ) : id === 'scene-north-pole' ? (
+        <NorthPoleScene live={live} />
+      ) : id === 'scene-warehouse' ? (
         <WarehouseScene />
       ) : id === 'scene-ballpark' ? (
         <BallparkScene live={live} />

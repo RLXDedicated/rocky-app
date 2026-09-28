@@ -12,6 +12,11 @@ interface Props {
   onFeed: () => void
   onPlay: () => void
   onBath: () => void
+  /** The bag is open on food / soaps (the button shows as pressed). */
+  feedOpen?: boolean
+  bathOpen?: boolean
+  /** Visiting a friend: "Give treat" and "Wave" instead of bag and bath. */
+  visitor?: boolean
 }
 
 const ICON = {
@@ -71,7 +76,7 @@ function level(value: number): 'good' | 'mid' | 'low' {
 }
 
 /** Rocky's needs at a glance, plus the four ways to care for him. */
-export function NeedsDock({ needs, treats, busy, playing = false, onPet, onFeed, onPlay, onBath }: Props) {
+export function NeedsDock({ needs, treats, busy, playing = false, onPet, onFeed, onPlay, onBath, feedOpen, bathOpen, visitor = false }: Props) {
   const clean = Math.round(100 - needs.dirt)
   const meters = [
     { key: 'health', label: 'Health', value: Math.round(needs.health), icon: ICON.health },
@@ -111,13 +116,14 @@ export function NeedsDock({ needs, treats, busy, playing = false, onPet, onFeed,
           data-tone="treat"
           onClick={onFeed}
           disabled={busy}
-          aria-label={`Give a treat (${treats} left)`}
+          aria-pressed={feedOpen}
+          aria-label={visitor ? `Give one of your treats (${treats} left)` : `Food — open the bag (${treats} treats)`}
         >
           <span className={styles.careIcon}>
             <Icon>{ICON.treat}</Icon>
             <b className={styles.count}>{treats}</b>
           </span>
-          Treat
+          {visitor ? 'Give treat' : 'Food'}
         </button>
         <button type="button" className={styles.careBtn} data-tone="play" onClick={onPlay} disabled={busy} aria-pressed={playing}>
           <span className={styles.careIcon}>
@@ -125,11 +131,24 @@ export function NeedsDock({ needs, treats, busy, playing = false, onPet, onFeed,
           </span>
           {playing ? 'Playing' : 'Play'}
         </button>
-        <button type="button" className={`${styles.careBtn} ${dirty ? styles.careBtnNudge : ''}`} data-tone="bath" onClick={onBath} disabled={busy}>
+        <button
+          type="button"
+          className={`${styles.careBtn} ${dirty && !visitor ? styles.careBtnNudge : ''}`}
+          data-tone="bath"
+          onClick={onBath}
+          disabled={busy}
+          aria-pressed={bathOpen}
+        >
           <span className={styles.careIcon}>
-            <Icon>{ICON.bath}</Icon>
+            {visitor ? (
+              <span aria-hidden="true" className={styles.waveIcon}>
+                👋
+              </span>
+            ) : (
+              <Icon>{ICON.bath}</Icon>
+            )}
           </span>
-          Bath
+          {visitor ? 'Wave' : 'Bath'}
         </button>
       </div>
     </div>

@@ -14,9 +14,15 @@ import {
   PETS_PER_DAY,
   tickNeeds,
   treatsAvailable,
+  hostSide,
+  refreshPetState,
+  spawnLitter,
+  unreadInbox,
+  visitorSide,
   type PetAction,
   type PetState,
 } from './pet'
+import { GAME_CAPS, keepyReward, litterReward, LITTER } from './pantry'
 
 const NOW = new Date('2026-09-08T12:00:00.000Z')
 const newbie: ProgressFacts = { level: 1, stage: 'Baby', bestStreak: 0, checkIns: 0, qaPasses: 0, badgeIds: [] }
@@ -28,7 +34,7 @@ function run(state: PetState, action: PetAction, facts = worker, now = NOW) {
 
 describe('shop catalogue', () => {
   it('starts with only the starter items unlocked', () => {
-    const unlocked = CLOSET.filter((i) => i.isUnlocked(newbie)).map((i) => i.id)
+    const unlocked = CLOSET.filter((i) => !i.season && i.isUnlocked(newbie)).map((i) => i.id)
     expect(unlocked).toEqual(['hat-rlx-cap', 'neck-lanyard', 'scene-route', 'decor-boxes', 'decor-bowl'])
   })
 
@@ -209,5 +215,83 @@ describe('Note Check (notes quiz)', () => {
     const tomorrow = new Date(NOW.getTime() + 86_400_000)
     const zero = run(first.state, { type: 'quiz', answers: wrong }, worker, tomorrow)
     expect(zero.state.quiz.lastScore).toBeLessThanOrEqual(5)
+  })
+})
+
+describe('inventory, soaps and the mini-games', () => {
+  it('feeds foods from the bag and only bathes with soaps the agent has', () => {
+    let s = initialPetState(NOW)
+    expect(s.inventory).toEqual({ 'soap-basic': 1, 'food-apple': 2 })
+    s = { ...s, needs: { ...s.needs, health: 50 } }
+    const fed = run(s, { type: 'feed', food: 'food-apple' })
+    expect(fed.ok && fed.state.inventory['food-apple']).toBe(1)
+    expect(fed.state.needs.health).toBe(60)
+    expect(run(s, { type: 'feed', food: 'food-cake' })).toMatchObject({ ok: false, reason: 'no-food' })
+    expect(run(s, { type: 'bath', soap: 'soap-lavender' })).toMatchObject({ ok: false, reason: 'no-soap' })
+    expect(run(s, { type: 'bath' }).ok).toBe(true)
+  })
+
+  it('pays keep-it-up streaks by tiers, clamps silly numbers and caps the day', () => {
+    expect(keepyReward(2)).toEqual({ coins: 0, xp: 0 })
+    expect(keepyReward(5)).toEqual({ coins: 1, xp: 1 })
+    expect(keepyReward(20)).toEqual({ coins: 6 + 3 + 5, xp: 3 })
+    let s = initialPetState(NOW)
+    let coins = 0
+    let xp = 0
+    for (let i = 0; i < 20; i++) {
+      const r = run(s, { type: 'keepy', touches: 999 })
+      if (!r.ok) throw new Error('keepy failed')
+      s = r.state
+      coins += r.reward?.coins ?? 0
+      xp += r.xp?.xp ?? 0
+    }
+    expect(coins).toBe(GAME_CAPS.coins)
+    expect(xp).toBe(GAME_CAPS.xp)
+    expect(s.games.bestKeepy).toBe(80)
+    // A new day, new caps.
+    const tomorrow = new Date(NOW.getTime() + 86_400_000)
+    const r = run(s, { type: 'keepy', touches: 10 }, worker, tomorrow)
+    expect(r.ok && r.reward).toEqual(keepyReward(10))
+  })
+
+  it('drops litter deterministically every few hours, never more than the max', () => {
+    const s = initialPetState(NOW)
+    const later = new Date(NOW.getTime() + 100 * 3_600_000)
+    const a = spawnLitter(s.litter, later)
+    const b = spawnLitter(s.litter, later)
+    expect(a).toEqual(b)
+    expect(a.items).toHaveLength(LITTER.max)
+    expect(new Set(a.items.map((i) => i.id)).size).toBe(LITTER.max)
+    const withLitter = refreshPetState(s, later)
+    const piece = withLitter.litter.items[0]!
+    const picked = run(withLitter, { type: 'litter', id: piece.id }, worker, later)
+    expect(picked.ok && picked.reward?.coins).toBe(litterReward(piece.id, s.litter.seed).coins)
+    expect(run(picked.state, { type: 'litter', id: piece.id }, worker, later)).toMatchObject({ ok: false, reason: 'gone' })
+  })
+
+  it('gives old saves the starter bag and a little litter', () => {
+    const old = normalizePetState({ outfit: DEFAULT_OUTFIT, needs: { health: 90, happiness: 80, dirt: 10, updatedAt: NOW.toISOString() } }, NOW)
+    expect(old.inventory['soap-basic']).toBe(1)
+    expect(refreshPetState(old, NOW).litter.items.length).toBe(2)
+  })
+})
+
+describe('visits between friends', () => {
+  it('pays the visitor once per friend a day and cheers the host up', () => {
+    const me = initialPetState(NOW)
+    const first = visitorSide(me, 'f-1', 'wave', worker, NOW)
+    expect(first.ok && first.reward?.coins).toBe(2)
+    const again = visitorSide(first.state, 'f-1', 'pet', worker, NOW)
+    expect(again.ok && again.reward?.coins).toBe(0)
+    const treat = visitorSide(first.state, 'f-2', 'treat', worker, NOW)
+    expect(treat.ok && treatsAvailable(treat.state, worker)).toBe(treatsAvailable(first.state, worker) - 1)
+    expect(visitorSide(me, 'f-3', 'treat', newbie, NOW)).toMatchObject({ ok: false, reason: 'no-treats' })
+
+    const host = hostSide(initialPetState(NOW), 'Ana Diaz', 'treat', NOW)
+    expect(host.bonusTreats).toBe(1)
+    expect(unreadInbox(host)).toHaveLength(1)
+    expect(host.inbox[0]!.text).toContain('Ana Diaz')
+    const read = run(host, { type: 'readInbox' }, worker, new Date(NOW.getTime() + 1000))
+    expect(unreadInbox(read.state)).toHaveLength(0)
   })
 })

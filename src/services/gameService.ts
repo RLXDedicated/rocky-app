@@ -6,6 +6,8 @@ import {
   processCheckIn,
   processCorrection,
   processDevXpGrant,
+  processXpGrant,
+  GAME_XP_SOURCE,
   processDocumentationAlert,
   processQAPass,
   type CheckInResult,
@@ -119,6 +121,20 @@ export class GameService {
     for (const event of result.events) {
       this.repo.saveEvent(event)
     }
+    return result
+  }
+
+  /**
+   * XP won in Rocky's mini-games (capped per day in pet.ts). Recorded as an
+   * XP_GRANT event from "rocky-games" so it replays and shows in the diary.
+   * In remote mode the server records its own copy and replaces this one.
+   */
+  grantGameXp(xp: number, reason: string, now: Date = this.clock.now()) {
+    const state = this.repo.getGameState()
+    const agentId = this.repo.getAgent().id ?? DEFAULT_AGENT_ID
+    const result = processXpGrant(state, xp, now, agentId, { reason, grantedBy: GAME_XP_SOURCE })
+    this.repo.saveGameState(result.state)
+    for (const event of result.events) this.repo.saveEvent(event)
     return result
   }
 

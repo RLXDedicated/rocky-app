@@ -5,6 +5,7 @@ import { AdminConsole } from './components/admin/AdminConsole'
 import { DevControls } from './components/DevControls'
 import { Home } from './components/Home'
 import { NavIcon, type NavIconName } from './components/NavIcon'
+import { Friends } from './components/Friends'
 import { Leaderboard } from './components/Leaderboard'
 import { Onboarding } from './components/Onboarding'
 import { Progress } from './components/Progress'
@@ -22,7 +23,18 @@ import { isQaModeEnabled, setQaModeEnabled } from './services/appModeService'
 import { isQaStaff } from './services/identityService'
 import { hasCompletedOnboarding } from './services/onboardingService'
 
-type View = 'home' | 'progress' | 'notes' | 'qa-simulator' | 'admin' | 'achievements' | 'leaderboard' | 'team' | 'team-leaderboard' | 'dev-controls'
+type View =
+  | 'home'
+  | 'progress'
+  | 'notes'
+  | 'friends'
+  | 'qa-simulator'
+  | 'admin'
+  | 'achievements'
+  | 'leaderboard'
+  | 'team'
+  | 'team-leaderboard'
+  | 'dev-controls'
 
 // Agent Mode (the everyday experience) vs QA Mode (Phase 8 §23-24): QA
 // Simulator is an internal testing tool, not part of what an agent normally
@@ -91,6 +103,7 @@ function App() {
     { view: 'home', label: 'Rocky', icon: 'home' },
     { view: 'notes', label: 'Note Check', icon: 'note' },
     { view: 'progress', label: 'Progress', icon: 'chart' },
+    { view: 'friends', label: 'Friends', icon: 'friends' },
     { view: 'achievements', label: 'Badges', icon: 'medal' },
     { view: 'leaderboard', label: 'Ranking', icon: 'podium' },
     // Teams are still a demo roster (no real team assignments yet), so they
@@ -143,6 +156,7 @@ function App() {
 
       {view === 'home' && <Home onOpenProgress={() => setView('progress')} onOpenNotes={() => setView('notes')} />}
       {view === 'progress' && <Progress />}
+      {view === 'friends' && <Friends />}
       {view === 'notes' && <NotesGame />}
       {view === 'qa-simulator' && qaMode && <QASimulator />}
       {view === 'admin' && canUseAdmin && <AdminConsole />}

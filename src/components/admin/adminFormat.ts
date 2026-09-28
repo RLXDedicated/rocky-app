@@ -1,3 +1,4 @@
+import { findFood, findSoap } from '../../game/pantry'
 import type { AdminAgentSummary, AdminEventRow } from '../../services/apiClient'
 import { CLOSET } from '../../game/closet'
 
@@ -162,6 +163,19 @@ export const AUDIT_ACTION_ES: Record<string, string> = {
   'pet.buyTreats': 'Compró bolsa de premios',
   'pet.equip': 'Cambió el look',
   'pet.quiz': 'Jugó Note Check',
+  'pet.buyFood': 'Compró comida',
+  'pet.buySoap': 'Compró un jabón',
+  'pet.keepy': 'Mantuvo la pelota en el aire',
+  'pet.litter': 'Recogió basura',
+  'pet.readInbox': 'Leyó sus mensajes',
+  'social.visit': 'Visitó a un amigo',
+  'social.visited': 'Recibió una visita',
+  'admin.inventory': 'Regaló comida/jabón',
+  'admin.message': 'Envió un mensaje',
+  'admin.gift.note': 'Nota de regalo',
+  'admin.litter.clear': 'Limpió la basura',
+  'admin.games.reset': 'Reinició topes de juegos',
+  'admin.bulk': 'Acción masiva',
   'qa.pass': 'QA Pass registrado',
   'qa.alert': 'Alerta registrada',
   'qa.correction': 'Corrección de auditoría',
@@ -193,6 +207,8 @@ export const LEDGER_KIND_ES: Record<string, string> = {
   'admin-grant': 'Otorgado por admin',
   'admin-deduct': 'Descontado por admin',
   quiz: 'Note Check (juego de notas)',
+  game: 'Minijuegos (pelota, basura)',
+  social: 'Visita a un amigo',
 }
 
 export const SOURCE_ES: Record<string, string> = {
@@ -207,7 +223,24 @@ export function auditDetail(detail: Record<string, unknown> | null): string {
   if (!detail) return ''
   const parts: string[] = []
   if (typeof detail.itemId === 'string')
-    parts.push(CLOSET.find((i) => i.id === detail.itemId)?.name ?? (detail.itemId === 'treat-bag' ? 'Bolsa de premios' : detail.itemId))
+    parts.push(
+      CLOSET.find((i) => i.id === detail.itemId)?.name ??
+        findFood(detail.itemId as string)?.name ??
+        findSoap(detail.itemId as string)?.name ??
+        (detail.itemId === 'treat-bag' ? 'Bolsa de premios' : (detail.itemId as string)),
+    )
+  if (typeof detail.food === 'string') parts.push(findFood(detail.food)?.name ?? detail.food)
+  if (typeof detail.soap === 'string') parts.push(findSoap(detail.soap)?.name ?? detail.soap)
+  if (typeof detail.touches === 'number') parts.push(`${detail.touches} toques seguidos`)
+  if (detail.reward && typeof detail.reward === 'object') {
+    const r = detail.reward as { coins?: number; xp?: number }
+    parts.push(`premio ${r.coins ?? 0} coins${r.xp ? ` + ${r.xp} XP` : ''}`)
+  }
+  if (typeof detail.kind === 'string') parts.push(detail.kind)
+  if (typeof detail.from === 'string') parts.push(`de ${detail.from}`)
+  if (typeof detail.text === 'string') parts.push(`“${detail.text}”`)
+  if (typeof detail.agents === 'number') parts.push(`${detail.done ?? '?'}/${detail.agents} agentes`)
+  if (typeof detail.qty === 'number') parts.push(`x${detail.qty}`)
   if (typeof detail.coins === 'number') parts.push(`${detail.coins > 0 ? '+' : ''}${detail.coins} coins`)
   if (typeof detail.delta === 'number') parts.push(`${detail.delta > 0 ? '+' : ''}${detail.delta}`)
   if (typeof detail.applied === 'number' && detail.applied !== detail.delta) parts.push(`aplicado ${detail.applied}`)

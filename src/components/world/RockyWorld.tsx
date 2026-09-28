@@ -1,4 +1,5 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import type { EvolutionStage, Mood } from '../../types/domain'
 import type { Outfit } from '../../game/closet'
 import { needsSummary, type Needs } from '../../game/pet'
@@ -8,7 +9,11 @@ import { getReactionAsset, getRockyAsset, ROCKY_VISUALS, type RockyReactionKey }
 import { DECOR_ART, HAT_ART, SceneArt, hatPlacement, type DecorPlay } from './art'
 import { findItem, MAX_DECOR, SPOT_MAX, SPOT_MIN } from '../../game/closet'
 import { Ball, type BallHandle } from './Ball'
+import { FOODS, SOAPS, BASIC_TREAT, findFood, findSoap, STARTER_SOAP, type LitterPiece } from '../../game/pantry'
+import { InventoryTray, type TrayItem, type TrayTab } from './InventoryTray'
+import { BinArt, FOOD_ART, LITTER_ART, SOAP_ART } from './items'
 import { FxLayer } from './FxLayer'
+import { Coin } from './Coin'
 import { BACK_ART, GLASSES_ART, NECK_ART, WEAR_VIEWBOX, backPlacement, glassesPlacement, neckPlacement } from './wearables'
 import { NeedsDock } from './NeedsDock'
 import { Rocky3D, type ClipRequest } from './Rocky3D'
@@ -23,10 +28,39 @@ type Pose = 'idle' | 'walk' | 'run' | 'pet' | 'eat' | 'hop' | 'bath'
 interface Particle {
   id: number
   x: number
-  kind: 'heart' | 'crumb' | 'bubble' | 'sparkle' | 'zzz' | 'note'
+  kind: 'heart' | 'crumb' | 'bubble' | 'sparkle' | 'zzz' | 'note' | 'coin'
   /** Extra offsets so bursts don't stack in one column. */
   dx: number
   dy: number
+}
+
+/** Something the agent is dragging: food or soap from the bag, or litter to the bin. */
+interface Held {
+  what: 'food' | 'soap' | 'litter'
+  id: string
+  art: ReactElement
+  x: number
+  y: number
+  startX: number
+  startY: number
+  moved: boolean
+  /** Over Rocky (food/soap) or over the bin (litter). */
+  over: boolean
+}
+
+interface FoamSpot {
+  id: number
+  /** % of the actor box. */
+  x: number
+  y: number
+  s: number
+  c: string
+}
+
+interface RewardPop {
+  id: number
+  x: number
+  text: string
 }
 
 interface Props {
@@ -40,9 +74,22 @@ interface Props {
   needs: Needs
   /** Care actions: each returns false when it can't happen (e.g. no treats). */
   onPet: () => boolean
-  onFeed: () => boolean
+  /** Feeds a food from the bag (or, without an id, one of the earned treats). */
+  onFeed: (food?: string) => boolean
   onPlay: () => boolean
-  onBath: () => boolean
+  onBath: (soap?: string) => boolean
+  /** Foods and soaps the agent has. */
+  inventory?: Record<string, number>
+  /** Litter lying around (drag it to the bin). */
+  litter?: LitterPiece[]
+  /** A keep-it-up streak ended; returns what it paid (null when nothing). */
+  onKeepy?: (touches: number) => { coins: number; xp: number } | null
+  /** A piece of litter went in the bin; returns what it paid. */
+  onLitter?: (id: string) => { coins: number; xp: number } | null
+  /** Opens the shop's pantry (food or soaps). */
+  onOpenPantry?: (tab: TrayTab) => void
+  /** Visiting a friend: no bag, no litter, no arranging. */
+  visitor?: boolean
   /** Top overlay (name tag, level, shop). */
   hud: ReactNode
   /** The primary action (check-in). */
@@ -78,7 +125,6 @@ const FLOOR_GAP = 20
 const PET_LINES = ['Hehe, that tickles!', 'Right behind the horns!', 'More scratches, please!', 'Best teammate ever.']
 const FEED_LINES = ['Nom nom nom!', 'Delicious. Thank you!', 'Crunchy! Rocky approves.']
 const PLAY_LINES = ['Goooal!', 'Again! Again!', 'Did you see that kick?']
-const TAP_LINES = ['Nice pass!', 'My ball!', 'Wheee!', 'You’re good at this!']
 const PLAY_START = 'Ball! Let’s play!'
 /** How long Rocky plays with the ball before the final kick. */
 const PLAY_MS = 9000
@@ -86,6 +132,21 @@ const PLAY_MS = 9000
 const WALK_MIN = 12
 const WALK_MAX = 88
 const BATH_LINES = ['Squeaky clean!', 'Ahh, bubbles!', 'Fresh as a daisy.']
+const LITTER_LINES = ['Thanks for keeping our place tidy!', 'Clean route, happy Rocky!', 'Into the bin it goes!', 'Tidy world, tidy notes!']
+/** Longest a play session can run while the agent keeps the ball up. */
+const KEEPY_MAX_MS = 90_000
+/** A tap this close (px) to the ball counts as a kick. */
+const NEAR_KICK_PX = 100
+/** How much scrubbing a bath takes: pointer travel over Rocky, in multiples of his size. */
+const SCRUB_DISTANCE = 6
+/** Where stink lines rise (left %, top % of the actor box): beside the body and above the head, never over the face. */
+const STINK_SPOTS: Array<[number, number]> = [
+  [12, 42],
+  [80, 40],
+  [18, 10],
+  [74, 6],
+  [8, 62],
+]
 const NEED_LINES = {
   dirty: 'I could really use a bath…',
   sad: 'Play with me? Pretty please?',
@@ -137,6 +198,12 @@ export function RockyWorld({
   arranging = false,
   onStartArrange,
   onArrangeDone,
+  inventory = {},
+  litter = [],
+  onKeepy,
+  onLitter,
+  onOpenPantry,
+  visitor = false,
 }: Props) {
   const [x, setX] = useState(50)
   const [pose, setPose] = useState<Pose>('idle')
@@ -151,6 +218,25 @@ export function RockyWorld({
   const [playing, setPlaying] = useState(false)
   const [clickMark, setClickMark] = useState<{ id: number; x: number; y: number } | null>(null)
   const [treatFlying, setTreatFlying] = useState(false)
+  // Rocky's bag, and whatever the agent is dragging out of it (or litter to the bin).
+  const [tray, setTray] = useState<TrayTab | null>(null)
+  const [held, setHeld] = useState<Held | null>(null)
+  const heldRef = useRef<Held | null>(null)
+  heldRef.current = held
+  const actorRef = useRef<HTMLDivElement>(null)
+  const binRef = useRef<HTMLDivElement>(null)
+  const [binOpen, setBinOpen] = useState(false)
+  // Scrubbing: foam builds up where the soap goes; at 100% Rocky gets rinsed.
+  const [foam, setFoam] = useState<FoamSpot[]>([])
+  const [scrub, setScrub] = useState(0)
+  const scrubRef = useRef({ progress: 0, lastX: 0, lastY: 0, lastFoam: 0, lastSound: 0 })
+  const foamTimer = useRef(0)
+  // Keep-it-up: taps in a row without the ball touching the ground.
+  const [touches, setTouches] = useState(0)
+  const touchesRef = useRef(0)
+  const [rewards, setRewards] = useState<RewardPop[]>([])
+  // Litter the agent has just thrown away (hidden until the server agrees).
+  const [binned, setBinned] = useState<string[]>([])
   // The layout being arranged (a draft until the agent taps Done).
   const [draft, setDraft] = useState<{ decor: string[]; spots: Record<string, number> } | null>(null)
   const dragRef = useRef<{ id: string; pointer: number; dx: number } | null>(null)
@@ -288,7 +374,7 @@ export function RockyWorld({
     const schedule = () => {
       timer = window.setTimeout(
         async () => {
-          if (!busyRef.current && !reaction && !arrangingRef.current) {
+          if (!busyRef.current && !reaction && !arrangingRef.current && !heldRef.current && touchesRef.current === 0) {
             const items = decorRef.current.filter((id) => DECOR_ART[id] && !DECOR_ART[id]!.lift)
             // Now and then Rocky goes and plays with one of his things.
             if (items.length && Math.random() < 0.4) await visitRef.current(pick(items))
@@ -322,25 +408,28 @@ export function RockyWorld({
     window.setTimeout(() => setPose('idle'), 700)
   }
 
-  function handleFeed() {
+  /** Feeds Rocky: a treat thrown in (button), or food dropped right on him (from the bag). */
+  function handleFeed(food?: string, dropped = false) {
     if (busyRef.current) return
-    if (treats <= 0) {
+    if (!food && treats <= 0) {
       playSfx('nope')
-      say('No treats left — check-ins and clean audits earn more.')
+      say('No treats left — check-ins and clean audits earn more. Or grab a snack from the shop!')
       return
     }
-    if (!onFeed()) return
+    if (!onFeed(food)) {
+      playSfx('nope')
+      return
+    }
     setBusy(true)
-    setTreatFlying(true)
-    playSfx('tap')
-    window.setTimeout(() => {
+    const eat = () => {
       setTreatFlying(false)
       setPose('eat')
       playClip('Eat')
       playSfx('chomp')
-      burst('crumb', 6, x)
-      burst('heart', 2, x)
-      say(pick(FEED_LINES))
+      burst('crumb', 6, xRef.current)
+      burst('heart', 2, xRef.current)
+      const item = findFood(food)
+      say(item ? `${item.name}! ${pick(FEED_LINES)}` : pick(FEED_LINES))
       window.setTimeout(
         () => {
           setPose('idle')
@@ -348,7 +437,14 @@ export function RockyWorld({
         },
         is3dRef.current ? 2100 : 1400,
       )
-    }, 650)
+    }
+    if (dropped) {
+      eat()
+      return
+    }
+    setTreatFlying(true)
+    playSfx('tap')
+    window.setTimeout(eat, 650)
   }
 
   /**
@@ -369,11 +465,18 @@ export function RockyWorld({
     await wait(animate ? 900 : 200)
 
     if (animate) {
-      const until = performance.now() + PLAY_MS
+      let until = performance.now() + PLAY_MS
+      const hardStop = performance.now() + KEEPY_MAX_MS
       let lastNudge = 0
       while (performance.now() < until) {
         const b = ballRef.current?.position()
         if (!b) break
+        // While the agent keeps the ball up, Rocky cheers instead of taking it.
+        if (touchesRef.current > 0) {
+          until = Math.min(hardStop, Math.max(until, performance.now() + 2500))
+          await wait(200)
+          continue
+        }
         const bx = (b.x / worldSizeRef.current.w) * 100
         const gap = bx - xRef.current
         if (Math.abs(gap) > 7) {
@@ -392,6 +495,7 @@ export function RockyWorld({
     }
 
     // The final shot: run up to the ball and send it flying.
+    endStreak()
     const b = ballRef.current?.position()
     const bx = b ? (b.x / worldSizeRef.current.w) * 100 : target
     const side = bx > 50 ? 1 : -1 // shoot toward the nearer edge... from the inside
@@ -416,10 +520,9 @@ export function RockyWorld({
     if ((e.target as Element).closest('button')) return
     if (arranging) return
     // A tap close to the moving ball counts as a kick: it's small and quick.
-    if (ball && !ball.final && ballRef.current && ballRef.current.distanceTo(e.clientX, e.clientY) < 70) {
+    if (ball && !ball.final && ballRef.current && ballRef.current.distanceTo(e.clientX, e.clientY) < NEAR_KICK_PX) {
       ballRef.current.kick(e.clientX, e.clientY)
-      playSfx('kick')
-      say(pick(TAP_LINES), 1400)
+      countTouch()
       return
     }
     if (busyRef.current && !playing) return
@@ -517,24 +620,215 @@ export function RockyWorld({
     playSfx('pop')
   }
 
-  function handleBath() {
-    if (busyRef.current || !onBath()) return
+  /** The rinse: after scrubbing (or a quick bath from the keyboard) the shower washes the foam off. */
+  function handleBath(soap: string = STARTER_SOAP) {
+    if (busyRef.current || !onBath(soap)) return
     setBusy(true)
     setPose('bath')
     playSfx('splash')
     window.setTimeout(() => playSfx('bubble'), 500)
     window.setTimeout(() => playSfx('bubble'), 1300)
-    burst('bubble', 10, x, BATH_MS)
+    burst('bubble', 10, xRef.current, BATH_MS)
     window.setTimeout(
       () => {
         setPose('idle')
-        burst('sparkle', 7, x, 1400)
+        setFoam([])
+        setScrub(0)
+        scrubRef.current.progress = 0
+        burst('sparkle', 7, xRef.current, 1400)
         playSfx('chime')
         say(pick(BATH_LINES))
         setBusy(false)
       },
       animate ? BATH_MS : 300,
     )
+  }
+
+  // ------------------------------------------------------------ keep-it-up
+  function countTouch() {
+    touchesRef.current += 1
+    setTouches(touchesRef.current)
+    playSfx(touchesRef.current % 5 === 0 ? 'chime' : 'kick')
+    if (touchesRef.current === 1) say('Keep it up! Don’t let it drop!', 1600)
+    else if (touchesRef.current % 5 === 0) say(`${touchesRef.current} in a row!`, 1400)
+  }
+
+  function endStreak() {
+    const n = touchesRef.current
+    if (n === 0) return
+    touchesRef.current = 0
+    setTouches(0)
+    if (n < 3 || !onKeepy) return
+    const reward = onKeepy(n)
+    const b = ballRef.current?.position()
+    const at = b ? (b.x / worldSizeRef.current.w) * 100 : xRef.current
+    pop(at, `${n} in a row!`, reward)
+    say(n >= 10 ? `WOW! ${n} in a row!` : `Nice! ${n} in a row!`, 2200)
+  }
+
+  /** A floating "+3 coins +1 XP" where something paid out. */
+  function pop(atX: number, label: string, reward: { coins: number; xp: number } | null) {
+    const parts = [label]
+    if (reward?.coins) parts.push(`+${reward.coins} coins`)
+    if (reward?.xp) parts.push(`+${reward.xp} XP`)
+    if (reward && !reward.coins && !reward.xp && label) parts.push('daily max reached')
+    const id = ++idRef.current
+    // Kept inside the stage so the label never gets cut at an edge.
+    setRewards((r) => [...r, { id, x: Math.max(14, Math.min(86, atX)), text: parts.join(' · ') }])
+    if (reward?.coins) {
+      playSfx('coin')
+      burst('coin', Math.min(6, reward.coins), atX, 1400)
+    }
+    window.setTimeout(() => setRewards((r) => r.filter((p) => p.id !== id)), 2600)
+  }
+
+  // ------------------------------------------------ the bag and dragging
+  const foodItems: TrayItem[] = [
+    { id: BASIC_TREAT.id, name: BASIC_TREAT.name, count: treats, art: FOOD_ART.treat!, hint: 'Earned by check-ins · +12 health' },
+    ...FOODS.filter((f) => (inventory[f.id] ?? 0) > 0).map((f) => ({
+      id: f.id,
+      name: f.name,
+      count: inventory[f.id] ?? 0,
+      art: FOOD_ART[f.id] ?? FOOD_ART.treat!,
+      hint: `+${f.health} health · +${f.happiness} happiness`,
+    })),
+  ]
+  const soapItems: TrayItem[] = SOAPS.filter((s) => s.id === STARTER_SOAP || inventory[s.id]).map((s) => ({
+    id: s.id,
+    name: s.name,
+    count: null,
+    art: SOAP_ART[s.id] ?? SOAP_ART[STARTER_SOAP]!,
+    hint: s.happiness ? `Clean · +${s.happiness} happiness` : 'Squeaky clean',
+  }))
+
+  function useItem(item: TrayItem, tab: TrayTab) {
+    if (tab === 'food') handleFeed(item.id === BASIC_TREAT.id ? undefined : item.id, true)
+    else handleBath(item.id)
+    setTray(null)
+  }
+
+  function grab(what: Held['what'], id: string, art: ReactElement, e: React.PointerEvent<Element>) {
+    if (busyRef.current || arranging) return
+    e.preventDefault()
+    const next: Held = { what, id, art, x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moved: false, over: false }
+    scrubRef.current.lastX = e.clientX
+    scrubRef.current.lastY = e.clientY
+    setHeld(next)
+  }
+
+  /** The part of the actor box Rocky's body actually fills. */
+  function overRocky(cx: number, cy: number): boolean {
+    const r = actorRef.current?.getBoundingClientRect()
+    if (!r) return false
+    return cx > r.left + r.width * 0.18 && cx < r.right - r.width * 0.18 && cy > r.top + r.height * 0.12 && cy < r.bottom - r.height * 0.02
+  }
+
+  function overBin(cx: number, cy: number): boolean {
+    const r = binRef.current?.getBoundingClientRect()
+    return Boolean(r && cx > r.left - 24 && cx < r.right + 24 && cy > r.top - 40 && cy < r.bottom + 10)
+  }
+
+  useEffect(() => {
+    if (!held) return
+    const move = (e: PointerEvent) => {
+      const h = heldRef.current
+      if (!h) return
+      const moved = h.moved || Math.hypot(e.clientX - h.startX, e.clientY - h.startY) > 6
+      const over = h.what === 'litter' ? overBin(e.clientX, e.clientY) : overRocky(e.clientX, e.clientY)
+      if (h.what === 'litter') setBinOpen(over)
+      if (h.what !== 'litter') gazeRef.current = { x: e.clientX, y: e.clientY }
+      // Done scrubbing: the rinse takes over and the soap is put away.
+      if (h.what === 'soap' && over && scrubAt(e.clientX, e.clientY, h.id)) return
+      scrubRef.current.lastX = e.clientX
+      scrubRef.current.lastY = e.clientY
+      setHeld({ ...h, x: e.clientX, y: e.clientY, moved, over })
+    }
+    const up = (e: PointerEvent) => {
+      const h = heldRef.current
+      setHeld(null)
+      setBinOpen(false)
+      gazeRef.current = null
+      if (!h) return
+      if (h.what === 'food') {
+        if (!h.moved || overRocky(e.clientX, e.clientY)) {
+          handleFeed(h.id === BASIC_TREAT.id ? undefined : h.id, true)
+          setTray(null)
+        }
+      } else if (h.what === 'soap') {
+        if (!h.moved) say('Hold the soap and scrub me! 🧼', 2200)
+        else if (scrubRef.current.progress < 1 && scrubRef.current.progress > 0) say('A bit more scrubbing…', 1600)
+      } else if (h.what === 'litter') {
+        if (h.moved && overBin(e.clientX, e.clientY)) throwAway(h.id)
+        else if (!h.moved) say('Drag it to the bin!', 1600)
+      }
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+    }
+    // Listeners are re-bound only when a new drag starts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [held === null])
+
+  /** Adds foam where the soap passes; returns true once Rocky is fully scrubbed. */
+  function scrubAt(cx: number, cy: number, soapId: string): boolean {
+    const st = scrubRef.current
+    if (busyRef.current) return false
+    const dist = Math.hypot(cx - st.lastX, cy - st.lastY)
+    if (dist <= 0) return false
+    st.progress = Math.min(1, st.progress + dist / (size * SCRUB_DISTANCE))
+    setScrub(st.progress)
+    const now = performance.now()
+    const r = actorRef.current?.getBoundingClientRect()
+    if (r && now - st.lastFoam > 45) {
+      st.lastFoam = now
+      const soap = findSoap(soapId)
+      const spot: FoamSpot = {
+        id: ++idRef.current,
+        x: ((cx - r.left) / r.width) * 100,
+        y: ((cy - r.top) / r.height) * 100,
+        s: 8 + Math.random() * 12,
+        c: soap?.foam ?? '#ffffff',
+      }
+      setFoam((f) => [...f.slice(-70), spot])
+    }
+    if (now - st.lastSound > 380) {
+      st.lastSound = now
+      playSfx('bubble')
+    }
+    window.clearTimeout(foamTimer.current)
+    // Foam that's left alone slowly disappears (and the scrub resets).
+    foamTimer.current = window.setTimeout(() => {
+      if (heldRef.current) return
+      setFoam([])
+      setScrub(0)
+      scrubRef.current.progress = 0
+    }, 12000)
+    if (st.progress >= 1) {
+      heldRef.current = null
+      setHeld(null)
+      setTray(null)
+      handleBath(soapId)
+      return true
+    }
+    return false
+  }
+
+  function throwAway(id: string) {
+    const piece = litter.find((l) => l.id === id)
+    setBinned((b) => [...b, id])
+    playSfx('pop')
+    const reward = onLitter ? onLitter(id) : null
+    const binX =
+      binRef.current && worldRef.current
+        ? ((binRef.current.getBoundingClientRect().left - worldRef.current.getBoundingClientRect().left) / worldSizeRef.current.w) * 100
+        : 90
+    pop(binX, 'Clean!', reward)
+    if (piece) say(pick(LITTER_LINES), 1800)
   }
 
   function toggleSound() {
@@ -571,7 +865,8 @@ export function RockyWorld({
   const line = localLine ?? needLine ?? speech
   const bathing = pose === 'bath'
   // Mud shows from 40% dirt and is fully visible at 100%; never during/after a bath.
-  const mud = bathing ? 0 : Math.max(0, Math.min(1, (needs.dirt - 40) / 60))
+  // Smell shows from 40% dirt and is at its worst at 100%; never during/after a bath.
+  const mud = bathing || foam.length > 20 ? 0 : Math.max(0, Math.min(1, (needs.dirt - 40) / 60))
   const rigAction: RigAction = pose === 'bath' ? 'pet' : pose
 
   return (
@@ -660,10 +955,8 @@ export function RockyWorld({
             track={gazeRef}
             stageRef={worldRef}
             onBounce={(s) => s > 0.12 && playSfx('bounce')}
-            onTap={() => {
-              playSfx('kick')
-              say(pick(TAP_LINES), 1400)
-            }}
+            onTap={countTouch}
+            onLand={endStreak}
             onDone={() => setBall((b) => (b?.id === ball.id ? null : b))}
           />
         )}
@@ -679,13 +972,55 @@ export function RockyWorld({
         )}
 
         {playing && ball && !ball.final && (
-          <p className={styles.playHint} role="status">
-            Tap the ball to kick it!
+          <p className={`${styles.playHint} ${touches > 0 ? styles.playHintHot : ''}`} role="status">
+            {touches > 0 ? (
+              <>
+                <b>{touches}</b> in a row — keep it up!
+              </>
+            ) : (
+              'Tap the ball to keep it in the air!'
+            )}
           </p>
         )}
 
+        {rewards.map((r) => (
+          <span key={r.id} className={styles.rewardPop} style={{ left: `${r.x}%`, bottom: floorPx + 0.3 * worldSize.h }} role="status">
+            {r.text}
+          </span>
+        ))}
+
+        {!visitor &&
+          litter
+            .filter((l) => !binned.includes(l.id))
+            .map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                className={`${styles.litter} ${held?.what === 'litter' && held.id === l.id ? styles.litterHeld : ''}`}
+                style={{ left: `${l.x}%`, bottom: floorPx - 10 }}
+                onPointerDown={(e) => grab('litter', l.id, LITTER_ART[l.kind]!, e)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    throwAway(l.id)
+                  }
+                }}
+                aria-label="Litter — drag it to the bin (or press Enter)"
+              >
+                <svg viewBox="0 0 40 40" aria-hidden="true">
+                  {LITTER_ART[l.kind]}
+                </svg>
+              </button>
+            ))}
+        {!visitor && (
+          <div ref={binRef} className={`${styles.bin} ${binOpen ? styles.binOpen : ''}`} style={{ bottom: floorPx - 8 }} aria-hidden="true">
+            <BinArt open={binOpen || held?.what === 'litter'} />
+          </div>
+        )}
+
         <div
-          className={styles.actor}
+          ref={actorRef}
+          className={`${styles.actor} ${held && held.what !== 'litter' && held.over ? styles.actorTarget : ''}`}
           style={{
             left: `${x}%`,
             bottom: floorPx - feetGap,
@@ -788,14 +1123,21 @@ export function RockyWorld({
                 </svg>
               )}
             </span>
-            {/* Mud on the fur and belly — it builds up with time and play and washes off in the bath. */}
+            {/* A dirty Rocky smells: wavy stink lines rise off him (and flies show up when it's bad). */}
             {mud > 0 && (
-              <span className={styles.mud} style={{ opacity: mud }} aria-hidden="true">
-                <i style={{ left: '30%', top: '62%', width: '16%', height: '11%' }} />
-                <i style={{ left: '56%', top: '70%', width: '13%', height: '9%' }} />
-                <i style={{ left: '38%', top: '80%', width: '20%', height: '8%' }} />
-                <i style={{ left: '60%', top: '48%', width: '10%', height: '7%' }} />
-                <i style={{ left: '32%', top: '44%', width: '8%', height: '6%' }} />
+              <span className={styles.stink} style={{ opacity: 0.35 + mud * 0.65 }} aria-hidden="true">
+                {STINK_SPOTS.slice(0, mud > 0.5 ? 5 : 3).map(([left, top], i) => (
+                  <svg key={i} viewBox="0 0 20 60" style={{ left: `${left}%`, top: `${top}%`, animationDelay: `${i * 0.55}s` }}>
+                    <path d="M10 58 C2 50 18 42 10 34 C2 26 18 18 10 10 C6 6 8 3 10 2" />
+                  </svg>
+                ))}
+              </span>
+            )}
+            {foam.length > 0 && (
+              <span className={styles.foamLayer} aria-hidden="true">
+                {foam.map((f) => (
+                  <i key={f.id} style={{ left: `${f.x}%`, top: `${f.y}%`, width: f.s, height: f.s, background: f.c }} />
+                ))}
               </span>
             )}
             {mud > 0.6 && animate && (
@@ -835,7 +1177,7 @@ export function RockyWorld({
             }}
             aria-hidden="true"
           >
-            {p.kind === 'heart' ? '❤' : p.kind === 'zzz' ? 'z' : p.kind === 'note' ? '♪' : ''}
+            {p.kind === 'heart' ? '❤' : p.kind === 'zzz' ? 'z' : p.kind === 'note' ? '♪' : p.kind === 'coin' ? <Coin /> : ''}
           </span>
         ))}
 
@@ -889,18 +1231,61 @@ export function RockyWorld({
       </div>
 
       <div className={styles.dock} ref={dockRef}>
+        {tray && !visitor && (
+          <InventoryTray
+            tab={tray}
+            onTab={setTray}
+            onClose={() => setTray(null)}
+            foods={foodItems}
+            soaps={soapItems}
+            onGrab={(item, tab, e) => grab(tab === 'food' ? 'food' : 'soap', item.id, item.art, e)}
+            onUse={useItem}
+            onShop={() => {
+              setTray(null)
+              onOpenPantry?.(tray)
+            }}
+          />
+        )}
+        {scrub > 0 && scrub < 1 && (
+          <div
+            className={styles.scrubMeter}
+            role="progressbar"
+            aria-label="Scrubbing"
+            aria-valuenow={Math.round(scrub * 100)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <span style={{ width: `${scrub * 100}%` }} />
+            <b>Scrub {Math.round(scrub * 100)}%</b>
+          </div>
+        )}
         <NeedsDock
           needs={needs}
           treats={treats}
           busy={busy}
           playing={playing}
           onPet={handlePet}
-          onFeed={handleFeed}
+          onFeed={() => (visitor ? handleFeed() : setTray((t) => (t === 'food' ? null : 'food')))}
           onPlay={() => void handlePlay()}
-          onBath={handleBath}
+          onBath={() => (visitor ? handleBath() : setTray((t) => (t === 'soap' ? null : 'soap')))}
+          feedOpen={tray === 'food'}
+          bathOpen={tray === 'soap'}
+          visitor={visitor}
         />
         <div className={styles.primary}>{action}</div>
       </div>
+      {held &&
+        held.moved &&
+        createPortal(
+          <span
+            className={`${styles.held} ${held.what === 'soap' && held.over ? styles.heldScrub : ''}`}
+            style={{ left: held.x, top: held.y }}
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 40 40">{held.art}</svg>
+          </span>,
+          document.body,
+        )}
     </section>
   )
 }

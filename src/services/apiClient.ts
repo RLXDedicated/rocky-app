@@ -88,9 +88,57 @@ export interface PetView {
   serverTime: string
 }
 
+/** A friend's Rocky as listed (mirrors backend listFriends). */
+export interface FriendSummary {
+  id: string
+  name: string
+  rockyName: string
+  level: number
+  stage: import('../types/domain').EvolutionStage
+  mood: import('../types/domain').Mood
+  streak: number
+  feeling: 'dirty' | 'sad' | 'unwell' | 'great' | 'ok'
+  scene: string
+  lastActiveAt: string | null
+  visitedToday: boolean
+}
+
+export interface FriendDetail {
+  id: string
+  name: string
+  rockyName: string
+  level: number
+  stage: import('../types/domain').EvolutionStage
+  mood: import('../types/domain').Mood
+  streak: number
+  badges: number
+  needs: import('../game/pet').Needs
+  outfit: import('../game/closet').Outfit
+  visitors: Array<{ text: string; at: string }>
+}
+
+export type BulkOp =
+  | { kind: 'coins'; delta: number; note: string }
+  | { kind: 'xp'; xp: number; reason: string }
+  | { kind: 'treats'; delta: number }
+  | { kind: 'item'; itemId: string }
+  | { kind: 'inventory'; itemId: string; qty: number }
+  | { kind: 'needs' }
+  | { kind: 'message'; text: string }
+  | { kind: 'litter' }
+  | { kind: 'games' }
+
+export interface BulkResult {
+  done: number
+  total: number
+  failed: Array<{ agentId: string; error?: string }>
+}
+
 export interface PetActionResponse extends PetView {
   ok: boolean
   reason: PetFailure | null
+  reward?: { coins: number; xp: number } | null
+  leveledUp?: boolean
 }
 
 export interface LoginResponse {
@@ -274,6 +322,12 @@ export const apiClient = {
   getLeaderboard: () => request<{ entries: import('../types/leaderboard').LeaderboardEntry[] }>('/api/leaderboard'),
   petAction: (action: PetAction) => request<PetActionResponse>('/api/pet/actions', post(action)),
 
+  // Friends: every Rocky in the pilot.
+  listFriends: () => request<{ friends: FriendSummary[] }>('/api/friends'),
+  getFriend: (id: string) => request<FriendDetail>(`/api/friends/${encodeURIComponent(id)}`),
+  visitFriend: (id: string, kind: 'pet' | 'wave' | 'treat') =>
+    request<PetActionResponse>(`/api/friends/${encodeURIComponent(id)}/visit`, post({ kind })),
+
   // Admin: progress (XP bonus, raise level, unlock evolution — always forward).
   grantXp: (agentId: string, xp: number, reason: string) =>
     request<{ state: import('../types/domain').GameState }>(agentPath(agentId, '/xp'), post({ xp, reason })),
@@ -288,6 +342,11 @@ export const apiClient = {
   adjustTreats: (agentId: string, delta: number) => request<PetView>(agentPath(agentId, '/treats'), post({ delta })),
   setItem: (agentId: string, itemId: string, action: 'grant' | 'revoke') => request<PetView>(agentPath(agentId, '/items'), post({ itemId, action })),
   restoreNeeds: (agentId: string) => request<PetView>(agentPath(agentId, '/needs/restore'), post()),
+  giveInventory: (agentId: string, itemId: string, qty: number) => request<PetView>(agentPath(agentId, '/inventory'), post({ itemId, qty })),
+  sendMessage: (agentId: string, text: string) => request<PetView>(agentPath(agentId, '/message'), post({ text })),
+  clearLitter: (agentId: string) => request<PetView>(agentPath(agentId, '/litter/clear'), post()),
+  resetGameCaps: (agentId: string) => request<PetView>(agentPath(agentId, '/games/reset'), post()),
+  bulk: (agentIds: string[] | 'all', op: BulkOp) => request<BulkResult>('/api/admin/bulk', post({ agentIds, op })),
   resetPet: (agentId: string) => request<PetView>(agentPath(agentId, '/pet/reset'), post()),
   resetPin: (agentId: string) => request<{ ok: boolean; sessionsRevoked: number }>(agentPath(agentId, '/pin-reset'), post()),
   revokeSessions: (agentId: string) => request<{ ok: boolean; sessionsRevoked: number }>(agentPath(agentId, '/sessions/revoke'), post()),

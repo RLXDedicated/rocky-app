@@ -5,12 +5,37 @@
 // server re-applies it with the same rules, stores the result and records
 // it in the ledger/audit trail, and the browser adopts the server's copy.
 //
-// Nothing here changes XP, Energy, Level, Streak, Mood or Evolution.
+// Care never changes XP, Energy, Level, Streak, Mood or Evolution. The two
+// mini-games (keep-it-up, picking up litter) may award a little XP, capped
+// per day (see pantry.ts); the backend records it as an XP_GRANT event.
 import { todayKey } from '../engine/dateUtils'
 import type { Achievement, GameState } from '../types/domain'
-import { CLOSET, DEFAULT_OUTFIT, findItem, isUsable, sanitizeOutfit, sanitizeSpots, type ClosetItem, type Outfit, type ProgressFacts } from './closet'
+import {
+  CLOSET,
+  DEFAULT_OUTFIT,
+  findItem,
+  isUsable,
+  sanitizeOutfit,
+  sanitizeSpots,
+  type CatalogOverrides,
+  type ClosetItem,
+  type Outfit,
+  type ProgressFacts,
+} from './closet'
 import { coinsEarned, TREAT_BAG } from './economy'
 import { QUIZ_REWARD, scoreQuiz } from './notesQuiz'
+import {
+  findFood,
+  findSoap,
+  GAME_CAPS,
+  keepyReward,
+  KEEPY_MAX_STREAK,
+  LITTER,
+  litterPiece,
+  litterReward,
+  STARTER_SOAP,
+  type LitterPiece,
+} from './pantry'
 
 export const NEEDS_MAX = 100
 
@@ -67,7 +92,48 @@ export interface PetState {
   /** Coins won in Note Check (the daily notes quiz). */
   gameCoins: number
   quiz: QuizState
+  /** Foods (count per id) and soaps (1 each) the agent has. */
+  inventory: Record<string, number>
+  /** Mini-game rewards today (capped) and personal bests. */
+  games: GameStats
+  /** Litter lying around Rocky's world. */
+  litter: LitterState
+  /** Messages and gifts from QA, and visits from friends (newest first). */
+  inbox: InboxEntry[]
+  /** Up to when the agent has seen the inbox. */
+  inboxReadAt: string | null
+  /** Friends visited today (the first visit per friend earns a few coins). */
+  social: { date: string; visited: string[] }
 }
+
+export interface GameStats {
+  date: string
+  coins: number
+  xp: number
+  bestKeepy: number
+  keepyRounds: number
+  litterCleaned: number
+}
+
+export interface LitterState {
+  items: LitterPiece[]
+  serial: number
+  /** When the last piece was (or would have been) dropped. */
+  lastAt: string
+  seed: string
+}
+
+export interface InboxEntry {
+  id: string
+  kind: 'message' | 'gift' | 'visit'
+  from: string
+  text: string
+  at: string
+}
+
+export const INBOX_LIMIT = 30
+/** Coins for the first visit to each friend in a day, and how many visits a day pay. */
+export const VISIT_REWARD = { coins: 2, perDay: 5, hostHappiness: 3 } as const
 
 export interface QuizState {
   /** Day of the last round played, and whether today's reward was already given. */
@@ -84,33 +150,62 @@ const EMPTY_QUIZ: QuizState = { date: null, rewarded: false, lastScore: 0, lastT
 
 export type PetAction =
   | { type: 'pet' }
-  | { type: 'feed' }
+  | { type: 'feed'; food?: string }
   | { type: 'play' }
-  | { type: 'bath' }
+  | { type: 'bath'; soap?: string }
+  | { type: 'buyFood'; foodId: string; qty?: number }
+  | { type: 'buySoap'; soapId: string }
+  | { type: 'keepy'; touches: number }
+  | { type: 'litter'; id: string }
+  | { type: 'readInbox' }
   | { type: 'buy'; itemId: string }
   | { type: 'buyTreats' }
   | { type: 'equip'; outfit: Outfit }
   | { type: 'quiz'; answers: Record<string, number> }
 
-export const PET_ACTION_TYPES = ['pet', 'feed', 'play', 'bath', 'buy', 'buyTreats', 'equip', 'quiz'] as const
+export const PET_ACTION_TYPES = [
+  'pet',
+  'feed',
+  'play',
+  'bath',
+  'buy',
+  'buyTreats',
+  'equip',
+  'quiz',
+  'buyFood',
+  'buySoap',
+  'keepy',
+  'litter',
+  'readInbox',
+] as const
 
 export interface PetContext {
   facts: ProgressFacts
   now: Date
   catalog?: ClosetItem[]
+  /** Raw admin overrides (pantry prices/availability). */
+  overrides?: CatalogOverrides
 }
 
-export type PetFailure = 'no-treats' | 'locked' | 'owned' | 'coins' | 'unknown-item' | 'unavailable' | 'invalid'
+export type PetFailure = 'no-treats' | 'no-food' | 'no-soap' | 'locked' | 'owned' | 'coins' | 'unknown-item' | 'unavailable' | 'invalid' | 'gone'
 
 /** A coin movement to record in the ledger. */
 export interface LedgerEntry {
   delta: number
-  kind: 'purchase' | 'treat-bag' | 'admin-grant' | 'admin-deduct' | 'quiz'
+  kind: 'purchase' | 'treat-bag' | 'admin-grant' | 'admin-deduct' | 'quiz' | 'game' | 'social'
   itemId?: string
   note?: string
 }
 
-export type PetResult = { ok: true; state: PetState; ledger?: LedgerEntry } | { ok: false; reason: PetFailure; state: PetState }
+/** XP a mini-game earned (the backend turns it into an XP_GRANT event). */
+export interface XpAward {
+  xp: number
+  reason: string
+}
+
+export type PetResult =
+  | { ok: true; state: PetState; ledger?: LedgerEntry; xp?: XpAward; reward?: { coins: number; xp: number } }
+  | { ok: false; reason: PetFailure; state: PetState }
 
 /** The progress the shop and the economy read, from the Game Engine's state and achievement metrics. */
 export function factsFrom(state: GameState, progress: { unlocked: Achievement[]; metrics: { checkins: number; qaPasses: number } }): ProgressFacts {
@@ -141,7 +236,18 @@ export function initialPetState(now: Date = new Date()): PetState {
     onboardedAt: null,
     gameCoins: 0,
     quiz: { ...EMPTY_QUIZ },
+    inventory: { [STARTER_SOAP]: 1, 'food-apple': 2 },
+    games: emptyGames(todayKey(now)),
+    // A first piece of litter shows up soon, so the agent discovers the bin.
+    litter: { items: [], serial: 0, lastAt: new Date(now.getTime() - (LITTER.everyHours - 0.5) * 3_600_000).toISOString(), seed: now.toISOString() },
+    inbox: [],
+    inboxReadAt: null,
+    social: { date: todayKey(now), visited: [] },
   }
+}
+
+function emptyGames(date: string, prev?: GameStats): GameStats {
+  return { date, coins: 0, xp: 0, bestKeepy: prev?.bestKeepy ?? 0, keepyRounds: prev?.keepyRounds ?? 0, litterCleaned: prev?.litterCleaned ?? 0 }
 }
 
 const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
@@ -189,7 +295,63 @@ export function normalizePetState(raw: unknown, now: Date = new Date()): PetStat
     onboardedAt: typeof r.onboardedAt === 'string' ? r.onboardedAt : null,
     gameCoins: Math.max(0, num(r.gameCoins, 0)),
     quiz: normalizeQuiz(r.quiz),
+    inventory: normalizeInventory(r.inventory, base.inventory, 'inventory' in r),
+    games: normalizeGames(r.games, base.games.date),
+    litter: normalizeLitter(r.litter, now, typeof r.onboardedAt === 'string' ? r.onboardedAt : 'rocky'),
+    inbox: Array.isArray(r.inbox) ? (r.inbox as unknown[]).filter(isInboxEntry).slice(0, INBOX_LIMIT) : [],
+    inboxReadAt: typeof r.inboxReadAt === 'string' ? r.inboxReadAt : null,
+    social: normalizeSocial(r.social, base.social.date),
   }
+}
+
+function normalizeInventory(raw: unknown, starter: Record<string, number>, existed: boolean): Record<string, number> {
+  // Saves from before the inventory existed get the starter kit.
+  if (!existed || !raw || typeof raw !== 'object') return { ...starter }
+  const out: Record<string, number> = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if ((findFood(k) || findSoap(k)) && typeof v === 'number' && Number.isFinite(v) && v > 0) out[k] = findSoap(k) ? 1 : Math.min(999, Math.floor(v))
+  }
+  out[STARTER_SOAP] = 1
+  return out
+}
+
+function normalizeGames(raw: unknown, today: string): GameStats {
+  const g = (raw && typeof raw === 'object' ? raw : {}) as Partial<GameStats>
+  return {
+    date: typeof g.date === 'string' ? g.date : today,
+    coins: Math.max(0, num(g.coins, 0)),
+    xp: Math.max(0, num(g.xp, 0)),
+    bestKeepy: Math.max(0, num(g.bestKeepy, 0)),
+    keepyRounds: Math.max(0, num(g.keepyRounds, 0)),
+    litterCleaned: Math.max(0, num(g.litterCleaned, 0)),
+  }
+}
+
+function normalizeLitter(raw: unknown, now: Date, seed: string): LitterState {
+  const l = (raw && typeof raw === 'object' ? raw : null) as Partial<LitterState> | null
+  if (!l || !Array.isArray(l.items) || typeof l.lastAt !== 'string' || Number.isNaN(Date.parse(l.lastAt))) {
+    // Older saves: two pieces are already waiting.
+    return { items: [], serial: 0, lastAt: new Date(now.getTime() - 2 * LITTER.everyHours * 3_600_000).toISOString(), seed }
+  }
+  const items = l.items
+    .filter(
+      (i): i is LitterPiece =>
+        Boolean(i) && typeof i.id === 'string' && typeof i.x === 'number' && (LITTER.kinds as readonly string[]).includes(i.kind),
+    )
+    .slice(0, LITTER.max)
+  return { items, serial: Math.max(0, num(l.serial, 0)), lastAt: l.lastAt, seed: typeof l.seed === 'string' ? l.seed : seed }
+}
+
+function normalizeSocial(raw: unknown, today: string): PetState['social'] {
+  const s = (raw && typeof raw === 'object' ? raw : {}) as Partial<PetState['social']>
+  return { date: typeof s.date === 'string' ? s.date : today, visited: ids(s.visited).slice(0, 50) }
+}
+
+function isInboxEntry(v: unknown): v is InboxEntry {
+  const e = v as InboxEntry
+  return (
+    Boolean(e) && typeof e.id === 'string' && typeof e.text === 'string' && typeof e.at === 'string' && ['message', 'gift', 'visit'].includes(e.kind)
+  )
 }
 
 function normalizeQuiz(raw: unknown): QuizState {
@@ -228,7 +390,42 @@ export function refreshPetState(state: PetState, now: Date): PetState {
     ...state,
     needs: tickNeeds(state.needs, now),
     day: state.day.date === today ? state.day : { date: today, pets: 0, plays: 0, baths: 0 },
+    games: state.games.date === today ? state.games : emptyGames(today, state.games),
+    social: state.social.date === today ? state.social : { date: today, visited: [] },
+    litter: spawnLitter(state.litter, now),
   }
+}
+
+/** Drops a piece of litter every few hours while there's room (deterministic, so browser and server agree). */
+export function spawnLitter(litter: LitterState, now: Date): LitterState {
+  const step = LITTER.everyHours * 3_600_000
+  let last = Date.parse(litter.lastAt)
+  const t = now.getTime()
+  if (t - last < step) return litter
+  // A long absence counts as a full yard, not an endless loop.
+  if (t - last > step * (LITTER.max + 1)) last = t - step * (LITTER.max + 1)
+  let serial = litter.serial
+  const items = [...litter.items]
+  while (t - last >= step) {
+    last += step
+    if (items.length < LITTER.max) items.push(litterPiece(++serial, litter.seed))
+  }
+  return { ...litter, items, serial, lastAt: new Date(last).toISOString() }
+}
+
+/** Pays a mini-game reward within today's caps. */
+function payGame(state: PetState, want: { coins: number; xp: number }): { state: PetState; coins: number; xp: number } {
+  const coins = Math.max(0, Math.min(want.coins, GAME_CAPS.coins - state.games.coins))
+  const xp = Math.max(0, Math.min(want.xp, GAME_CAPS.xp - state.games.xp))
+  return {
+    state: { ...state, gameCoins: state.gameCoins + coins, games: { ...state.games, coins: state.games.coins + coins, xp: state.games.xp + xp } },
+    coins,
+    xp,
+  }
+}
+
+function inboxPush(state: PetState, entry: InboxEntry): PetState {
+  return { ...state, inbox: [entry, ...state.inbox].slice(0, INBOX_LIMIT) }
 }
 
 /** Treats are earned by real work (1 per check-in, 2 per clean QA audit) plus treat bags bought with coins. */
@@ -264,16 +461,97 @@ export function applyPetAction(prev: PetState, action: PetAction, ctx: PetContex
       }
     }
     case 'feed': {
+      if (action.food) {
+        const food = findFood(action.food)
+        if (!food) return fail('unknown-item')
+        const have = state.inventory[food.id] ?? 0
+        if (have <= 0) return fail('no-food')
+        const inventory = { ...state.inventory, [food.id]: have - 1 }
+        if (inventory[food.id]! <= 0) delete inventory[food.id]
+        return { ok: true, state: { ...state, inventory, needs: bump(state.needs, { health: food.health, happiness: food.happiness }) } }
+      }
       if (treatsAvailable(state, ctx.facts) <= 0) return fail('no-treats')
       return { ok: true, state: { ...state, treatsUsed: state.treatsUsed + 1, needs: bump(state.needs, CARE_EFFECTS.feed) } }
     }
     case 'play':
       return { ok: true, state: { ...state, needs: bump(state.needs, CARE_EFFECTS.play), day: { ...state.day, plays: state.day.plays + 1 } } }
     case 'bath': {
+      const soap = findSoap(action.soap ?? STARTER_SOAP)
+      if (!soap) return fail('unknown-item')
+      if (!state.inventory[soap.id] && soap.id !== STARTER_SOAP) return fail('no-soap')
       const wasDirty = state.needs.dirt >= 20
-      const fx = wasDirty ? CARE_EFFECTS.bath : { dirt: -100, happiness: 1 }
+      const base = wasDirty ? CARE_EFFECTS.bath : { dirt: -100, happiness: 1 }
+      const fx = { ...base, happiness: (base.happiness ?? 0) + soap.happiness }
       return { ok: true, state: { ...state, needs: bump(state.needs, fx), day: { ...state.day, baths: state.day.baths + 1 } } }
     }
+    case 'buyFood': {
+      const food = findFood(action.foodId)
+      if (!food) return fail('unknown-item')
+      const qty = Math.max(1, Math.min(10, Math.floor(Number(action.qty ?? 1)) || 1))
+      const price = pantryPrice(ctx.overrides, food.id, food.price) * qty
+      if (pantryDisabled(ctx.overrides, food.id)) return fail('unavailable')
+      if (coinBalance(state, ctx.facts) < price) return fail('coins')
+      return {
+        ok: true,
+        state: {
+          ...state,
+          coinsSpent: state.coinsSpent + price,
+          inventory: { ...state.inventory, [food.id]: (state.inventory[food.id] ?? 0) + qty },
+        },
+        ledger: { delta: -price, kind: 'purchase', itemId: food.id, note: qty > 1 ? `x${qty}` : undefined },
+      }
+    }
+    case 'buySoap': {
+      const soap = findSoap(action.soapId)
+      if (!soap) return fail('unknown-item')
+      if (state.inventory[soap.id]) return fail('owned')
+      if (pantryDisabled(ctx.overrides, soap.id)) return fail('unavailable')
+      const price = pantryPrice(ctx.overrides, soap.id, soap.price)
+      if (coinBalance(state, ctx.facts) < price) return fail('coins')
+      return {
+        ok: true,
+        state: { ...state, coinsSpent: state.coinsSpent + price, inventory: { ...state.inventory, [soap.id]: 1 } },
+        ledger: { delta: -price, kind: 'purchase', itemId: soap.id },
+      }
+    }
+    case 'keepy': {
+      const streak = Math.floor(Number(action.touches))
+      if (!Number.isFinite(streak) || streak < 1) return fail('invalid')
+      const s = Math.min(KEEPY_MAX_STREAK, streak)
+      const paid = payGame(state, keepyReward(s))
+      const next: PetState = {
+        ...paid.state,
+        needs: bump(paid.state.needs, { happiness: Math.min(10, 2 + Math.floor(s / 4)) }),
+        games: { ...paid.state.games, bestKeepy: Math.max(paid.state.games.bestKeepy, s), keepyRounds: paid.state.games.keepyRounds + 1 },
+      }
+      return {
+        ok: true,
+        state: next,
+        reward: { coins: paid.coins, xp: paid.xp },
+        ledger: paid.coins > 0 ? { delta: paid.coins, kind: 'game', note: `Keep-it-up x${s}` } : undefined,
+        xp: paid.xp > 0 ? { xp: paid.xp, reason: `Keep-it-up streak of ${s}` } : undefined,
+      }
+    }
+    case 'litter': {
+      const piece = state.litter.items.find((i) => i.id === action.id)
+      if (!piece) return fail('gone')
+      const paid = payGame(state, litterReward(piece.id, state.litter.seed))
+      const next: PetState = {
+        ...paid.state,
+        litter: { ...paid.state.litter, items: paid.state.litter.items.filter((i) => i.id !== piece.id) },
+        needs: bump(paid.state.needs, { happiness: 2 }),
+        games: { ...paid.state.games, litterCleaned: paid.state.games.litterCleaned + 1 },
+      }
+      return {
+        ok: true,
+        state: next,
+        reward: { coins: paid.coins, xp: paid.xp },
+        ledger: paid.coins > 0 ? { delta: paid.coins, kind: 'game', note: 'Picked up litter' } : undefined,
+        xp: paid.xp > 0 ? { xp: paid.xp, reason: 'Kept Rocky’s world clean' } : undefined,
+      }
+    }
+    case 'readInbox':
+      return { ok: true, state: { ...state, inboxReadAt: ctx.now.toISOString() } }
     case 'buy': {
       const item = findItem(action.itemId, catalog)
       if (!item) return fail('unknown-item')
@@ -332,6 +610,70 @@ export function applyPetAction(prev: PetState, action: PetAction, ctx: PetContex
   }
 }
 
+/** Admin price/availability edits apply to pantry items too (same overrides as the shop). */
+function pantryPrice(overrides: CatalogOverrides | undefined, id: string, base: number): number {
+  const p = overrides?.[id]?.price
+  return typeof p === 'number' && Number.isFinite(p) && p >= 0 ? Math.round(p) : base
+}
+
+function pantryDisabled(overrides: CatalogOverrides | undefined, id: string): boolean {
+  return overrides?.[id]?.enabled === false
+}
+
+/** Unread inbox entries (messages, gifts, visits). */
+export function unreadInbox(state: PetState): InboxEntry[] {
+  return state.inbox.filter((e) => !state.inboxReadAt || e.at > state.inboxReadAt)
+}
+
+// ---------------------------------------------------------------------------
+// Friends: visits between Rockys (the backend applies both sides together).
+// ---------------------------------------------------------------------------
+export type VisitKind = 'pet' | 'wave' | 'treat'
+
+/** The visitor's side: the first visit to each friend a day pays a few coins; giving a treat uses one of the visitor's treats. */
+export function visitorSide(
+  prev: PetState,
+  friendKey: string,
+  kind: VisitKind,
+  facts: ProgressFacts,
+  now: Date,
+): PetResult & { firstToday?: boolean } {
+  const state = refreshPetState(prev, now)
+  if (kind === 'treat' && treatsAvailable(state, facts) <= 0) return { ok: false, reason: 'no-treats', state }
+  const firstToday = !state.social.visited.includes(friendKey)
+  const pays = firstToday && state.social.visited.length < VISIT_REWARD.perDay
+  const next: PetState = {
+    ...state,
+    treatsUsed: state.treatsUsed + (kind === 'treat' ? 1 : 0),
+    gameCoins: state.gameCoins + (pays ? VISIT_REWARD.coins : 0),
+    social: { ...state.social, visited: firstToday ? [...state.social.visited, friendKey] : state.social.visited },
+  }
+  return {
+    ok: true,
+    state: next,
+    firstToday,
+    reward: { coins: pays ? VISIT_REWARD.coins : 0, xp: 0 },
+    ledger: pays ? { delta: VISIT_REWARD.coins, kind: 'social', note: 'Visited a friend' } : undefined,
+  }
+}
+
+/** The host's side: a visit cheers Rocky up and shows in the inbox; a treat becomes a bonus treat. */
+export function hostSide(prev: PetState, fromName: string, kind: VisitKind, now: Date): PetState {
+  const state = refreshPetState(prev, now)
+  const text =
+    kind === 'treat'
+      ? `${fromName} visited and gave Rocky a treat!`
+      : kind === 'wave'
+        ? `${fromName} stopped by to wave hi.`
+        : `${fromName} visited and petted Rocky.`
+  const next: PetState = {
+    ...state,
+    bonusTreats: state.bonusTreats + (kind === 'treat' ? 1 : 0),
+    needs: bump(state.needs, { happiness: VISIT_REWARD.hostHappiness }),
+  }
+  return inboxPush(next, { id: `v-${now.getTime()}-${fromName.length}`, kind: 'visit', from: fromName, text, at: now.toISOString() })
+}
+
 // ---------------------------------------------------------------------------
 // Admin operations (backend only; each one is recorded in the audit trail).
 // ---------------------------------------------------------------------------
@@ -360,6 +702,38 @@ export function adminRevokeItem(state: PetState, itemId: string, facts: Progress
 /** Restores the needs (full health, happy, clean) — e.g. after an outage or on request. */
 export function adminRestoreNeeds(state: PetState, now: Date): PetState {
   return { ...state, needs: { health: 100, happiness: 100, dirt: 0, updatedAt: now.toISOString() } }
+}
+
+/** Gives (positive) or removes (negative) foods; soaps are given once. */
+export function adminGiveInventory(state: PetState, itemId: string, qty: number): PetState {
+  if (findSoap(itemId)) {
+    if (qty < 0 && itemId !== STARTER_SOAP) {
+      const inventory = { ...state.inventory }
+      delete inventory[itemId]
+      return { ...state, inventory }
+    }
+    return { ...state, inventory: { ...state.inventory, [itemId]: 1 } }
+  }
+  if (!findFood(itemId)) return state
+  const n = Math.max(0, Math.min(999, (state.inventory[itemId] ?? 0) + Math.trunc(qty)))
+  const inventory = { ...state.inventory, [itemId]: n }
+  if (n === 0) delete inventory[itemId]
+  return { ...state, inventory }
+}
+
+/** Puts a message (or a gift note) from QA in the agent's inbox. */
+export function adminMessage(state: PetState, entry: Omit<InboxEntry, 'id'>, id: string): PetState {
+  return inboxPush(state, { ...entry, id })
+}
+
+/** Clears all litter (and restarts the timer). */
+export function adminClearLitter(state: PetState, now: Date): PetState {
+  return { ...state, litter: { ...state.litter, items: [], lastAt: now.toISOString() } }
+}
+
+/** Resets today's mini-game caps (lets the agent earn again today). */
+export function adminResetGameCaps(state: PetState, now: Date): PetState {
+  return { ...state, games: { ...state.games, date: todayKey(now), coins: 0, xp: 0 } }
 }
 
 /** Adds treats (positive) or removes unused bonus treats (negative). */

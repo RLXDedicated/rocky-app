@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CLOSET, type ItemSlot } from '../../game/closet'
+import { FOODS, SOAPS, findFood, findSoap, GAME_CAPS } from '../../game/pantry'
 import { apiClient, type AdminPetDetail } from '../../services/apiClient'
 import styles from './AdminConsole.module.css'
 import { auditDetail, auditLabel, fmtDateTime, LEDGER_KIND_ES, shortDevice, SOURCE_ES } from './adminFormat'
@@ -43,6 +44,9 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
   const [delta, setDelta] = useState('')
   const [note, setNote] = useState('')
   const [slot, setSlot] = useState<ItemSlot>('hat')
+  const [giveId, setGiveId] = useState(FOODS[0]!.id)
+  const [giveQty, setGiveQty] = useState('3')
+  const [message, setMessage] = useState('')
 
   const load = useCallback(async () => {
     try {
@@ -284,6 +288,112 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
             Reiniciar mascota
           </button>
         </div>
+      </section>
+
+      <section className={styles.drawerSection}>
+        <h3>Despensa, juegos y mensajes</h3>
+        <div className={styles.miniStats}>
+          <div>
+            <span>Mejor racha pelota</span>
+            <b>{st.games.bestKeepy}</b>
+          </div>
+          <div>
+            <span>Basura recogida</span>
+            <b>{st.games.litterCleaned}</b>
+          </div>
+          <div>
+            <span>Hoy en juegos</span>
+            <b>
+              {st.games.coins}/{GAME_CAPS.coins} c · {st.games.xp}/{GAME_CAPS.xp} XP
+            </b>
+          </div>
+          <div>
+            <span>Basura en su mundo</span>
+            <b>{st.litter.items.length}</b>
+          </div>
+        </div>
+        <p className={styles.muted}>
+          Bolsa:{' '}
+          {Object.entries(st.inventory)
+            .map(([id, n]) => `${findFood(id)?.name ?? findSoap(id)?.name ?? id}${findFood(id) ? ` ×${n}` : ''}`)
+            .join(' · ') || 'vacía'}
+        </p>
+        <form
+          className={styles.inlineForm}
+          onSubmit={(e) => {
+            e.preventDefault()
+            const qty = Number(giveQty)
+            if (!Number.isInteger(qty) || qty === 0) return
+            const name = findFood(giveId)?.name ?? findSoap(giveId)?.name ?? giveId
+            void run(
+              () => apiClient.giveInventory(agentId, giveId, qty),
+              `${qty > 0 ? 'Regalado' : 'Quitado'}: ${name}${findFood(giveId) ? ` ×${Math.abs(qty)}` : ''}.`,
+            )
+          }}
+        >
+          <select value={giveId} onChange={(e) => setGiveId(e.target.value)} aria-label="Comida o jabón">
+            <optgroup label="Comida">
+              {FOODS.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.emoji} {f.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Jabones">
+              {SOAPS.map((x) => (
+                <option key={x.id} value={x.id}>
+                  🧼 {x.name}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+          <input type="number" value={giveQty} onChange={(e) => setGiveQty(e.target.value)} aria-label="Cantidad" style={{ width: 80 }} />
+          <button className={styles.btnPrimary} disabled={busy}>
+            Dar
+          </button>
+        </form>
+        <form
+          className={styles.inlineForm}
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!message.trim()) return
+            void run(() => apiClient.sendMessage(agentId, message.trim()), 'Mensaje enviado: Rocky se lo dirá al agente.').then(
+              (ok) => ok && setMessage(''),
+            )
+          }}
+        >
+          <input
+            placeholder="Mensaje para el agente (Rocky lo dice en su pantalla)"
+            value={message}
+            maxLength={280}
+            onChange={(e) => setMessage(e.target.value)}
+            aria-label="Mensaje"
+          />
+          <button className={styles.btnPrimary} disabled={busy || !message.trim()}>
+            Enviar
+          </button>
+        </form>
+        <div className={styles.actionRow}>
+          <button className={styles.btnGhost} disabled={busy} onClick={() => void run(() => apiClient.clearLitter(agentId), 'Basura limpiada.')}>
+            Limpiar basura
+          </button>
+          <button
+            className={styles.btnGhost}
+            disabled={busy}
+            onClick={() => void run(() => apiClient.resetGameCaps(agentId), 'Topes de juegos reiniciados por hoy.')}
+          >
+            Reiniciar topes de juegos
+          </button>
+        </div>
+        {st.inbox.length > 0 && (
+          <p className={styles.muted}>
+            Buzón:{' '}
+            {st.inbox
+              .slice(0, 4)
+              .map((m) => m.text)
+              .join(' · ')}
+          </p>
+        )}
       </section>
 
       <section className={styles.drawerSection}>

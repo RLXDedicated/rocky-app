@@ -24,6 +24,12 @@
   animation: slideIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* Every block keeps its height: in this scrolling column, flex-shrink squashed
+   the section tabs (the "only Glasses shows" overlap). */
+.shop > * {
+  flex-shrink: 0;
+}
+
 @keyframes fade {
   from {
     opacity: 0;
@@ -370,4 +376,26 @@
   .shop {
     animation: none;
   }
+}
+
+.tabSeasonal:not(.tabOn) {
+  color: #c2410c;
+}
+
+.groupTitle {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  color: var(--navy);
+}
+
+.seasonTag {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 0.9rem;
+}
+
+.preview[data-slot='pantry'] > svg {
+  width: 56px;
+  height: 56px;
 }

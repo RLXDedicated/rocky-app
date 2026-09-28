@@ -12,7 +12,7 @@ import type { ReminderApplicationService } from '../application/reminderApplicat
 import type { LeaderboardApplicationService } from '../application/leaderboardApplicationService'
 import type { TeamApplicationService } from '../application/teamApplicationService'
 import type { AdminApplicationService } from '../application/adminApplicationService'
-import type { PetApplicationService, Actor } from '../application/petApplicationService'
+import type { PetApplicationService, Actor, BulkOp } from '../application/petApplicationService'
 import type { AuthApplicationService } from '../application/authApplicationService'
 import { PET_ACTION_TYPES, type PetAction } from '../../../src/game/pet'
 import type { Outfit } from '../../../src/game/closet'
@@ -48,6 +48,16 @@ function parsePetAction(body: Record<string, unknown>): PetAction {
     if (!body.outfit || typeof body.outfit !== 'object') throw ApiError.validation('"outfit" is required.')
     return { type, outfit: body.outfit as Outfit }
   }
+  const optionalId = (v: unknown, field: string) => (v === undefined || v === null ? undefined : requireNonEmptyString(v, field))
+  if (type === 'feed') return { type, food: optionalId(body.food, 'food') }
+  if (type === 'bath') return { type, soap: optionalId(body.soap, 'soap') }
+  if (type === 'buyFood') return { type, foodId: requireNonEmptyString(body.foodId, 'foodId'), qty: typeof body.qty === 'number' ? body.qty : 1 }
+  if (type === 'buySoap') return { type, soapId: requireNonEmptyString(body.soapId, 'soapId') }
+  if (type === 'litter') return { type, id: requireNonEmptyString(body.id, 'id') }
+  if (type === 'keepy') {
+    if (typeof body.touches !== 'number' || !Number.isFinite(body.touches)) throw ApiError.validation('"touches" must be a number.')
+    return { type, touches: body.touches }
+  }
   return { type } as PetAction
 }
 
@@ -56,6 +66,12 @@ function requireInteger(value: unknown, field: string, limit: number): number {
     throw ApiError.validation(`"${field}" must be a non-zero whole number between -${limit} and ${limit}.`)
   }
   return value
+}
+
+function requireMessage(value: unknown): string {
+  const text = requireNonEmptyString(value, 'text').trim()
+  if (text.length > 280) throw ApiError.validation('"text" must be at most 280 characters.')
+  return text
 }
 
 function idempotencyKey(req: Request): string | undefined {
@@ -298,6 +314,77 @@ export function createApiRouter(services: ApiServices): Router {
     res.json(services.auth.revokeSessions(req.params.id!, req.identity!.agentId))
   })
 
+  // Pantry, inbox messages and world upkeep for one agent.
+  router.post('/admin/agents/:id/inventory', adminOnly, (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    res.json(
+      services.pet.giveInventory(req.params.id!, requireNonEmptyString(body.itemId, 'itemId'), requireInteger(body.qty, 'qty', 999), actorOf(req)),
+    )
+  })
+
+  router.post('/admin/agents/:id/message', adminOnly, (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    res.json(services.pet.sendMessage(req.params.id!, requireMessage(body.text), actorOf(req)))
+  })
+
+  router.post('/admin/agents/:id/litter/clear', adminOnly, (req: Request, res: Response) => {
+    res.json(services.pet.clearLitter(req.params.id!, actorOf(req)))
+  })
+
+  router.post('/admin/agents/:id/games/reset', adminOnly, (req: Request, res: Response) => {
+    res.json(services.pet.resetGameCaps(req.params.id!, actorOf(req)))
+  })
+
+  // Bulk: one operation for many agents (or everyone). Each agent gets its
+  // own ledger and audit entries, exactly as if done one by one.
+  router.post('/admin/bulk', adminOnly, (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    const all = services.admin.listAgents().agents.map((a) => a.id)
+    let agentIds: string[]
+    if (body.agentIds === 'all') agentIds = all
+    else if (Array.isArray(body.agentIds) && body.agentIds.length > 0 && body.agentIds.every((x) => typeof x === 'string')) {
+      agentIds = [...new Set(body.agentIds as string[])]
+      const unknown = agentIds.filter((id) => !all.includes(id))
+      if (unknown.length) throw ApiError.validation(`Unknown agents: ${unknown.slice(0, 5).join(', ')}`)
+    } else throw ApiError.validation('"agentIds" must be "all" or a non-empty list of agent ids.')
+    const op = (body.op ?? {}) as Record<string, unknown>
+    const kind = requireEnum(op.kind, ['coins', 'xp', 'treats', 'item', 'inventory', 'needs', 'message', 'litter', 'games'] as const, 'op.kind')
+    if (kind === 'xp') {
+      const xp = requireInteger(op.xp, 'op.xp', 50_000)
+      if (xp < 0) throw ApiError.validation('"op.xp" must be positive — XP is never taken away.')
+      const reason = requireNonEmptyString(op.reason, 'op.reason').trim().slice(0, 200)
+      const failed: Array<{ agentId: string; error: string }> = []
+      for (const agentId of agentIds) {
+        try {
+          const r = services.admin.grantXp(agentId, xp, reason, req.identity!.agentId)
+          services.pet.audit(
+            agentId,
+            actorOf(req),
+            'admin.xp',
+            { delta: xp, reason, level: r.state.level, stage: r.state.evolutionStage, bulk: true },
+            clock.now(),
+          )
+        } catch (err) {
+          failed.push({ agentId, error: err instanceof Error ? err.message : String(err) })
+        }
+      }
+      res.json({ done: agentIds.length - failed.length, failed, total: agentIds.length })
+      return
+    }
+    let parsed: BulkOp
+    if (kind === 'coins')
+      parsed = { kind, delta: requireInteger(op.delta, 'op.delta', 100_000), note: requireNonEmptyString(op.note, 'op.note').trim().slice(0, 200) }
+    else if (kind === 'treats') parsed = { kind, delta: requireInteger(op.delta, 'op.delta', 1000) }
+    else if (kind === 'item') parsed = { kind, itemId: requireNonEmptyString(op.itemId, 'op.itemId') }
+    else if (kind === 'inventory')
+      parsed = { kind, itemId: requireNonEmptyString(op.itemId, 'op.itemId'), qty: requireInteger(op.qty, 'op.qty', 999) }
+    else if (kind === 'message') parsed = { kind, text: requireMessage(op.text) }
+    else parsed = { kind }
+    const result = services.pet.bulk(agentIds, parsed, actorOf(req))
+    services.pet.audit(null, actorOf(req), 'admin.bulk', { kind, agents: agentIds.length, done: result.done }, clock.now())
+    res.json(result)
+  })
+
   // Shop catalogue, pilot-wide economy and audit trail.
   router.get('/admin/catalog', adminOnly, (_req: Request, res: Response) => {
     res.json(services.pet.getCatalog())
@@ -320,6 +407,23 @@ export function createApiRouter(services: ApiServices): Router {
 
   router.get('/admin/audit', adminOnly, (_req: Request, res: Response) => {
     res.json({ entries: services.pet.listAudit(300) })
+  })
+
+  // ---------------------------------------------------------------------
+  // Friends — every agent in the pilot. Ids are opaque (never emails).
+  // ---------------------------------------------------------------------
+  router.get('/friends', (req: Request, res: Response) => {
+    res.json({ friends: services.pet.listFriends(req.identity!.agentId) })
+  })
+
+  router.get('/friends/:key', (req: Request, res: Response) => {
+    res.json(services.pet.getFriend(req.identity!.agentId, req.params.key!))
+  })
+
+  router.post('/friends/:key/visit', (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    const kind = requireEnum(body.kind, ['pet', 'wave', 'treat'] as const, 'kind')
+    res.json(services.pet.visitFriend(req.identity!.agentId, req.params.key!, kind, actorOf(req)))
   })
 
   // ---------------------------------------------------------------------

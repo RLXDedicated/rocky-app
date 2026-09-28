@@ -28,12 +28,14 @@ interface Props {
   onBounce: (strength: number) => void
   /** The agent tapped the ball. */
   onTap: () => void
+  /** The ball touched the ground after being in the air (ends a keep-it-up streak). */
+  onLand?: () => void
   onDone: () => void
 }
 
 export const BALL_SIZE = 36
 const R = BALL_SIZE / 2
-const GRAVITY = 2600 // px/s²
+const GRAVITY = 2200 // px/s² — a little floaty, so keeping it up is fun
 const RESTITUTION = 0.6
 const ROLL_FRICTION = 0.75 // share of rolling speed kept per second
 
@@ -44,14 +46,14 @@ const ROLL_FRICTION = 0.75 // share of rolling speed kept per second
  * the DOM (no React re-render per frame).
  */
 export const Ball = forwardRef<BallHandle, Props>(function Ball(
-  { x, stageW, stageH, floor, animate, final, track, stageRef, onBounce, onTap, onDone },
+  { x, stageW, stageH, floor, animate, final, track, stageRef, onBounce, onTap, onLand, onDone },
   handle,
 ) {
   const ref = useRef<HTMLButtonElement>(null)
   const shadowRef = useRef<HTMLSpanElement>(null)
   const sim = useRef({ px: (x / 100) * stageW, y: animate ? stageH * 0.6 : 0, vx: 0, vy: 0, spin: 0 })
-  const cb = useRef({ onBounce, onDone, final })
-  cb.current = { onBounce, onDone, final }
+  const cb = useRef({ onBounce, onDone, onLand, final })
+  cb.current = { onBounce, onDone, onLand, final }
 
   const center = () => {
     const rect = ref.current?.getBoundingClientRect()
@@ -59,11 +61,13 @@ export const Ball = forwardRef<BallHandle, Props>(function Ball(
   }
   const kick = (clientX: number, clientY: number) => {
     const c = center()
-    // Kicked away from where it was tapped (a straight tap still goes somewhere), and up.
-    const away = Math.max(-1, Math.min(1, (c.x - clientX) / R))
-    const dir = Math.abs(away) < 0.15 ? (Math.random() < 0.5 ? -1 : 1) * 0.6 : away
-    sim.current.vx = dir * 560 + (Math.random() - 0.5) * 140
-    sim.current.vy = 760 + Math.random() * 220 + (clientY > c.y ? 120 : 0)
+    const s = sim.current
+    // Up, and a little away from where it was tapped — nudged back toward
+    // the middle so a keep-it-up rally stays on screen.
+    const away = Math.max(-1, Math.min(1, (c.x - clientX) / (R * 2)))
+    const toCentre = (stageW / 2 - s.px) / (stageW / 2)
+    s.vx = away * 260 + toCentre * 160 + (Math.random() - 0.5) * 80
+    s.vy = 880 + Math.random() * 140 + (clientY > c.y ? 90 : 0)
   }
 
   useImperativeHandle(handle, () => ({
@@ -102,10 +106,12 @@ export const Ball = forwardRef<BallHandle, Props>(function Ball(
       const dt = Math.min(0.033, (now - last) / 1000)
       last = now
       if (animate) {
+        const wasUp = s.y > 0.5
         s.vy -= GRAVITY * dt
         s.y += s.vy * dt
         s.px += s.vx * dt
         if (s.y <= 0) {
+          if (wasUp) cb.current.onLand?.()
           s.y = 0
           if (s.vy < -140) {
             cb.current.onBounce(Math.min(1, -s.vy / 1400))

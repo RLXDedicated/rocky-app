@@ -543,6 +543,9 @@ export interface XpGrantResult {
  * carrying the amount, so replaying the event log reproduces it, and the
  * agent's diary shows it. Evolution follows the level, as always.
  */
+/** `grantedBy` of XP won in Rocky's mini-games (shown differently in the diary). */
+export const GAME_XP_SOURCE = 'rocky-games'
+
 export function processXpGrant(
   state: GameState,
   amount: number,

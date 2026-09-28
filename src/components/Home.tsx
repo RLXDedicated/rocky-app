@@ -15,9 +15,9 @@ import { NameTag } from './pet/NameTag'
 import { type RockyReactionKey } from './rockyVisuals'
 import { Coin } from './world/Coin'
 import { RockyWorld } from './world/RockyWorld'
-import { ShopPanel } from './world/ShopPanel'
+import { ShopPanel, type ShopTab } from './world/ShopPanel'
 import type { Outfit, ProgressFacts } from '../game/closet'
-import { canUse, coinBalance, refreshPetState, treatsAvailable, type PetAction } from '../game/pet'
+import { canUse, coinBalance, refreshPetState, treatsAvailable, unreadInbox, type PetAction, type PetResult } from '../game/pet'
 import { catalogFor, fetchPet, loadPetCache, performPetAction, type PetCache } from '../game/petClient'
 import { play as playSfx } from '../game/sfx'
 import { buildProgressFacts } from '../game/progressFacts'
@@ -54,6 +54,8 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
   const [pet, setPet] = useState<PetCache>(() => loadPetCache())
   const [shopOpen, setShopOpen] = useState(false)
   const [arranging, setArranging] = useState(false)
+  const [shopTab, setShopTab] = useState<ShopTab>('hat')
+  const [inboxOpen, setInboxOpen] = useState(false)
   const [coinBurst, setCoinBurst] = useState<number | null>(null)
 
   function refreshFacts(state: GameState) {
@@ -62,10 +64,50 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
 
   /** Runs a care/shop action: applied instantly, confirmed by the server in remote mode. */
   function act(action: PetAction): boolean {
-    if (!facts) return false
-    const result = performPetAction(pet, action, facts, setPet)
-    if (result.ok) setPet((p) => ({ ...p, state: result.state }))
-    return result.ok
+    return run(action).ok
+  }
+
+  /** Like act, but returns the full result (rewards, XP) — used by the mini-games. */
+  function run(action: PetAction): PetResult {
+    if (!facts) return { ok: false, reason: 'invalid', state: pet.state }
+    const result = performPetAction(pet, action, facts, (fresh) => {
+      setPet(fresh)
+      // XP from a mini-game: adopt the server's event log (it recorded its own copy).
+      if (result.ok && result.xp) void refreshGame()
+    })
+    if (!result.ok) return result
+    setPet((p) => ({ ...p, state: result.state }))
+    if (result.reward?.coins) {
+      setCoinBurst(result.reward.coins)
+      window.setTimeout(() => setCoinBurst(null), 1600)
+    }
+    if (result.xp) {
+      // Shown right away; in remote mode the server's copy replaces it.
+      const before = gameService.getSnapshot().gameState
+      const granted = gameService.grantGameXp(result.xp.xp, result.xp.reason)
+      setGameState(granted.state)
+      refreshFacts(granted.state)
+      setXpBurst(result.xp.xp)
+      window.setTimeout(() => setXpBurst(null), 1600)
+      celebrateGrowth(before, granted.state)
+    }
+    return result
+  }
+
+  async function refreshGame() {
+    const fresh = await refreshFromServer()
+    if (!fresh) return
+    setGameState(fresh.gameState)
+    refreshFacts(fresh.gameState)
+    setPet(loadPetCache())
+  }
+
+  function celebrateGrowth(before: GameState, next: GameState) {
+    if (next.evolutionStage !== before.evolutionStage) {
+      setCelebration({ kind: 'evolution', title: `Rocky evolved`, body: `${before.evolutionStage} Rocky is now ${next.evolutionStage} Rocky.` })
+    } else if (next.level > before.level) {
+      setCelebration({ kind: 'level-up', title: `Level ${next.level}`, body: `Rocky grew from level ${before.level} to ${next.level}.` })
+    }
   }
 
   function changeOutfit(next: Outfit) {
@@ -246,6 +288,9 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
   const treats = treatsAvailable(pet.state, facts)
   const coins = coinBalance(pet.state, facts)
   const catalog = catalogFor(pet)
+  const unread = unreadInbox(pet.state)
+  // A fresh message from QA is the first thing Rocky says.
+  const qaNote = unread.find((e) => e.kind === 'message')
   // Only what the agent can actually use is shown on Rocky.
   const outfit = pet.state.outfit
   const usable = (id: string | null) => Boolean(id && catalog.some((i) => i.id === id && canUse(pet.state, i, facts)))
@@ -278,13 +323,27 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
           stage={gameState.evolutionStage}
           reaction={rockyReaction}
           outfit={visibleOutfit}
-          speech={reaction ?? idleLine}
+          speech={reaction ?? (qaNote ? `📣 ${qaNote.from}: ${qaNote.text}` : idleLine)}
           treats={treats}
           needs={pet.state.needs}
           onPet={() => act({ type: 'pet' })}
-          onFeed={() => act({ type: 'feed' })}
+          onFeed={(food) => act({ type: 'feed', food })}
           onPlay={() => act({ type: 'play' })}
-          onBath={() => act({ type: 'bath' })}
+          onBath={(soap) => act({ type: 'bath', soap })}
+          inventory={pet.state.inventory}
+          litter={pet.state.litter.items}
+          onKeepy={(touches) => {
+            const r = run({ type: 'keepy', touches })
+            return r.ok ? (r.reward ?? null) : null
+          }}
+          onLitter={(id) => {
+            const r = run({ type: 'litter', id })
+            return r.ok ? (r.reward ?? null) : null
+          }}
+          onOpenPantry={(tab) => {
+            setShopTab(tab === 'food' ? 'food' : 'soap')
+            setShopOpen(true)
+          }}
           arranging={arranging}
           onStartArrange={startArrange}
           onArrangeDone={(layout) => {
@@ -300,6 +359,39 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
                     <span aria-hidden="true">📝</span> Today’s Note Check
                     <b>+{QUIZ_ROUND_SIZE * QUIZ_REWARD.perCorrect + QUIZ_REWARD.perfectBonus}</b>
                   </button>
+                )}
+                {(unread.length > 0 || inboxOpen) && (
+                  <button
+                    type="button"
+                    className={`${styles.notesChip} ${styles.inboxChip}`}
+                    onClick={() => {
+                      setInboxOpen((o) => !o)
+                      if (unread.length) act({ type: 'readInbox' })
+                    }}
+                    aria-expanded={inboxOpen}
+                  >
+                    <span aria-hidden="true">✉️</span> {unread.length ? `${unread.length} new` : 'Messages'}
+                  </button>
+                )}
+                {inboxOpen && (
+                  <div className={styles.inbox} role="dialog" aria-label="Messages">
+                    <ul>
+                      {pet.state.inbox.slice(0, 8).map((e) => (
+                        <li key={e.id} data-kind={e.kind}>
+                          <span aria-hidden="true">{e.kind === 'visit' ? '👋' : e.kind === 'gift' ? '🎁' : '📣'}</span>
+                          <div>
+                            <p>{e.text}</p>
+                            <small>
+                              {e.from} · {new Date(e.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </small>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    <button type="button" onClick={() => setInboxOpen(false)}>
+                      Close
+                    </button>
+                  </div>
                 )}
               </div>
               <div className={styles.hudRight}>
@@ -350,7 +442,14 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
                     </span>
                   )}
                 </div>
-                <button type="button" className={styles.shopButton} onClick={() => setShopOpen(true)}>
+                <button
+                  type="button"
+                  className={styles.shopButton}
+                  onClick={() => {
+                    setShopTab('hat')
+                    setShopOpen(true)
+                  }}
+                >
                   <Coin size={20} />
                   <b>{coins.toLocaleString()}</b>
                   <span>Shop</span>
@@ -386,6 +485,17 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
         onBuy={handleBuy}
         onBuyTreats={handleBuyTreats}
         onArrange={startArrange}
+        initialTab={shopTab}
+        inventory={pet.state.inventory}
+        pantryOverrides={pet.overrides}
+        onBuyFood={(id: string) => {
+          const ok = act({ type: 'buyFood', foodId: id })
+          playSfx(ok ? 'coin' : 'nope')
+        }}
+        onBuySoap={(id: string) => {
+          const ok = act({ type: 'buySoap', soapId: id })
+          playSfx(ok ? 'coin' : 'nope')
+        }}
       />
 
       {celebration && <Celebration data={celebration} mood={mood} evolutionStage={gameState.evolutionStage} onClose={() => setCelebration(null)} />}

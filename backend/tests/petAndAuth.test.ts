@@ -315,3 +315,161 @@ describe('Note Check on the server', () => {
     expect(detail.body.ledger.filter((l: { kind: string }) => l.kind === 'quiz')).toHaveLength(1)
   })
 })
+
+describe('Mini-games, inventory and litter', () => {
+  function buildAt(start: string) {
+    let now = new Date(start)
+    const config = loadConfig({
+      NODE_ENV: 'production',
+      ROCKY_PERSISTENCE_DRIVER: 'sqlite',
+      ROCKY_DB_PATH: '/tmp/rocky-pet-test.db',
+      ROCKY_AUTH_MODE: 'pilot-header',
+      ROCKY_ADMIN_EMAILS: ADMIN,
+    })
+    const app = createApp({ config, persistence: buildMemoryPersistence(), clock: { now: () => new Date(now) } })
+    return { app, advance: (hours: number) => (now = new Date(now.getTime() + hours * 3_600_000)) }
+  }
+
+  it('pays keep-it-up streaks in coins and XP (as XP_GRANT events), within the daily caps', async () => {
+    const app = build()
+    const r = await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'keepy', touches: 12 })
+    expect(r.body.ok).toBe(true)
+    expect(r.body.reward).toEqual({ coins: 7, xp: 2 })
+    expect(r.body.coins).toBe(7)
+    const events = await request(app).get('/api/events').set(as(AGENT))
+    const grant = events.body.events.find((e: { type: string }) => e.type === 'XP_GRANT')
+    expect(grant.payload).toMatchObject({ xp: 2, grantedBy: 'rocky-games' })
+    expect((await request(app).get('/api/game-state').set(as(AGENT))).body.xp).toBe(2)
+    // Absurd streaks are clamped, and the caps hold for the rest of the day.
+    for (let i = 0; i < 6; i++) await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'keepy', touches: 10_000 })
+    const pet = await request(app).get('/api/pet').set(as(AGENT))
+    expect(pet.body.state.games).toMatchObject({ coins: 60, xp: 12, bestKeepy: 80 })
+    expect((await request(app).get('/api/game-state').set(as(AGENT))).body.xp).toBe(12)
+    expect((await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'keepy', touches: 'lots' })).status).toBe(422)
+  })
+
+  it('buys food, feeds it by id and bathes with owned soaps only', async () => {
+    const app = build()
+    await request(app).get('/api/agent/me').set(as(AGENT))
+    await request(app).post(`/api/admin/agents/${AGENT}/coins`).set(as(ADMIN)).send({ delta: 100, note: 'test' })
+    const pet0 = await request(app).get('/api/pet').set(as(AGENT))
+    expect(pet0.body.state.inventory).toEqual({ 'soap-basic': 1, 'food-apple': 2 })
+    const bought = await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'buyFood', foodId: 'food-cake', qty: 2 })
+    expect(bought.body.coins).toBe(52)
+    expect(bought.body.state.inventory['food-cake']).toBe(2)
+    const fed = await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'feed', food: 'food-cake' })
+    expect(fed.body.state.inventory['food-cake']).toBe(1)
+    const noFood = await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'feed', food: 'food-cocoa' })
+    expect(noFood.body.reason).toBe('no-food')
+    expect((await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'bath', soap: 'soap-lavender' })).body.reason).toBe('no-soap')
+    await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'buySoap', soapId: 'soap-bubble' })
+    expect((await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'bath', soap: 'soap-bubble' })).body.ok).toBe(true)
+  })
+
+  it('drops litter over time; picking it up pays once, and gone pieces are rejected', async () => {
+    const { app, advance } = buildAt('2026-09-08T12:00:00.000Z')
+    expect((await request(app).get('/api/pet').set(as(AGENT))).body.state.litter.items).toHaveLength(0)
+    advance(7)
+    const pet = await request(app).get('/api/pet').set(as(AGENT))
+    const items = pet.body.state.litter.items
+    expect(items.length).toBe(3) // the first one after 30 min, then one every 3 h
+    const first = await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'litter', id: items[0].id })
+    expect(first.body.ok).toBe(true)
+    expect(first.body.reward.coins).toBeGreaterThan(0)
+    expect(first.body.state.litter.items).toHaveLength(2)
+    const again = await request(app).post('/api/pet/actions').set(as(AGENT)).send({ type: 'litter', id: items[0].id })
+    expect(again.body.reason).toBe('gone')
+    advance(100)
+    expect((await request(app).get('/api/pet').set(as(AGENT))).body.state.litter.items.length).toBe(4)
+  })
+})
+
+describe('Friends and visits', () => {
+  it('lists every other agent without emails; a visit pays the visitor once a day and cheers the host up', async () => {
+    const app = build()
+    const FRIEND = 'maria.lopez@rlx.us'
+    await request(app).get('/api/agent/me').set(as(FRIEND))
+    await request(app).post('/api/events/check-in').set(as(AGENT)).send({})
+    const list = await request(app).get('/api/friends').set(as(AGENT))
+    expect(list.body.friends).toHaveLength(1)
+    expect(JSON.stringify(list.body)).not.toContain('@')
+    const key = list.body.friends[0].id
+    expect(list.body.friends[0].name).toBe('Maria Lopez')
+
+    const detail = await request(app).get(`/api/friends/${key}`).set(as(AGENT))
+    expect(detail.body.outfit.scene).toBe('scene-route')
+    expect(JSON.stringify(detail.body)).not.toContain('@')
+
+    const visit = await request(app).post(`/api/friends/${key}/visit`).set(as(AGENT)).send({ kind: 'treat' })
+    expect(visit.body.ok).toBe(true)
+    expect(visit.body.reward.coins).toBe(2)
+    const again = await request(app).post(`/api/friends/${key}/visit`).set(as(AGENT)).send({ kind: 'pet' })
+    expect(again.body.reward.coins).toBe(0)
+
+    const host = await request(app).get('/api/pet').set(as(FRIEND))
+    expect(host.body.state.inbox[0].kind).toBe('visit')
+    expect(host.body.state.inbox[0].text).toContain('Agent One')
+    expect(host.body.treats).toBe(1)
+    // Unknown keys and yourself are not friends.
+    expect((await request(app).get('/api/friends/f-nope').set(as(AGENT))).status).toBe(404)
+    expect((await request(app).post(`/api/friends/${key}/visit`).set(as(AGENT)).send({ kind: 'hug' })).status).toBe(422)
+  })
+})
+
+describe('Admin superpowers', () => {
+  it('runs bulk coins, XP, gifts, pantry items and messages, recording each agent', async () => {
+    const app = build()
+    const OTHER = 'maria.lopez@rlx.us'
+    await request(app).get('/api/agent/me').set(as(AGENT))
+    await request(app).get('/api/agent/me').set(as(OTHER))
+    const coins = await request(app)
+      .post('/api/admin/bulk')
+      .set(as(ADMIN))
+      .send({ agentIds: [AGENT, OTHER], op: { kind: 'coins', delta: 25, note: 'Great week' } })
+    expect(coins.body).toMatchObject({ done: 2, total: 2 })
+    const xp = await request(app)
+      .post('/api/admin/bulk')
+      .set(as(ADMIN))
+      .send({ agentIds: 'all', op: { kind: 'xp', xp: 120, reason: 'Pilot kickoff' } })
+    expect(xp.body.done).toBe(xp.body.total)
+    await request(app)
+      .post('/api/admin/bulk')
+      .set(as(ADMIN))
+      .send({ agentIds: [AGENT], op: { kind: 'inventory', itemId: 'food-pumpkin-pie', qty: 3 } })
+    await request(app)
+      .post('/api/admin/bulk')
+      .set(as(ADMIN))
+      .send({ agentIds: [AGENT], op: { kind: 'item', itemId: 'hat-crown' } })
+    await request(app)
+      .post('/api/admin/bulk')
+      .set(as(ADMIN))
+      .send({ agentIds: [AGENT], op: { kind: 'message', text: 'Happy Halloween, team!' } })
+    const pet = await request(app).get('/api/pet').set(as(AGENT))
+    expect(pet.body.coins).toBe(25 + 30)
+    expect(pet.body.state.inventory['food-pumpkin-pie']).toBe(3)
+    expect(pet.body.state.granted).toContain('hat-crown')
+    expect(pet.body.state.inbox.map((e: { kind: string }) => e.kind)).toEqual(['message', 'gift', 'gift'])
+    expect((await request(app).get('/api/game-state').set(as(OTHER))).body.level).toBe(2)
+    // Validation and access.
+    expect(
+      (
+        await request(app)
+          .post('/api/admin/bulk')
+          .set(as(ADMIN))
+          .send({ agentIds: ['nobody@rlx.us'], op: { kind: 'needs' } })
+      ).status,
+    ).toBe(422)
+    expect(
+      (
+        await request(app)
+          .post('/api/admin/bulk')
+          .set(as(AGENT))
+          .send({ agentIds: 'all', op: { kind: 'needs' } })
+      ).status,
+    ).toBe(403)
+    const audit = await request(app).get('/api/admin/audit').set(as(ADMIN))
+    expect(audit.body.entries.map((a: { action: string }) => a.action)).toEqual(
+      expect.arrayContaining(['admin.bulk', 'admin.inventory', 'admin.message']),
+    )
+  })
+})

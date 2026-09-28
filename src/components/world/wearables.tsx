@@ -80,6 +80,38 @@ export const GLASSES_ART: Record<string, ReactElement> = {
       <rect x="58" y="11" width="32" height="19" rx="3" fill="#2f8fd8" opacity="0.85" />
     </>
   ),
+  'glasses-mask': (
+    <>
+      <path d="M2 14 C10 2 40 4 50 12 C60 4 90 2 98 14 C98 30 80 38 66 34 C58 32 54 26 50 26 C46 26 42 32 34 34 C20 38 2 30 2 14 Z" fill="#2a1f3d" />
+      <ellipse cx="27" cy="20" rx="10" ry="7" fill="#000" opacity="0.55" />
+      <ellipse cx="73" cy="20" rx="10" ry="7" fill="#000" opacity="0.55" />
+      <path d="M8 12 C4 6 0 6 -2 8 M92 12 C96 6 100 6 102 8" stroke="#f28c28" strokeWidth="3" fill="none" strokeLinecap="round" />
+      <circle cx="50" cy="16" r="3" fill="#f28c28" />
+      <path d="M12 26 C18 30 24 32 30 32" stroke="#f28c28" strokeWidth="2" fill="none" opacity="0.8" />
+    </>
+  ),
+  'glasses-snow': (
+    <>
+      {[25, 75].map((cx) => (
+        <g key={cx} transform={`translate(${cx} 20)`}>
+          <circle r="15" fill="#dff1ff" opacity="0.4" stroke="#7fb6e0" strokeWidth="3" />
+          {[0, 60, 120].map((a) => (
+            <path
+              key={a}
+              d="M0 -12 L0 12 M-3 -9 L0 -6 L3 -9 M-3 9 L0 6 L3 9"
+              stroke={WHITE}
+              strokeWidth="2"
+              transform={`rotate(${a})`}
+              strokeLinecap="round"
+              fill="none"
+            />
+          ))}
+        </g>
+      ))}
+      <path d="M40 18 Q50 13 60 18" stroke="#7fb6e0" strokeWidth="3" fill="none" />
+      <path d="M10 16 L1 12 M90 16 L99 12" stroke="#7fb6e0" strokeWidth="3" strokeLinecap="round" />
+    </>
+  ),
 }
 
 // ---------------------------------------------------------------------------
@@ -148,6 +180,39 @@ export const NECK_ART: Record<string, ReactElement> = {
       <polygon points="50,42 53,49 60,49 55,54 57,61 50,57 43,61 45,54 40,49 47,49" fill="#fff3c9" />
     </>
   ),
+  'neck-spooky-bow': (
+    <>
+      <path d="M50 12 L20 -2 L22 28 Z" fill="#f28c28" stroke="#2a1f3d" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M50 12 L80 -2 L78 28 Z" fill="#f28c28" stroke="#2a1f3d" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M26 6 L34 10 M26 18 L34 16 M74 6 L66 10 M74 18 L66 16" stroke="#2a1f3d" strokeWidth="2.5" />
+      <circle cx="50" cy="12" r="7" fill="#2a1f3d" />
+      <path d="M47 11 L49 9 L50 12 L51 9 L53 11" stroke="#f28c28" strokeWidth="1.5" fill="none" />
+    </>
+  ),
+  'neck-bell': (
+    <>
+      <path d="M8 6 Q50 26 92 6 L92 14 Q50 34 8 14 Z" fill="#d6333a" />
+      <path d="M8 10 Q50 30 92 10" stroke={GOLD} strokeWidth="1.5" fill="none" strokeDasharray="3 4" />
+      <circle cx="50" cy="36" r="11" fill={GOLD} stroke="#c07a0c" strokeWidth="2" />
+      <path d="M41 36 L59 36" stroke="#c07a0c" strokeWidth="2" />
+      <circle cx="50" cy="41" r="2.5" fill="#6b4423" />
+      <circle cx="46" cy="31" r="2" fill={WHITE} opacity="0.8" />
+      <path d="M44 22 L50 26 L56 22" stroke="#3f7d2a" strokeWidth="3" fill="none" strokeLinecap="round" />
+    </>
+  ),
+  'neck-candy-scarf': (
+    <>
+      <path d="M8 6 Q50 24 92 6 L94 18 Q50 38 6 18 Z" fill={WHITE} />
+      <path d="M62 20 L74 64 L60 66 L52 24 Z" fill={WHITE} />
+      {[14, 28, 42, 56, 70, 84].map((x) => (
+        <path key={x} d={`M${x} 6 l8 22`} stroke="#d6333a" strokeWidth="5" opacity="0.9" />
+      ))}
+      {[30, 42, 54].map((y) => (
+        <path key={y} d={`M${56 + (y - 24) * 0.3} ${y} l12 -4`} stroke="#d6333a" strokeWidth="5" />
+      ))}
+      <path d="M62 64 l2 6 M66 64 l2 6 M70 63 l2 6" stroke="#1f9d55" strokeWidth="2" />
+    </>
+  ),
 }
 
 // ---------------------------------------------------------------------------
@@ -188,10 +253,42 @@ export const BACK_ART: Record<string, ReactElement> = {
       <rect x="84" y="54" width="14" height="44" rx="7" fill="#b88650" />
     </>
   ),
+  'back-bat-wings': (
+    <>
+      {['', 'translate(100 0) scale(-1 1)'].map((t) => (
+        <g key={t} transform={t || undefined}>
+          <path
+            d="M44 20 C34 6 14 2 2 12 C8 16 10 22 8 30 C14 28 20 30 22 36 C26 32 32 32 36 38 C38 32 42 30 46 32 Z"
+            fill="#2a1f3d"
+            stroke="#4b3a6b"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path d="M44 20 L8 30 M44 22 L22 36 M44 24 L36 38" stroke="#4b3a6b" strokeWidth="1.8" />
+        </g>
+      ))}
+    </>
+  ),
+  'back-gift-sack': (
+    <>
+      <path d="M18 30 C10 60 8 98 26 110 C44 120 64 120 80 108 C94 96 90 60 80 30 Z" fill="#c9463d" />
+      <path d="M22 30 C40 22 62 22 80 30 C66 40 36 40 22 30 Z" fill="#a8372f" />
+      <path d="M40 22 C36 12 44 4 50 12 C56 4 64 12 60 22" stroke={GOLD} strokeWidth="4" fill="none" />
+      <rect x="44" y="4" width="18" height="18" rx="3" fill="#1f9d55" transform="rotate(-12 53 13)" />
+      <rect x="30" y="8" width="16" height="16" rx="3" fill="#3a78c2" transform="rotate(10 38 16)" />
+      <path d="M30 60 C40 66 60 66 72 60" stroke={GOLD} strokeWidth="3" fill="none" opacity="0.8" />
+    </>
+  ),
 }
 
 /** How wide each back item is relative to the face (wings spread past the body). */
-const BACK_WIDTH: Record<string, number> = { 'back-cape': 1.3, 'back-wings': 1.9, 'back-backpack': 1.15 }
+const BACK_WIDTH: Record<string, number> = {
+  'back-cape': 1.3,
+  'back-wings': 1.9,
+  'back-backpack': 1.15,
+  'back-bat-wings': 2.1,
+  'back-gift-sack': 1.2,
+}
 
 export type WearSlot = 'glasses' | 'neck' | 'back'
 

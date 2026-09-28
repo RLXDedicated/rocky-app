@@ -31,6 +31,8 @@ export interface ClosetItem {
   price: number
   /** False when an admin has taken the item out of the shop (owned copies still work). */
   enabled?: boolean
+  /** Seasonal specials (Spooky season, the holidays): open to everyone, shown in the shop's Seasonal section. */
+  season?: 'spooky' | 'holiday'
 }
 
 /** Admin edits to the shop, per item id (see backend /api/admin/catalog). */
@@ -169,7 +171,61 @@ export const CLOSET: ClosetItem[] = [
   { id: 'fx-snow', slot: 'fx', name: 'Snowfall', requirement: 'Reach level 5', isUnlocked: (p) => p.level >= 5, price: 120 },
   { id: 'fx-hearts', slot: 'fx', name: 'Floating hearts', requirement: 'Collect 2 badges', isUnlocked: (p) => p.badgeIds.length >= 2, price: 150 },
   { id: 'fx-confetti', slot: 'fx', name: 'Confetti party', requirement: 'Hit a 7-day streak', isUnlocked: (p) => p.bestStreak >= 7, price: 220 },
+  { id: 'fx-notes', slot: 'fx', name: 'Flying notes', requirement: 'Log your first check-in', isUnlocked: (p) => p.checkIns >= 1, price: 50 },
+  { id: 'fx-maple', slot: 'fx', name: 'Maple swirl', requirement: 'Log 3 check-ins', isUnlocked: (p) => p.checkIns >= 3, price: 60 },
+  { id: 'fx-rain', slot: 'fx', name: 'Summer rain', requirement: 'Reach level 2', isUnlocked: (p) => p.level >= 2, price: 70 },
+  { id: 'fx-bubbles', slot: 'fx', name: 'Bubble party', requirement: 'Log 5 check-ins', isUnlocked: (p) => p.checkIns >= 5, price: 80 },
+  { id: 'fx-petals', slot: 'fx', name: 'Cherry blossoms', requirement: 'Reach level 3', isUnlocked: (p) => p.level >= 3, price: 90 },
+  { id: 'fx-dandelion', slot: 'fx', name: 'Dandelion wishes', requirement: 'Reach level 4', isUnlocked: (p) => p.level >= 4, price: 90 },
+  { id: 'fx-butterflies', slot: 'fx', name: 'Butterflies', requirement: 'Pass your first QA audit', isUnlocked: (p) => p.qaPasses >= 1, price: 100 },
+  { id: 'fx-stars', slot: 'fx', name: 'Shooting stars', requirement: 'Hit a 7-day streak', isUnlocked: (p) => p.bestStreak >= 7, price: 160 },
+  { id: 'fx-rainbow', slot: 'fx', name: 'Rainbow sparkle', requirement: 'Hit a 14-day streak', isUnlocked: (p) => p.bestStreak >= 14, price: 180 },
+  { id: 'fx-fireworks', slot: 'fx', name: 'Fireworks show', requirement: 'Reach level 8', isUnlocked: (p) => p.level >= 8, price: 250 },
+  { id: 'fx-coins', slot: 'fx', name: 'Coin shower', requirement: 'Collect 3 badges', isUnlocked: (p) => p.badgeIds.length >= 3, price: 300 },
+
+  // Seasonal specials — open to everyone while they're in the shop.
+  ...seasonal('spooky', [
+    ['hat-witch', 'hat', 'Witch hat', 90],
+    ['hat-pumpkin', 'hat', 'Pumpkin hat', 110],
+    ['glasses-mask', 'glasses', 'Masquerade mask', 70],
+    ['neck-spooky-bow', 'neck', 'Spooky bow tie', 50],
+    ['back-bat-wings', 'back', 'Bat wings', 160],
+    ['scene-haunted', 'scene', 'Haunted hill', 220],
+    ['scene-pumpkin-patch', 'scene', 'Pumpkin patch', 180],
+    ['decor-jack', 'decor', 'Jack-o’-lantern', 40],
+    ['decor-candy-bucket', 'decor', 'Candy bucket', 45],
+    ['decor-tombstone', 'decor', 'Spooky tombstone', 60],
+    ['decor-ghost', 'decor', 'Friendly ghost', 70],
+    ['decor-cauldron', 'decor', 'Bubbling cauldron', 90],
+    ['fx-bats', 'fx', 'Bat swarm', 120],
+    ['fx-fog', 'fx', 'Spooky mist', 100],
+    ['fx-ghosts', 'fx', 'Floating ghosts', 140],
+    ['fx-candy', 'fx', 'Candy rain', 110],
+  ]),
+  ...seasonal('holiday', [
+    ['hat-elf', 'hat', 'Elf hat', 90],
+    ['hat-reindeer', 'hat', 'Reindeer antlers', 100],
+    ['glasses-snow', 'glasses', 'Snowflake glasses', 70],
+    ['neck-bell', 'neck', 'Jingle bell collar', 60],
+    ['neck-candy-scarf', 'neck', 'Candy-stripe scarf', 70],
+    ['back-gift-sack', 'back', 'Gift sack', 120],
+    ['scene-winter', 'scene', 'Winter village', 220],
+    ['scene-north-pole', 'scene', 'North Pole lights', 260],
+    ['decor-candy-cane', 'decor', 'Giant candy cane', 45],
+    ['decor-gifts', 'decor', 'Gift pile', 60],
+    ['decor-snowman', 'decor', 'Snowman', 80],
+    ['decor-xmas-tree', 'decor', 'Holiday tree', 120],
+    ['decor-sleigh', 'decor', 'Mini sleigh', 150],
+    ['fx-lights', 'fx', 'Twinkle lights', 110],
+    ['fx-snowflakes', 'fx', 'Snowflake storm', 120],
+    ['fx-aurora', 'fx', 'Northern lights', 200],
+  ]),
 ]
+
+function seasonal(season: 'spooky' | 'holiday', items: Array<[string, ItemSlot, string, number]>): ClosetItem[] {
+  const requirement = season === 'spooky' ? 'Spooky season special' : 'Holiday special'
+  return items.map(([id, slot, name, price]) => ({ id, slot, name, requirement, isUnlocked: always, price, season }))
+}
 
 export interface Outfit {
   hat: string | null

@@ -14,6 +14,7 @@
 
 /* HUD over the world */
 .hudLeft {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -144,8 +145,12 @@
   font-weight: 700;
   font-size: 1.08rem;
   cursor: pointer;
-  box-shadow: 0 6px 0 #006231, 0 12px 24px rgba(0, 140, 69, 0.25);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  box-shadow:
+    0 6px 0 #006231,
+    0 12px 24px rgba(0, 140, 69, 0.25);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
 .checkInButton:hover:not(:disabled) {
@@ -305,3 +310,70 @@
   }
 }
 
+.inboxChip {
+  background: var(--rlx-green);
+}
+
+.inbox {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  width: min(340px, calc(100vw - 32px));
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 35, 65, 0.25);
+}
+
+.inbox ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.inbox li {
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.inbox li[data-kind='message'] {
+  background: #eef4ff;
+}
+
+.inbox li[data-kind='gift'] {
+  background: #fff6de;
+}
+
+.inbox p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.inbox small {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.inbox > button {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 12px;
+  background: var(--navy);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
