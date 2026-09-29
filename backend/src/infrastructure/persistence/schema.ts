@@ -266,3 +266,9 @@ export const MIGRATION_006_PEOPLE = `
     ('madiaz@rlx.us', 'qa', '2026-09-29T12:00:00.000Z', 'seed'),
     ('kcolina@rlx.us', 'qa', '2026-09-29T12:00:00.000Z', 'seed');
 `
+
+/** Anibal (Rocky admin, shown as DEV) is also a quality analyst. Kept if an admin already set a title. */
+export const MIGRATION_007_DEV_QA = `
+  INSERT OR IGNORE INTO agent_titles (agent_id, title, updated_at, updated_by) VALUES
+    ('apereira@rlx.us', 'qa', '2026-09-29T18:00:00.000Z', 'seed');
+`

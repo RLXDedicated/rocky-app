@@ -434,8 +434,9 @@ dots).
 - **Titles** (a badge, no permissions): `qa` — a blue glowing "QA" pill —
   and `leader` — a teal "LEAD" pill. Stored in `agent_titles` (migration
   006, seeded with mcantillo@rlx.us as leader and madiaz@rlx.us /
-  kcolina@rlx.us as QA). Rocky admins keep the crown. Managed in Admin →
-  **Roles y equipos**.
+  kcolina@rlx.us as QA; migration 007 adds apereira@rlx.us as QA). Rocky
+  admins show a **DEV** chip (after their title, if any) instead of the old
+  crown. Managed in Admin → **Roles y equipos**.
 - **Teams**: `team_members` maps each agent to one leader (admin-managed).
   A leader gets **My team**: a team-spirit gauge and every member's check-in,
   streak, QA passes/alerts and at-risk reasons (never chats). Spirit =
@@ -454,3 +455,15 @@ dots).
   retry and reload when the connection is back; API calls retry network
   blips and 502/503/504 (a backend restart) before showing
   "Connection problem".
+
+## Third wave of the shop (2026-09-29)
+
+- ~50 new items in `src/components/world/thirdArt.tsx` (listed in
+  `closet.ts` with compact unlock rules): 12 glasses, 8 hats, 6 neck
+  items, 16 home items and 8 backgrounds (space, forest, neon city, under
+  the sea, desert, mountains, cherry blossoms, candy land).
+- **Tester prism wings** (`back-tester-wings`, `gift: true`): never sold and
+  hidden from anyone who doesn't hold them; an admin gifts them (agent card
+  or bulk actions → "Regalar accesorio").
+- **Nova wings** (`back-nova-wings`): Rocky-admin only (in `STAFF_ITEMS`) —
+  three flapping tiers, energy veins, rune ring, lightning and stardust.

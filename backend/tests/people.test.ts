@@ -31,7 +31,7 @@ describe('titles', () => {
     const tmp = tempSqlitePath()
     try {
       const p = buildSqlitePersistence(tmp.path)
-      expect(p.accounts.getTitles()).toMatchObject({ [LEADER]: 'leader', [QA]: 'qa', 'kcolina@rlx.us': 'qa' })
+      expect(p.accounts.getTitles()).toMatchObject({ [LEADER]: 'leader', [QA]: 'qa', 'kcolina@rlx.us': 'qa', 'apereira@rlx.us': 'qa' })
       p.close()
     } finally {
       tmp.cleanup()

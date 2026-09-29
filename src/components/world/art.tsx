@@ -3,6 +3,7 @@
 // Rocky. These are accessories and environments layered around it.
 import type { ReactElement } from "react";
 import { EXTRA_DECOR, EXTRA_HATS, STAFF_HATS } from "./extraArt";
+import { THIRD_DECOR, THIRD_HATS, THIRD_SCENES } from "./thirdArt";
 import type { HeadAnchor } from "../rockyAnchors";
 
 const NAVY = "#0f2341";
@@ -528,6 +529,7 @@ export const HAT_ART: Record<string, HatArt> = {
   },
   ...EXTRA_HATS,
   ...STAFF_HATS,
+  ...THIRD_HATS,
 };
 
 // ---------------------------------------------------------------------------
@@ -1387,6 +1389,7 @@ export const DECOR_ART: Record<string, DecorArt> = {
     ),
   },
   ...EXTRA_DECOR,
+  ...THIRD_DECOR,
 };
 
 // ---------------------------------------------------------------------------
@@ -3351,6 +3354,7 @@ function NorthPoleScene({ live }: { live: boolean }) {
 }
 
 export function SceneArt({ id, live = false }: { id: string; live?: boolean }) {
+  const Third = THIRD_SCENES[id];
   return (
     <svg
       viewBox="0 0 1000 400"
@@ -3360,7 +3364,9 @@ export function SceneArt({ id, live = false }: { id: string; live?: boolean }) {
       aria-hidden="true"
     >
       <g className={live ? "rocky-live" : undefined}>
-        {id === "scene-haunted" ? (
+        {Third ? (
+          <Third live={live} />
+        ) : id === "scene-haunted" ? (
           <HauntedScene live={live} />
         ) : id === "scene-pumpkin-patch" ? (
           <PumpkinPatchScene live={live} />

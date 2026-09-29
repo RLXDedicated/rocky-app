@@ -117,6 +117,7 @@ export class InMemoryAccountStore implements AccountStore {
     ['mcantillo@rlx.us', 'leader'],
     ['madiaz@rlx.us', 'qa'],
     ['kcolina@rlx.us', 'qa'],
+    ['apereira@rlx.us', 'qa'],
   ])
   private teams = new Map<string, string>()
 

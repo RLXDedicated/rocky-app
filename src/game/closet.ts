@@ -75,6 +75,8 @@ export interface ClosetItem {
   season?: Collection;
   /** Rocky admins only: never sold; the server grants it to admins and strips it from everyone else. */
   staff?: true;
+  /** Never sold: only an admin can gift it (e.g. the testers' wings); hidden from everyone who doesn't hold it. */
+  gift?: true;
 }
 
 /** Admin edits to the shop, per item id (see backend /api/admin/catalog). */
@@ -109,6 +111,23 @@ const STAGE_RANK: Record<EvolutionStage, number> = {
   Elite: 3,
 };
 const always = () => true;
+
+type UnlockRule = "level" | "checkIns" | "qa" | "streak" | "badges";
+/** The plain-language requirement and its check, for the compact item lists. */
+function unlockRule(rule: UnlockRule, n: number): Pick<ClosetItem, "requirement" | "isUnlocked"> {
+  switch (rule) {
+    case "level":
+      return { requirement: `Reach level ${n}`, isUnlocked: (p) => p.level >= n };
+    case "checkIns":
+      return { requirement: n === 1 ? "Log your first check-in" : `Log ${n} check-ins`, isUnlocked: (p) => p.checkIns >= n };
+    case "qa":
+      return { requirement: n === 1 ? "Pass your first QA audit" : `Pass ${n} QA audits`, isUnlocked: (p) => p.qaPasses >= n };
+    case "streak":
+      return { requirement: `Hit a ${n}-day streak`, isUnlocked: (p) => p.bestStreak >= n };
+    case "badges":
+      return { requirement: n === 1 ? "Collect any badge" : `Collect ${n} badges`, isUnlocked: (p) => p.badgeIds.length >= n };
+  }
+}
 
 export const CLOSET: ClosetItem[] = [
   // Hats — sit on Rocky's head via the measured head anchors.
@@ -913,10 +932,78 @@ export const CLOSET: ClosetItem[] = [
     }),
   ),
 
+  // Third wave: glasses, hats, neckwear, home items and backgrounds.
+  ...(
+    [
+      ["glasses-visor", "glasses", "Cyber visor", 140, "level", 4],
+      ["glasses-shutter", "glasses", "Shutter shades", 70, "checkIns", 3],
+      ["glasses-pixel", "glasses", "Pixel shades", 90, "qa", 1],
+      ["glasses-rainbow", "glasses", "Rainbow glasses", 80, "badges", 1],
+      ["glasses-steampunk", "glasses", "Steampunk goggles", 150, "streak", 7],
+      ["glasses-swim", "glasses", "Swim goggles", 50, "checkIns", 2],
+      ["glasses-flower", "glasses", "Flower glasses", 70, "level", 2],
+      ["glasses-diamond", "glasses", "Diamond glasses", 200, "level", 7],
+      ["glasses-laser", "glasses", "Laser visor", 180, "qa", 3],
+      ["glasses-hipster", "glasses", "Thick frames", 60, "checkIns", 1],
+      ["glasses-sport", "glasses", "Sport wraparounds", 110, "streak", 5],
+      ["glasses-reading", "glasses", "Reading glasses", 50, "checkIns", 4],
+      ["hat-bucket", "hat", "Bucket hat", 70, "checkIns", 2],
+      ["hat-fez", "hat", "Fez", 80, "level", 2],
+      ["hat-cat-ears", "hat", "Cat ears", 90, "badges", 1],
+      ["hat-mushroom", "hat", "Mushroom cap", 110, "checkIns", 6],
+      ["hat-sailor", "hat", "Sailor hat", 90, "qa", 1],
+      ["hat-detective", "hat", "Detective hat", 130, "qa", 2],
+      ["hat-unicorn", "hat", "Unicorn horn", 180, "streak", 7],
+      ["hat-knight", "hat", "Knight helmet", 220, "level", 8],
+      ["neck-headphones", "neck", "Neck headphones", 100, "level", 3],
+      ["neck-bolo", "neck", "Bolo tie", 70, "checkIns", 3],
+      ["neck-camera", "neck", "Photo camera", 120, "badges", 2],
+      ["neck-whistle", "neck", "Coach whistle", 50, "checkIns", 1],
+      ["neck-rainbow-scarf", "neck", "Rainbow scarf", 110, "streak", 5],
+      ["neck-gem", "neck", "Amethyst pendant", 190, "level", 6],
+      ["decor-sofa", "decor", "Comfy sofa", 160, "checkIns", 3],
+      ["decor-tv", "decor", "Flat TV", 180, "level", 3],
+      ["decor-bookshelf", "decor", "Bookshelf", 120, "checkIns", 2],
+      ["decor-fridge", "decor", "Snack fridge", 140, "checkIns", 4],
+      ["decor-aquarium", "decor", "Aquarium", 220, "streak", 7],
+      ["decor-guitar", "decor", "Electric guitar", 130, "badges", 2],
+      ["decor-clock", "decor", "Wall clock", 60, "checkIns", 1],
+      ["decor-piano", "decor", "Grand piano", 260, "level", 7],
+      ["decor-cactus", "decor", "Potted cactus", 50, "checkIns", 1],
+      ["decor-beanbag", "decor", "Bean bag", 90, "level", 2],
+      ["decor-fountain", "decor", "Garden fountain", 200, "qa", 3],
+      ["decor-telescope", "decor", "Telescope", 170, "level", 5],
+      ["decor-record-player", "decor", "Record player", 150, "badges", 3],
+      ["decor-computer", "decor", "Gaming desk", 190, "qa", 2],
+      ["decor-doghouse", "decor", "Rocky's doghouse", 120, "streak", 3],
+      ["decor-disco-ball", "decor", "Disco ball", 160, "streak", 5],
+      ["scene-forest", "scene", "Enchanted forest", 180, "checkIns", 3],
+      ["scene-city", "scene", "Neon city", 220, "level", 4],
+      ["scene-underwater", "scene", "Under the sea", 240, "streak", 7],
+      ["scene-desert", "scene", "Desert dunes", 160, "checkIns", 5],
+      ["scene-mountains", "scene", "Mountain valley", 180, "level", 3],
+      ["scene-sakura", "scene", "Cherry blossoms", 230, "badges", 3],
+      ["scene-candy", "scene", "Candy land", 200, "qa", 2],
+      ["scene-space", "scene", "Outer space", 320, "level", 8],
+    ] as const
+  ).map(([id, slot, name, price, rule, n]): ClosetItem => ({ id, slot, name, price, ...unlockRule(rule, n) })),
+
+  // Gifts only: an admin hands these out (Admin → bulk actions or the agent's card).
+  {
+    id: "back-tester-wings",
+    slot: "back",
+    name: "Tester prism wings",
+    requirement: "A gift for Rocky's testers",
+    isUnlocked: () => false,
+    price: 0,
+    gift: true,
+  },
+
   // Rocky admins only (ROCKY_ADMIN_EMAILS): granted by the server, never sold.
   ...(
     [
       ["back-sovereign-wings", "back", "Sovereign wings"],
+      ["back-nova-wings", "back", "Nova wings"],
       ["hat-vip-crown", "hat", "Royal crown"],
       ["fx-royal-aura", "fx", "Royal aura"],
       ["aura-golden", "aura", "Golden aura"],
@@ -1082,6 +1169,7 @@ export const SIZE_LABELS = ["S", "M", "L", "XL", "XXL"] as const;
 /** Items only Rocky admins can have (see ClosetItem.staff). */
 export const STAFF_ITEMS: readonly string[] = [
   "back-sovereign-wings",
+  "back-nova-wings",
   "hat-vip-crown",
   "fx-royal-aura",
   "aura-golden",
@@ -1242,6 +1330,6 @@ export function itemsFor(
   catalog: ClosetItem[] = CLOSET,
   granted: readonly string[] = [],
 ): ClosetItem[] {
-  // Staff items only show in the closet of someone who holds them.
-  return catalog.filter((i) => i.slot === slot && (!i.staff || granted.includes(i.id)));
+  // Staff and gift-only items only show in the closet of someone who holds them.
+  return catalog.filter((i) => i.slot === slot && ((!i.staff && !i.gift) || granted.includes(i.id)));
 }

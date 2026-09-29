@@ -48,6 +48,52 @@
   text-shadow: 0 0 6px rgba(204, 251, 241, 0.9);
 }
 
+/* DEV: an editor-dark chip with a green-to-violet code glow and a blinking cursor. */
+.dev {
+  --glow: 74, 222, 128;
+  gap: 4px;
+  background: linear-gradient(135deg, #111827 0%, #1e1b4b 60%, #312e81 100%);
+  box-shadow: 0 0 0 1px rgba(134, 239, 172, 0.75) inset, 0 0 8px rgba(var(--glow), 0.55);
+  color: #bbf7d0;
+  text-shadow: 0 0 6px rgba(74, 222, 128, 0.9);
+  animation-name: devGlow;
+}
+
+.devCode {
+  color: #c4b5fd;
+  text-shadow: 0 0 6px rgba(167, 139, 250, 0.95);
+  letter-spacing: 0;
+}
+
+.devCursor {
+  display: inline-block;
+  width: 0.42em;
+  height: 0.9em;
+  margin-left: -1px;
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.9);
+  animation: devBlink 1.05s steps(2, jump-none) infinite;
+}
+
+.group {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  vertical-align: middle;
+}
+
+@keyframes devGlow {
+  50% {
+    box-shadow: 0 0 0 1px rgba(196, 181, 253, 0.9) inset, 0 0 14px rgba(167, 139, 250, 0.85);
+  }
+}
+
+@keyframes devBlink {
+  50% {
+    opacity: 0;
+  }
+}
+
 @keyframes titleGlow {
   50% {
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85) inset, 0 0 14px rgba(var(--glow), 0.95);
@@ -63,7 +109,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .badge,
-  .badge::after {
+  .badge::after,
+  .devCursor {
     animation: none;
   }
 }

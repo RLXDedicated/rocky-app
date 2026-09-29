@@ -166,7 +166,7 @@ export function ShopPanel({
   }
 
   // Items taken out of the shop by an admin stay visible only to agents who already have them.
-  const visible = (i: ClosetItem) => (i.staff ? granted.includes(i.id) : i.enabled !== false || isUsable(i, facts, owned, granted))
+  const visible = (i: ClosetItem) => (i.staff || i.gift ? granted.includes(i.id) : i.enabled !== false || isUsable(i, facts, owned, granted))
   const closetFor = (t: Tab): ClosetItem[] => {
     if (t === 'style') return [...itemsFor('body', catalog, granted), ...itemsFor('aura', catalog, granted)]
     if (t === 'spooky' || t === 'holiday') return catalog.filter((i) => i.season === t)
