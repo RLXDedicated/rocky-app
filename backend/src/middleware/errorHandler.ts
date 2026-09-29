@@ -18,6 +18,13 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return
   }
 
+  // A body over the route's size limit (e.g. a chat picture that's too big).
+  if (typeof err === 'object' && err !== null && (err as { type?: string }).type === 'entity.too.large') {
+    const body: ApiErrorResponse = { error: { code: 'TOO_LARGE', message: 'That file is too big.', requestId } }
+    res.status(413).json(body)
+    return
+  }
+
   if (err instanceof ApiError) {
     if (err.status >= 500) {
       console.error(`[${requestId}] ${err.code}: ${err.message}`)

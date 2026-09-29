@@ -27,7 +27,8 @@ export function createChatJobs(chat: ChatApplicationService, target: BackupTarge
     const from = new Date(y, m - 1, d)
     const to = new Date(y, m - 1, d + 1)
     const messages = chat.exportRange(from.toISOString(), to.toISOString())
-    const result = await writeBackup(target, day, { messages })
+    const attachments = chat.exportAttachments(from.toISOString(), to.toISOString())
+    const result = await writeBackup(target, day, { messages, attachments })
     last = { ...result, day, at: clock.now().toISOString() }
     log(
       `[rocky-backend] chat backup ${day}: ${result.count} messages${result.file ? `, file ${result.file}` : ''}${result.uploaded ? ', uploaded to bucket' : ''}${result.error ? `, bucket error: ${result.error}` : ''}`,

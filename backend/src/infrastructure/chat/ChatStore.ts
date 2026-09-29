@@ -47,6 +47,22 @@ export interface MuteRecord {
   reason: string | null
 }
 
+export interface ReactionRecord {
+  messageId: number
+  agentId: string
+  emoji: string
+}
+
+export interface AttachmentRecord {
+  id: string
+  channelId: string
+  uploaderId: string
+  mime: string
+  size: number
+  data: Uint8Array
+  createdAt: string
+}
+
 export interface ChatStore {
   ensureChannel(channel: ChannelRecord): ChannelRecord
   getChannel(id: string): ChannelRecord | null
@@ -69,6 +85,15 @@ export interface ChatStore {
   listMessagesBetween(from: string, to: string): MessageRecord[]
   /** Deletes messages (and their reports) older than `before`; returns how many were removed. */
   purgeBefore(before: string): number
+
+  /** Adds the reaction, or removes it if it was already there; true when it is now on. */
+  toggleReaction(messageId: number, agentId: string, emoji: string, at: string): boolean
+  listReactions(messageIds: number[]): ReactionRecord[]
+
+  addAttachment(a: AttachmentRecord): void
+  getAttachment(id: string): AttachmentRecord | null
+  /** Attachments (with their bytes) created in [from, to) — for the daily admin backup. */
+  listAttachmentsBetween(from: string, to: string): AttachmentRecord[]
 
   addReport(report: Omit<ReportRecord, 'id' | 'resolvedAt' | 'resolvedBy' | 'resolution'>): ReportRecord
   listReports(openOnly: boolean): ReportRecord[]

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { chatApi, type AdminChatChannel, type AdminChatMessage, type AdminChatReport, type ChatBackupStatus } from '../../services/apiClient'
+import { ChatMedia, mediaOf } from '../chat/Media'
 import styles from './AdminConsole.module.css'
 
 const KIND: Record<AdminChatChannel['kind'], string> = { general: 'General', dm: '1 a 1', visit: 'Visita' }
@@ -185,7 +186,7 @@ function Conversations({ onChanged, onError }: { onChanged: (m: string) => void;
                   <strong>{m.name}</strong> <span className={styles.muted}>{m.email} · {fmt(m.at)}</span>
                   {m.flagged && <span className={styles.chip} title="El agente confirmó el envío aunque parecía dato de cliente"> ⚠️ posible dato de cliente</span>}
                   {m.hidden && <span className={styles.chip}> oculto por {m.hiddenBy}</span>}
-                  <div style={{ whiteSpace: 'pre-wrap' }}>{m.body}</div>
+                  {mediaOf(m.body) ? <ChatMedia media={mediaOf(m.body)!} /> : <div style={{ whiteSpace: 'pre-wrap' }}>{m.body}</div>}
                   {!m.hidden && (
                     <button className={styles.linkBtn} onClick={() => void hide(m)}>
                       ocultar

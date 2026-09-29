@@ -73,7 +73,7 @@ export interface BackupResult {
   error?: string
 }
 
-export async function writeBackup(target: BackupTarget, day: string, payload: { messages: unknown[] }): Promise<BackupResult> {
+export async function writeBackup(target: BackupTarget, day: string, payload: { messages: unknown[]; attachments?: unknown[] }): Promise<BackupResult> {
   const { body, encrypted } = sealBackup(payload, target.key)
   const name = `chat-${day}.${encrypted ? 'enc.json' : 'json'}`
   const result: BackupResult = { file: null, uploaded: false, encrypted, count: payload.messages.length }

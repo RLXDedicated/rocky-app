@@ -2,9 +2,9 @@
 // house rules and reports. Rocky admins only (role ADMIN, i.e.
 // ROCKY_ADMIN_EMAILS): the quality-control copy of every conversation,
 // reports, hiding, pausing someone's chat, exports and backups.
-import { Router, type Request, type Response } from 'express'
+import express, { Router, type Request, type Response } from 'express'
 import { requireRole } from '../middleware/devIdentity'
-import type { ChatApplicationService } from '../application/chatApplicationService'
+import { IMAGE_TYPES, MAX_GIF_BYTES, type ChatApplicationService } from '../application/chatApplicationService'
 import type { ChatJobs } from '../application/chatJobs'
 import { parseJsonBody, requireNonEmptyString } from './validation'
 import { ApiError } from './errors'
@@ -54,6 +54,30 @@ export function createChatRouter(chat: ChatApplicationService, jobs: ChatJobs): 
   router.post('/chat/channels/:id/messages', (req: Request, res: Response) => {
     const body = parseJsonBody(req.body)
     res.status(201).json(chat.send(me(req), req.params.id!, body.text, body.confirm === true, actorOf(req)))
+  })
+  // Pictures and GIFs: the raw file as the request body (its type is checked from the bytes, not trusted from the header).
+  router.post(
+    '/chat/channels/:id/images',
+    express.raw({ type: [...IMAGE_TYPES, 'application/octet-stream'], limit: MAX_GIF_BYTES + 1024 }),
+    (req: Request, res: Response) => {
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) throw ApiError.validation('Attach a picture.')
+      res.status(201).json(chat.postImage(me(req), req.params.id!, new Uint8Array(req.body), actorOf(req)))
+    },
+  )
+  router.get('/chat/attachments/:id', (req: Request, res: Response) => {
+    const a = chat.attachment(me(req), req.params.id!, req.identity!.role === 'ADMIN')
+    res.setHeader('Content-Type', a.mime)
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Content-Disposition', 'inline')
+    res.setHeader('Cache-Control', 'private, max-age=86400')
+    res.send(Buffer.from(a.data))
+  })
+  router.post('/chat/messages/:id/react', (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    res.json(chat.react(me(req), optionalId(req.params.id, 'id') ?? -1, body.emoji))
+  })
+  router.get('/chat/gifs', async (req: Request, res: Response) => {
+    res.json(await chat.gifs(typeof req.query.q === 'string' ? req.query.q : ''))
   })
   router.post('/chat/channels/:id/read', (req: Request, res: Response) => {
     const body = parseJsonBody(req.body)

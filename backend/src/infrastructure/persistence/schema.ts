@@ -267,6 +267,29 @@ export const MIGRATION_006_PEOPLE = `
     ('kcolina@rlx.us', 'qa', '2026-09-29T12:00:00.000Z', 'seed');
 `
 
+/** Chat reactions (emoji on a message) and image/GIF attachments (kept like messages: 90 days). */
+export const MIGRATION_009_CHAT_MEDIA = `
+  CREATE TABLE chat_reactions (
+    message_id INTEGER NOT NULL,
+    agent_id   TEXT NOT NULL,
+    emoji      TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (message_id, agent_id, emoji)
+  );
+  CREATE INDEX idx_chat_reactions_message ON chat_reactions(message_id);
+
+  CREATE TABLE chat_attachments (
+    attachment_id TEXT PRIMARY KEY,
+    channel_id    TEXT NOT NULL,
+    uploader_id   TEXT NOT NULL,
+    mime          TEXT NOT NULL,
+    size          INTEGER NOT NULL,
+    data          BLOB NOT NULL,
+    created_at    TEXT NOT NULL
+  );
+  CREATE INDEX idx_chat_attachments_created ON chat_attachments(created_at);
+`
+
 /** Testers of the pilot: a "Tester" badge next to their name, set by admins. */
 export const MIGRATION_008_TESTERS = `
   CREATE TABLE agent_testers (

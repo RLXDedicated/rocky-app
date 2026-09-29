@@ -106,7 +106,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   // Late-bound: people needs pet (profiles) and pet needs people (a leader's team mood).
   let people: PeopleApplicationService | null = null
   const pet = createPetApplicationService({ persistence, clock: options.clock, isStaff, titleOf, testerOf, teamMood: (id) => people?.teamMood(id) ?? null })
-  const chat = createChatApplicationService({ persistence, bus, clock: options.clock, isStaff, titleOf, testerOf, bubbleOf: (id) => pet.bubbleOf(id) })
+  const chat = createChatApplicationService({ persistence, bus, clock: options.clock, isStaff, titleOf, testerOf, bubbleOf: (id) => pet.bubbleOf(id), giphyKey: process.env.ROCKY_GIPHY_API_KEY?.trim() || null })
   people = createPeopleApplicationService({ persistence, pet, isStaff, isOnline: (id) => bus.isOnline(id), clock: options.clock })
   const jobs = createChatJobs(chat, options.backupTarget ?? backupTargetFromEnv(process.env, config.persistenceDriver === 'sqlite' ? config.dbPath : null), options.clock)
   const live: LiveContext = { auth, pet, chat, bus, jobs, persistence }

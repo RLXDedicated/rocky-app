@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { ChannelKind, ChannelRecord, ChatStore, MembershipRecord, MessageRecord, MuteRecord, ReportRecord } from './ChatStore'
+import type { AttachmentRecord, ChannelKind, ChannelRecord, ChatStore, MembershipRecord, MessageRecord, MuteRecord, ReactionRecord, ReportRecord } from './ChatStore'
 
 interface ChannelRow {
   channel_id: string
@@ -48,6 +48,25 @@ const report = (r: ReportRow): ReportRecord => ({
   resolvedAt: r.resolved_at,
   resolvedBy: r.resolved_by,
   resolution: r.resolution,
+})
+
+interface AttachmentRow {
+  attachment_id: string
+  channel_id: string
+  uploader_id: string
+  mime: string
+  size: number
+  data: Uint8Array
+  created_at: string
+}
+const attachment = (r: AttachmentRow): AttachmentRecord => ({
+  id: r.attachment_id,
+  channelId: r.channel_id,
+  uploaderId: r.uploader_id,
+  mime: r.mime,
+  size: r.size,
+  data: r.data,
+  createdAt: r.created_at,
 })
 
 export class SqliteChatStore implements ChatStore {
@@ -134,7 +153,36 @@ export class SqliteChatStore implements ChatStore {
       this.db.prepare('SELECT * FROM chat_messages WHERE created_at >= ? AND created_at < ? ORDER BY message_id').all(from, to) as unknown as MessageRow[]
     ).map(message)
   }
+  toggleReaction(messageId: number, agentId: string, emoji: string, at: string) {
+    const gone = this.db.prepare('DELETE FROM chat_reactions WHERE message_id = ? AND agent_id = ? AND emoji = ?').run(messageId, agentId, emoji)
+    if (Number(gone.changes) > 0) return false
+    this.db.prepare('INSERT INTO chat_reactions (message_id, agent_id, emoji, created_at) VALUES (?, ?, ?, ?)').run(messageId, agentId, emoji, at)
+    return true
+  }
+  listReactions(messageIds: number[]): ReactionRecord[] {
+    if (messageIds.length === 0) return []
+    const rows = this.db
+      .prepare(`SELECT message_id, agent_id, emoji FROM chat_reactions WHERE message_id IN (${messageIds.map(() => '?').join(',')}) ORDER BY created_at`)
+      .all(...messageIds) as { message_id: number; agent_id: string; emoji: string }[]
+    return rows.map((r) => ({ messageId: r.message_id, agentId: r.agent_id, emoji: r.emoji }))
+  }
+
+  addAttachment(a: AttachmentRecord) {
+    this.db
+      .prepare('INSERT INTO chat_attachments (attachment_id, channel_id, uploader_id, mime, size, data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(a.id, a.channelId, a.uploaderId, a.mime, a.size, a.data, a.createdAt)
+  }
+  getAttachment(id: string): AttachmentRecord | null {
+    const r = this.db.prepare('SELECT * FROM chat_attachments WHERE attachment_id = ?').get(id) as AttachmentRow | undefined
+    return r ? attachment(r) : null
+  }
+  listAttachmentsBetween(from: string, to: string) {
+    return (this.db.prepare('SELECT * FROM chat_attachments WHERE created_at >= ? AND created_at < ? ORDER BY created_at').all(from, to) as unknown as AttachmentRow[]).map(attachment)
+  }
+
   purgeBefore(before: string) {
+    this.db.prepare('DELETE FROM chat_reactions WHERE message_id IN (SELECT message_id FROM chat_messages WHERE created_at < ?)').run(before)
+    this.db.prepare('DELETE FROM chat_attachments WHERE created_at < ?').run(before)
     this.db.prepare('DELETE FROM chat_reports WHERE message_id IN (SELECT message_id FROM chat_messages WHERE created_at < ?)').run(before)
     return Number(this.db.prepare('DELETE FROM chat_messages WHERE created_at < ?').run(before).changes)
   }

@@ -10,10 +10,10 @@
 // - A message that looks like customer data (email, phone, order number,
 //   street address) is held back until the author confirms; confirmed ones
 //   are flagged for the admins.
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { ApiError } from '../api/errors'
 import type { PersistenceContext } from '../infrastructure/persistenceContext'
-import type { ChannelRecord, MessageRecord } from '../infrastructure/chat/ChatStore'
+import type { ChannelRecord, MessageRecord, ReactionRecord } from '../infrastructure/chat/ChatStore'
 import { systemClock, type Clock } from '../domain/rockyEngine'
 import { publicName } from './leaderboardApplicationService'
 import { friendKey } from './petApplicationService'
@@ -28,6 +28,32 @@ const RATE_WINDOW_MS = 60_000
 const PAGE = 50
 
 export const GENERAL_CHANNEL = 'general'
+
+/** Pictures people attach: PNG, JPEG, WebP (the browser shrinks them first) and GIFs. */
+export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const
+export type ImageType = (typeof IMAGE_TYPES)[number]
+export const MAX_IMAGE_BYTES = 2_500_000
+export const MAX_GIF_BYTES = 5_000_000
+const MAX_REACTIONS_PER_MESSAGE = 12
+
+/** The file really is what it says (magic bytes), so nothing else is served back as an image. */
+export function sniffImage(bytes: Uint8Array): ImageType | null {
+  const b = (i: number) => bytes[i] ?? -1
+  if (b(0) === 0x89 && b(1) === 0x50 && b(2) === 0x4e && b(3) === 0x47) return 'image/png'
+  if (b(0) === 0xff && b(1) === 0xd8 && b(2) === 0xff) return 'image/jpeg'
+  if (b(0) === 0x47 && b(1) === 0x49 && b(2) === 0x46 && b(3) === 0x38) return 'image/gif'
+  if (b(0) === 0x52 && b(1) === 0x49 && b(2) === 0x46 && b(3) === 0x46 && b(8) === 0x57 && b(9) === 0x45 && b(10) === 0x42 && b(11) === 0x50) return 'image/webp'
+  return null
+}
+
+/** One emoji (with skin tones / joiners), nothing else. */
+export function isEmoji(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= 16 && /^(?:\p{Extended_Pictographic}|\p{Emoji_Component}|\u200d|\ufe0f|\u20e3)+$/u.test(value) && /\p{Extended_Pictographic}/u.test(value)
+}
+
+export const GIF_ID = /^[A-Za-z0-9]{5,40}$/
+export const imageText = (id: string) => `[[img:${id}]]`
+export const gifText = (id: string) => `[[gif:${id}]]`
 
 export interface ChatActor {
   id: string
@@ -66,9 +92,12 @@ export interface ChatDeps {
   testerOf?: (agentId: string) => boolean
   /** The author's chat bubble style (a shop item). */
   bubbleOf?: (agentId: string) => string | null
+  /** GIPHY key for the GIF search (ROCKY_GIPHY_API_KEY); without it only Rocky's own stickers and uploads are offered. */
+  giphyKey?: string | null
+  fetchFn?: typeof fetch
 }
 
-export function createChatApplicationService({ persistence, bus, clock = systemClock, isStaff = () => false, titleOf = () => null, testerOf = () => false, bubbleOf = () => null }: ChatDeps) {
+export function createChatApplicationService({ persistence, bus, clock = systemClock, isStaff = () => false, titleOf = () => null, testerOf = () => false, bubbleOf = () => null, giphyKey = null, fetchFn = fetch }: ChatDeps) {
   const store = persistence.chat
   const repo = persistence.repoStore
   const sent = new Map<string, number[]>()
@@ -135,7 +164,20 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
     return canRead(channel, agentId)
   }
 
-  function toClient(m: MessageRecord, viewerId: string) {
+  /** Reactions on a message as one viewer sees them: each emoji, how many, whether one is theirs, and who. */
+  function reactionsFor(rows: ReactionRecord[], viewerId: string) {
+    const byEmoji = new Map<string, { emoji: string; count: number; mine: boolean; names: string[] }>()
+    for (const r of rows) {
+      const e = byEmoji.get(r.emoji) ?? { emoji: r.emoji, count: 0, mine: false, names: [] }
+      e.count += 1
+      if (r.agentId === viewerId) e.mine = true
+      if (e.names.length < 8) e.names.push(r.agentId === viewerId ? 'You' : nameOf(r.agentId))
+      byEmoji.set(r.emoji, e)
+    }
+    return [...byEmoji.values()]
+  }
+
+  function toClient(m: MessageRecord, viewerId: string, reactions: ReactionRecord[] = []) {
     return {
       id: m.id,
       channel: m.channelId,
@@ -149,6 +191,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       body: m.hiddenAt ? '' : m.body,
       hidden: !!m.hiddenAt,
       at: m.createdAt,
+      reactions: m.hiddenAt ? [] : reactionsFor(reactions, viewerId),
     }
   }
   /** Everyone who should get a live copy of a message in this channel. */
@@ -190,6 +233,29 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       unread: store.countUnread(channel.id, agentId, lastReadId),
       last: last ? { name: nameOf(last.authorId), body: last.hiddenAt ? '' : last.body, at: last.createdAt, mine: last.authorId === agentId } : null,
     }
+  }
+
+  /** Everything a post must pass: rules accepted, not paused, allowed in this conversation, not flooding. */
+  function gate(agentId: string, channelId: string) {
+    if (store.getConsent(agentId)?.version !== RULES_VERSION) throw new ApiError(403, 'RULES_NOT_ACCEPTED', 'Please read and accept the chat rules first.')
+    const now = clock.now()
+    const mute = store.getMute(agentId)
+    if (mute && mute.until > now.toISOString())
+      throw new ApiError(403, 'MUTED', `Your chat is paused until ${new Date(mute.until).toLocaleString('en-US')}. Contact the QA team if you think this is a mistake.`)
+    const channel = requireChannel(channelId, agentId)
+    if (!canPost(channel, agentId)) throw ApiError.forbidden('You can chat here while you are visiting.')
+    const recent = (sent.get(agentId) ?? []).filter((t) => now.getTime() - t < RATE_WINDOW_MS)
+    if (recent.length >= RATE_LIMIT) throw new ApiError(429, 'SLOW_DOWN', 'You are sending messages very fast — wait a few seconds.')
+    return { channel, now, recent }
+  }
+
+  /** Stores a message and sends everyone in the conversation a live copy. */
+  function post(channel: ChannelRecord, agentId: string, body: string, flagged: boolean, now: Date) {
+    store.addMember(channel.id, agentId, now.toISOString())
+    const saved = store.addMessage({ channelId: channel.id, authorId: agentId, body, flagged, createdAt: now.toISOString(), hiddenAt: null, hiddenBy: null })
+    store.setLastRead(channel.id, agentId, saved.id)
+    for (const id of audience(channel)) bus.publish([id], { t: 'chat.message', channel: channel.id, kind: channel.kind, message: toClient(saved, id) })
+    return saved
   }
 
   return {
@@ -257,22 +323,23 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
     messages(agentId: string, channelId: string, opts: { before?: number; after?: number }) {
       const channel = requireChannel(channelId, agentId)
       const rows = store.listMessages(channel.id, { beforeId: opts.before, afterId: opts.after, limit: PAGE })
-      return { channel: channel.id, messages: rows.map((m) => toClient(m, agentId)), more: opts.after === undefined && rows.length === PAGE }
+      const reactions = store.listReactions(rows.map((m) => m.id))
+      return {
+        channel: channel.id,
+        messages: rows.map((m) => toClient(m, agentId, reactions.filter((r) => r.messageId === m.id))),
+        more: opts.after === undefined && rows.length === PAGE,
+      }
     },
 
     send(agentId: string, channelId: string, text: unknown, confirm: boolean, actor: ChatActor) {
       if (typeof text !== 'string' || !text.trim()) throw ApiError.validation('Write a message first.')
       const body = text.trim().replace(/\r\n/g, '\n')
       if (body.length > MAX_MESSAGE_LENGTH) throw ApiError.validation(`Messages can be up to ${MAX_MESSAGE_LENGTH} characters.`)
-      if (store.getConsent(agentId)?.version !== RULES_VERSION) throw new ApiError(403, 'RULES_NOT_ACCEPTED', 'Please read and accept the chat rules first.')
-      const now = clock.now()
-      const mute = store.getMute(agentId)
-      if (mute && mute.until > now.toISOString())
-        throw new ApiError(403, 'MUTED', `Your chat is paused until ${new Date(mute.until).toLocaleString('en-US')}. Contact the QA team if you think this is a mistake.`)
-      const channel = requireChannel(channelId, agentId)
-      if (!canPost(channel, agentId)) throw ApiError.forbidden('You can chat here while you are visiting.')
-      const recent = (sent.get(agentId) ?? []).filter((t) => now.getTime() - t < RATE_WINDOW_MS)
-      if (recent.length >= RATE_LIMIT) throw new ApiError(429, 'SLOW_DOWN', 'You are sending messages very fast — wait a few seconds.')
+      // Pictures only arrive through postImage (so they are always checked and stored first).
+      if (/\[\[img:/.test(body)) throw ApiError.validation('Attach pictures with the 📎 button.')
+      const gif = /^\[\[gif:([^\]]*)\]\]$/.exec(body)
+      if (gif && !GIF_ID.test(gif[1]!)) throw ApiError.validation('That GIF could not be sent.')
+      const { channel, now, recent } = gate(agentId, channelId)
       const kinds = sensitiveKinds(body)
       if (kinds.length && !confirm)
         throw new ApiError(
@@ -282,21 +349,74 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
         )
       recent.push(now.getTime())
       sent.set(agentId, recent)
-      store.addMember(channel.id, agentId, now.toISOString())
-      const saved = store.addMessage({
-        channelId: channel.id,
-        authorId: agentId,
-        body,
-        flagged: kinds.length > 0,
-        createdAt: now.toISOString(),
-        hiddenAt: null,
-        hiddenBy: null,
-      })
-      store.setLastRead(channel.id, agentId, saved.id)
+      const saved = post(channel, agentId, body, kinds.length > 0, now)
       if (saved.flagged) audit(actor, agentId, 'chat.message.flagged', { channel: channel.id, message: saved.id, kinds })
-      const targets = audience(channel)
-      for (const id of targets) bus.publish([id], { t: 'chat.message', channel: channel.id, kind: channel.kind, message: toClient(saved, id) })
       return toClient(saved, agentId)
+    },
+
+    /** A picture or GIF from the agent's device: checked, stored, then posted as a message. */
+    postImage(agentId: string, channelId: string, bytes: Uint8Array, actor: ChatActor) {
+      const mime = sniffImage(bytes)
+      if (!mime) throw ApiError.validation('Only PNG, JPEG, WebP and GIF pictures can be shared.')
+      if (bytes.length > (mime === 'image/gif' ? MAX_GIF_BYTES : MAX_IMAGE_BYTES))
+        throw ApiError.validation(mime === 'image/gif' ? 'That GIF is too big (5 MB max).' : 'That picture is too big (2.5 MB max).')
+      const { channel, now, recent } = gate(agentId, channelId)
+      recent.push(now.getTime())
+      sent.set(agentId, recent)
+      const id = randomBytes(12).toString('hex')
+      store.addAttachment({ id, channelId: channel.id, uploaderId: agentId, mime, size: bytes.length, data: bytes, createdAt: now.toISOString() })
+      const saved = post(channel, agentId, imageText(id), false, now)
+      audit(actor, agentId, 'chat.image', { channel: channel.id, message: saved.id, attachment: id, mime, size: bytes.length })
+      return toClient(saved, agentId)
+    },
+
+    /** The bytes of an attached picture, for someone who can read that conversation (or an admin). */
+    attachment(agentId: string, id: string, admin: boolean) {
+      const a = /^[a-f0-9]{24}$/.test(id) ? store.getAttachment(id) : null
+      const channel = a ? store.getChannel(a.channelId) : null
+      if (!a || !channel || (!admin && !canRead(channel, agentId))) throw ApiError.notFound('That picture could not be found.')
+      return { mime: a.mime, data: a.data }
+    },
+
+    /** Adds or removes the agent's emoji on a message; everyone in the conversation sees it live. */
+    react(agentId: string, messageId: number, emoji: unknown) {
+      if (!isEmoji(emoji)) throw ApiError.validation('React with an emoji.')
+      const m = store.getMessage(messageId)
+      if (!m || m.hiddenAt) throw ApiError.notFound('That message could not be found.')
+      const channel = requireChannel(m.channelId, agentId)
+      if (store.getConsent(agentId)?.version !== RULES_VERSION) throw new ApiError(403, 'RULES_NOT_ACCEPTED', 'Please read and accept the chat rules first.')
+      const current = store.listReactions([m.id])
+      const already = current.some((r) => r.agentId === agentId && r.emoji === emoji)
+      if (!already && new Set(current.map((r) => r.emoji)).size >= MAX_REACTIONS_PER_MESSAGE && !current.some((r) => r.emoji === emoji))
+        throw ApiError.validation('This message already has lots of different reactions — pick one of those.')
+      store.toggleReaction(m.id, agentId, emoji, clock.now().toISOString())
+      const rows = store.listReactions([m.id])
+      for (const id of audience(channel))
+        if (id !== agentId) bus.publish([id], { t: 'chat.reaction', channel: channel.id, id: m.id, reactions: reactionsFor(rows, id) })
+      return { id: m.id, reactions: reactionsFor(rows, agentId) }
+    },
+
+    /** GIF search (GIPHY, family-friendly rating). Empty query = trending. Off when no key is configured. */
+    async gifs(query: string) {
+      if (!giphyKey) return { enabled: false, gifs: [] }
+      const q = query.trim().slice(0, 50)
+      const url = q
+        ? `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(giphyKey)}&q=${encodeURIComponent(q)}&limit=24&rating=g`
+        : `https://api.giphy.com/v1/gifs/trending?api_key=${encodeURIComponent(giphyKey)}&limit=24&rating=g`
+      try {
+        const res = await fetchFn(url)
+        if (!res.ok) return { enabled: true, gifs: [] }
+        const json = (await res.json()) as { data?: { id: string; title?: string; images?: Record<string, { url?: string; width?: string; height?: string }> }[] }
+        return {
+          enabled: true,
+          gifs: (json.data ?? [])
+            .filter((g) => GIF_ID.test(g.id))
+            .map((g) => ({ id: g.id, title: g.title ?? '', preview: g.images?.fixed_width_small?.url ?? g.images?.fixed_width?.url ?? '' }))
+            .filter((g) => g.preview.startsWith('https://')),
+        }
+      } catch {
+        return { enabled: true, gifs: [] }
+      }
     },
 
     markRead(agentId: string, channelId: string, messageId: number) {
@@ -427,6 +547,19 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
         hiddenAt: m.hiddenAt,
         hiddenBy: m.hiddenBy,
         at: m.createdAt,
+      }))
+    },
+
+    /** Pictures shared in [from, to), with their bytes (base64), for the admins' daily backup. */
+    exportAttachments(from: string, to: string) {
+      return store.listAttachmentsBetween(from, to).map((x) => ({
+        id: x.id,
+        channel: x.channelId,
+        email: x.uploaderId,
+        mime: x.mime,
+        size: x.size,
+        at: x.createdAt,
+        base64: Buffer.from(x.data).toString('base64'),
       }))
     },
 

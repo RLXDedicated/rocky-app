@@ -273,3 +273,47 @@ describe('chat bubbles', () => {
     expect(fromAna.body.style).toBeNull()
   })
 })
+
+describe('reactions and pictures', () => {
+  const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4c50000000049454e44ae426082', 'hex')
+
+  it('toggles emoji reactions and shows each viewer their own', async () => {
+    const { app } = build()
+    await enroll(app, ANA, LUIS)
+    const msg = await request(app).post('/api/chat/channels/general/messages').set(as(ANA)).send({ text: 'Primer día 🎉' })
+    const r1 = await request(app).post(`/api/chat/messages/${msg.body.id}/react`).set(as(LUIS)).send({ emoji: '😂' })
+    expect(r1.body.reactions).toEqual([{ emoji: '😂', count: 1, mine: true, names: ['You'] }])
+    await request(app).post(`/api/chat/messages/${msg.body.id}/react`).set(as(ANA)).send({ emoji: '😂' })
+    const seen = await request(app).get('/api/chat/channels/general/messages').set(as(ANA))
+    expect(seen.body.messages[0].reactions).toEqual([{ emoji: '😂', count: 2, mine: true, names: ['Luis Gomez', 'You'] }])
+    // Tapping the same emoji again takes it back.
+    const off = await request(app).post(`/api/chat/messages/${msg.body.id}/react`).set(as(LUIS)).send({ emoji: '😂' })
+    expect(off.body.reactions).toEqual([{ emoji: '😂', count: 1, mine: false, names: ['Ana Perez'] }])
+    expect((await request(app).post(`/api/chat/messages/${msg.body.id}/react`).set(as(LUIS)).send({ emoji: 'hola' })).status).toBe(422)
+    expect((await request(app).post('/api/chat/messages/99999/react').set(as(LUIS)).send({ emoji: '👍' })).status).toBe(404)
+  })
+
+  it('shares pictures only with the people in the conversation, checked by their bytes', async () => {
+    const { app } = build()
+    await enroll(app, ANA, LUIS, BEA)
+    const luisKey = await keyOf(app, ANA, 'Luis Gomez')
+    const dm = await request(app).post('/api/chat/direct').set(as(ANA)).send({ friend: luisKey })
+    const sent = await request(app).post(`/api/chat/channels/${dm.body.id}/images`).set(as(ANA)).set('Content-Type', 'image/png').send(PNG)
+    expect(sent.status).toBe(201)
+    const id = /^\[\[img:([a-f0-9]{24})\]\]$/.exec(sent.body.body)![1]!
+    const got = await request(app).get(`/api/chat/attachments/${id}`).set(as(LUIS))
+    expect(got.status).toBe(200)
+    expect(got.headers['content-type']).toBe('image/png')
+    expect(got.headers['x-content-type-options']).toBe('nosniff')
+    expect((await request(app).get(`/api/chat/attachments/${id}`).set(as(BEA))).status).toBe(404)
+    expect((await request(app).get(`/api/chat/attachments/${id}`).set(as(ADMIN))).status).toBe(200)
+    // Not an image (an HTML page pretending to be a PNG), and no fake picture markers in text.
+    const fake = await request(app).post(`/api/chat/channels/${dm.body.id}/images`).set(as(ANA)).set('Content-Type', 'image/png').send(Buffer.from('<html>hi</html>'))
+    expect(fake.status).toBe(422)
+    expect((await request(app).post(`/api/chat/channels/${dm.body.id}/messages`).set(as(ANA)).send({ text: `[[img:${id}]]` })).status).toBe(422)
+    expect((await request(app).post('/api/chat/channels/general/messages').set(as(ANA)).send({ text: '[[gif:abcDEF123]]' })).status).toBe(201)
+    expect((await request(app).post('/api/chat/channels/general/messages').set(as(ANA)).send({ text: '[[gif:../x]]' })).status).toBe(422)
+    // GIF search stays off without a GIPHY key.
+    expect((await request(app).get('/api/chat/gifs?q=cat').set(as(ANA))).body).toEqual({ enabled: false, gifs: [] })
+  })
+})

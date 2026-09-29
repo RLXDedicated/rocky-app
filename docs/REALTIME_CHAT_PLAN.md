@@ -266,3 +266,23 @@ Legal/RRHH de RLX apruebe el texto de uso aceptable.
   backups no se pueden leer, así que no hay que borrarla ni cambiarla.
 - Pendiente: pelota compartida en la visita, notificaciones del navegador,
   canales por equipo, menciones y stickers (chat fase 2).
+
+## Reactions, pictures and GIFs (2026-09-29)
+
+- **Reactions**: any emoji from the picker (quick row + full set) on any
+  message; tap again to take yours back. Stored in `chat_reactions`
+  (migration 009), pushed live as `chat.reaction`; max 12 different emoji
+  per message. Deleted with their message after 90 days.
+- **Pictures / GIFs / memes**: 📎 button, paste or drag-and-drop. Photos are
+  shrunk in the browser (max 1280 px, WebP); GIFs go as they are. The
+  server checks the real file type from its bytes (PNG, JPEG, WebP, GIF;
+  2.5 MB / 5 MB), stores it in `chat_attachments` and posts `[[img:<id>]]`.
+  Only people in that conversation (and Rocky admins) can load it
+  (`GET /api/chat/attachments/:id`, `nosniff`). Pictures are in the admins'
+  daily encrypted backup (base64) and are purged after 90 days like
+  messages. Admins can hide them like any message.
+- **GIF search**: GIPHY (rating G) through the backend when
+  `ROCKY_GIPHY_API_KEY` is set in Railway's variables; without it the GIF
+  panel offers uploading your own. Picked GIFs are sent as `[[gif:<id>]]`
+  and load from GIPHY's CDN.
+- **Stickers**: 26 animated Rocky stickers (all stages and moods).

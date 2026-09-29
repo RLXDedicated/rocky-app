@@ -8,6 +8,7 @@ import { chatState } from './chatState'
 import styles from './Chat.module.css'
 import { NameBadges } from '../TitleBadge'
 import { stickerOf } from './Stickers'
+import { mediaPreview } from './Media'
 
 function ago(at: string): string {
   const mins = Math.round((Date.now() - Date.parse(at)) / 60_000)
@@ -183,7 +184,7 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
                       <strong>
                         {c.kind === 'general' ? 'General — everyone' : c.title} <NameBadges staff={c.with?.staff} title={c.with?.title} tester={c.with?.tester} />
                       </strong>
-                      <small>{c.last ? `${c.last.mine ? 'You' : c.last.name}: ${(stickerOf(c.last.body) ? `🐂 ${stickerOf(c.last.body)!.label}` : c.last.body) || 'message hidden'}` : 'No messages yet'}</small>
+                      <small>{c.last ? `${c.last.mine ? 'You' : c.last.name}: ${(stickerOf(c.last.body) ? `🐂 ${stickerOf(c.last.body)!.label}` : (mediaPreview(c.last.body) ?? c.last.body)) || 'message hidden'}` : 'No messages yet'}</small>
                     </span>
                     <span className={styles.channelMeta}>
                       {c.last && <small>{ago(c.last.at)}</small>}

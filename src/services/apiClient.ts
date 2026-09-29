@@ -409,6 +409,18 @@ export interface ChatMessage {
   body: string
   hidden: boolean
   at: string
+  reactions?: ChatReaction[]
+}
+export interface ChatReaction {
+  emoji: string
+  count: number
+  mine: boolean
+  names: string[]
+}
+export interface GifResult {
+  id: string
+  title: string
+  preview: string
 }
 export interface ChatRules {
   version: string
@@ -465,6 +477,20 @@ export const chatApi = {
   send: (id: string, text: string, confirm = false) => request<ChatMessage>(`${chatPath(id)}/messages`, post({ text, confirm })),
   markRead: (id: string, messageId: number) => request<{ ok: boolean }>(`${chatPath(id)}/read`, post({ id: messageId })),
   report: (messageId: number, reason: string) => request<{ ok: boolean }>(`/api/chat/messages/${messageId}/report`, post({ reason })),
+  react: (messageId: number, emoji: string) => request<{ id: number; reactions: ChatReaction[] }>(`/api/chat/messages/${messageId}/react`, post({ emoji })),
+  /** Uploads a picture or GIF (already shrunk by the browser if it's a photo) and posts it. */
+  sendImage: (id: string, file: Blob) =>
+    request<ChatMessage>(`${chatPath(id)}/images`, { method: 'POST', body: file, headers: { 'Content-Type': file.type || 'application/octet-stream' } }),
+  gifs: (q: string) => request<{ enabled: boolean; gifs: GifResult[] }>(`/api/chat/gifs?q=${encodeURIComponent(q)}`),
+  /** A shared picture's bytes (the request needs the agent's credentials, so an <img src> can't fetch it directly). */
+  attachment: async (attachmentId: string): Promise<Blob> => {
+    const token = getSessionToken()
+    const res = await fetchWithRetry(`${API_BASE_URL}/api/chat/attachments/${encodeURIComponent(attachmentId)}`, {
+      headers: { 'X-Agent-Email': getAgentEmail() ?? '', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
+    if (!res.ok) throw new Error('That picture could not be loaded.')
+    return res.blob()
+  },
 
   // Rocky admins only (quality-control copy; every read is audited).
   adminChannels: () => request<{ channels: AdminChatChannel[] }>('/api/admin/chat/channels'),

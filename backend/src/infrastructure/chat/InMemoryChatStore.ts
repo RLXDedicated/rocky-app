@@ -1,4 +1,4 @@
-import type { ChannelRecord, ChatStore, MembershipRecord, MessageRecord, MuteRecord, ReportRecord } from './ChatStore'
+import type { AttachmentRecord, ChannelRecord, ChatStore, MembershipRecord, MessageRecord, MuteRecord, ReactionRecord, ReportRecord } from './ChatStore'
 
 export class InMemoryChatStore implements ChatStore {
   private channels = new Map<string, ChannelRecord>()
@@ -7,6 +7,8 @@ export class InMemoryChatStore implements ChatStore {
   private reports: ReportRecord[] = []
   private consents = new Map<string, { version: string; acceptedAt: string }>()
   private mutes = new Map<string, MuteRecord>()
+  private reactions: (ReactionRecord & { at: string })[] = []
+  private attachments = new Map<string, AttachmentRecord>()
   private nextMessage = 1
   private nextReport = 1
 
@@ -75,8 +77,33 @@ export class InMemoryChatStore implements ChatStore {
   listMessagesBetween(from: string, to: string) {
     return this.messages.filter((m) => m.createdAt >= from && m.createdAt < to).map((m) => ({ ...m }))
   }
+  toggleReaction(messageId: number, agentId: string, emoji: string, at: string) {
+    const i = this.reactions.findIndex((r) => r.messageId === messageId && r.agentId === agentId && r.emoji === emoji)
+    if (i >= 0) {
+      this.reactions.splice(i, 1)
+      return false
+    }
+    this.reactions.push({ messageId, agentId, emoji, at })
+    return true
+  }
+  listReactions(messageIds: number[]) {
+    const ids = new Set(messageIds)
+    return this.reactions.filter((r) => ids.has(r.messageId)).map(({ messageId, agentId, emoji }) => ({ messageId, agentId, emoji }))
+  }
+  addAttachment(a: AttachmentRecord) {
+    this.attachments.set(a.id, { ...a })
+  }
+  getAttachment(id: string) {
+    return this.attachments.get(id) ?? null
+  }
+  listAttachmentsBetween(from: string, to: string) {
+    return [...this.attachments.values()].filter((a) => a.createdAt >= from && a.createdAt < to)
+  }
+
   purgeBefore(before: string) {
     const gone = new Set(this.messages.filter((m) => m.createdAt < before).map((m) => m.id))
+    this.reactions = this.reactions.filter((r) => !gone.has(r.messageId))
+    for (const [id, a] of this.attachments) if (a.createdAt < before) this.attachments.delete(id)
     this.messages = this.messages.filter((m) => !gone.has(m.id))
     this.reports = this.reports.filter((r) => !gone.has(r.messageId))
     return gone.size

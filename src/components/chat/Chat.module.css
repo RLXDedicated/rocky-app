@@ -665,3 +665,37 @@
 .tool[aria-expanded='true'] {
   background: var(--mint);
 }
+
+/* Reactions, pictures and GIFs */
+.msg {
+  position: relative;
+}
+
+.dropping {
+  outline: 3px dashed var(--rlx-green);
+  outline-offset: -6px;
+}
+
+.gifIcon {
+  display: inline-block;
+  padding: 1px 4px;
+  border: 2px solid currentColor;
+  border-radius: 6px;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: var(--text-strong);
+}
+
+@media (hover: none) {
+  .report {
+    opacity: 0.55;
+  }
+}
+
+@media (max-width: 520px) {
+  .tool {
+    width: 30px;
+    font-size: 1.1rem;
+  }
+}

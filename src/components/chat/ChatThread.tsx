@@ -5,6 +5,7 @@ import { chatState } from './chatState'
 import styles from './Chat.module.css'
 import { NameBadges } from '../TitleBadge'
 import { EmojiPicker, Sticker, StickerPicker, stickerOf, stickerText } from './Stickers'
+import { ChatMedia, GifPicker, mediaOf, prepareImage, ReactionBar, ReactPicker } from './Media'
 
 const MAX = 1000
 
@@ -39,7 +40,11 @@ export function ChatThread({
   const [warning, setWarning] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [picker, setPicker] = useState<'emoji' | 'sticker' | null>(null)
+  const [picker, setPicker] = useState<'emoji' | 'sticker' | 'gif' | null>(null)
+  const [reacting, setReacting] = useState<number | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
   const [typing, setTyping] = useState<{ name: string; until: number } | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const lastTyping = useRef(0)
@@ -78,6 +83,9 @@ export function ChatThread({
         if (!m.mine) void chatApi.markRead(channelId, m.id)
       } else if (e.t === 'chat.hidden') {
         setMessages((list) => list?.map((m) => (m.id === e.id ? { ...m, hidden: true, body: '' } : m)) ?? list)
+      } else if (e.t === 'chat.reaction') {
+        const reactions = e.reactions as ChatMessage['reactions']
+        setMessages((list) => list?.map((m) => (m.id === e.id ? { ...m, reactions } : m)) ?? list)
       } else if (e.t === 'chat.typing') {
         setTyping({ name: e.name as string, until: Date.now() + 4000 })
       }
@@ -130,6 +138,42 @@ export function ChatThread({
     }
   }
 
+  async function react(m: ChatMessage, emoji: string) {
+    setReacting(null)
+    try {
+      const r = await chatApi.react(m.id, emoji)
+      setMessages((list) => list?.map((x) => (x.id === r.id ? { ...x, reactions: r.reactions } : x)) ?? list)
+    } catch (e) {
+      const err = e as Error & { code?: string }
+      if (err.code === 'RULES_NOT_ACCEPTED') onNeedRules?.()
+      else setError(err.message || 'The reaction was not saved — try again.')
+    }
+  }
+
+  /** Attach a picture or GIF (from the 📎 button, a paste or a drop). */
+  async function upload(file: File) {
+    if (uploading) return
+    setPicker(null)
+    setUploading(true)
+    setError(null)
+    try {
+      const blob = await prepareImage(file)
+      const m = await chatApi.sendImage(channelId, blob)
+      stick.current = true
+      setMessages((list) => (list && !list.some((x) => x.id === m.id) ? [...list, m] : list))
+    } catch (e) {
+      const err = e as Error & { code?: string }
+      if (err.code === 'RULES_NOT_ACCEPTED') onNeedRules?.()
+      else setError(err.message || 'The picture was not sent — try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  function firstImage(files: FileList | null | undefined): File | null {
+    return [...(files ?? [])].find((f) => f.type.startsWith('image/')) ?? null
+  }
+
   function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -157,8 +201,25 @@ export function ChatThread({
 
   const muted = mutedUntil && Date.parse(mutedUntil) > Date.now()
   return (
-    <div className={`${styles.thread} ${compact ? styles.threadCompact : ''}`}>
-      <div className={styles.messages} ref={listRef} onScroll={(e) => (stick.current = e.currentTarget.scrollHeight - e.currentTarget.scrollTop - e.currentTarget.clientHeight < 40)}>
+    <div
+      className={`${styles.thread} ${compact ? styles.threadCompact : ''} ${dragOver ? styles.dropping : ''}`}
+      onDragOver={(e) => {
+        if ([...e.dataTransfer.items].some((i) => i.type.startsWith('image/'))) {
+          e.preventDefault()
+          setDragOver(true)
+        }
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        setDragOver(false)
+        const f = firstImage(e.dataTransfer.files)
+        if (f && !muted) {
+          e.preventDefault()
+          void upload(f)
+        }
+      }}
+    >
+      <div className={styles.messages} data-chat-scroll ref={listRef} onScroll={(e) => (stick.current = e.currentTarget.scrollHeight - e.currentTarget.scrollTop - e.currentTarget.clientHeight < 40)}>
         {more && (
           <button type="button" className={styles.older} onClick={() => void loadOlder()}>
             Load older messages
@@ -177,19 +238,35 @@ export function ChatThread({
                 </span>
               )}
               <div className={styles.bubbleRow}>
-                {!m.hidden && stickerOf(m.body) ? (
+                {!m.hidden && mediaOf(m.body) ? (
+                  <ChatMedia media={mediaOf(m.body)!} />
+                ) : !m.hidden && stickerOf(m.body) ? (
                   <Sticker id={stickerOf(m.body)!.id} />
                 ) : (
                   <p className={`${styles.bubble} ${m.hidden ? styles.hidden : ''} ${m.style && !m.hidden ? `chat-bubble-${m.style}` : ''}`}>
                     {m.hidden ? 'Message hidden by the QA team' : m.body}
                   </p>
                 )}
+                {!m.hidden && (
+                  <button
+                    type="button"
+                    className={styles.report}
+                    onClick={() => setReacting((r) => (r === m.id ? null : m.id))}
+                    aria-label={`React to message from ${m.mine ? 'you' : m.name}`}
+                    aria-expanded={reacting === m.id}
+                    title="React"
+                  >
+                    😊
+                  </button>
+                )}
                 {!m.mine && !m.hidden && (
                   <button type="button" className={styles.report} onClick={() => void report(m)} aria-label={`Report message from ${m.name}`} title="Report">
                     ⚑
                   </button>
                 )}
+                {reacting === m.id && <ReactPicker align={m.mine ? 'right' : 'left'} onPick={(e) => void react(m, e)} onClose={() => setReacting(null)} />}
               </div>
+              {!m.hidden && <ReactionBar reactions={m.reactions ?? []} canAdd onToggle={(e) => void react(m, e)} />}
               {!grouped && <time className={styles.time}>{time(m.at)}</time>}
             </div>
           )
@@ -223,6 +300,15 @@ export function ChatThread({
               }}
             />
           )}
+          {picker === 'gif' && (
+            <GifPicker
+              onPick={(id) => {
+                setPicker(null)
+                void send(false, `[[gif:${id}]]`)
+              }}
+              onUpload={() => fileRef.current?.click()}
+            />
+          )}
           {picker === 'sticker' && (
             <StickerPicker
               onPick={(id) => {
@@ -249,6 +335,29 @@ export function ChatThread({
           >
             🐂
           </button>
+          <button
+            type="button"
+            className={styles.tool}
+            aria-label="GIFs"
+            aria-expanded={picker === 'gif'}
+            onClick={() => setPicker((p) => (p === 'gif' ? null : 'gif'))}
+          >
+            <span className={styles.gifIcon}>GIF</span>
+          </button>
+          <button type="button" className={styles.tool} aria-label="Attach a picture or GIF" disabled={uploading} onClick={() => fileRef.current?.click()}>
+            {uploading ? '⏳' : '📎'}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            hidden
+            onChange={(e) => {
+              const f = firstImage(e.target.files)
+              e.target.value = ''
+              if (f) void upload(f)
+            }}
+          />
           <textarea
             value={text}
             maxLength={MAX}
@@ -256,6 +365,13 @@ export function ChatThread({
             placeholder={placeholder}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={onKey}
+            onPaste={(e) => {
+              const f = firstImage(e.clipboardData.files)
+              if (f) {
+                e.preventDefault()
+                void upload(f)
+              }
+            }}
             aria-label="Message"
           />
           <button type="button" className={styles.send} disabled={!text.trim() || sending} onClick={() => void send()} aria-label="Send">
