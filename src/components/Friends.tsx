@@ -185,7 +185,8 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
   const [sent, setSent] = useState<Set<string>>(new Set())
   const room = useLiveRoom(friend.id)
   const presenceOf = usePresence()
-  // My own Rocky walks in too (others see it the same way).
+  // My own Rocky walks in too, and I steer it (others see it the same way).
+  const [selfX, setSelfX] = useState(22)
   const self: Guest = {
     id: 'me',
     name: 'You',
@@ -193,7 +194,7 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
     stage: gameService.getSnapshot().gameState.evolutionStage,
     mood: gameService.getSnapshot().gameState.mood,
     outfit: mine.state.outfit,
-    x: 22,
+    x: selfX,
     hop: 0,
     staff: getAgentRole() === 'ADMIN',
   }
@@ -254,6 +255,11 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
           needs={needs}
           visitor
           vip={!!friend.outfit.aura}
+          controlledX={room.hostX}
+          onFloorClick={(x) => {
+            setSelfX(x)
+            room.move(x)
+          }}
           guests={[self, ...room.guests]}
           floatReacts={room.floatReacts}
           onPet={() => send('pet')}

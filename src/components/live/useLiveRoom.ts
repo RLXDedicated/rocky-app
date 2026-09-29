@@ -66,9 +66,18 @@ export function useLiveRoom(host: 'me' | string | null) {
     [host, floatUp],
   )
 
+  const trailing = useRef<ReturnType<typeof setTimeout> | null>(null)
   const move = useCallback((x: number) => {
     const now = Date.now()
-    if (now - lastMove.current < 250) return
+    if (trailing.current) clearTimeout(trailing.current)
+    if (now - lastMove.current < 250) {
+      // Too soon: send the latest position a moment later so the last move is never lost.
+      trailing.current = setTimeout(() => {
+        lastMove.current = Date.now()
+        live.send({ t: 'move', x })
+      }, 260)
+      return
+    }
     lastMove.current = now
     live.send({ t: 'move', x })
   }, [])
@@ -78,6 +87,8 @@ export function useLiveRoom(host: 'me' | string | null) {
     /** Visiting: the host is the world's own Rocky, so only other visitors are drawn. */
     guests: host === 'me' ? members : members.filter((m) => !m.host),
     hostHere: host !== 'me' && !!hostMember,
+    /** Where the host has put their Rocky (visiting, while they are home). */
+    hostX: host !== 'me' && hostMember ? hostMember.x : null,
     visitors: members.filter((m) => !m.host),
     floatReacts,
     arrivals,

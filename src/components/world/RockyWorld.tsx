@@ -144,6 +144,10 @@ interface Props {
   floatReacts?: { id: number; emoji: string }[];
   /** A Rocky admin's Rocky: golden aura. */
   vip?: boolean;
+  /** Visiting live: the host moves their own Rocky; he walks to where they put him (no wandering). */
+  controlledX?: number | null;
+  /** Visiting: a tap on the floor moves the visitor's own Rocky instead of the host's. */
+  onFloorClick?: (x: number) => void;
   /** Called when Rocky walks somewhere (to mirror him to live visitors). */
   onRockyMove?: (x: number) => void;
   /** Top overlay (name tag, level, shop). */
@@ -323,6 +327,8 @@ export function RockyWorld({
   floatReacts = [],
   onRockyMove,
   vip = false,
+  controlledX = null,
+  onFloorClick,
 }: Props) {
   const [x, setX] = useState(50);
   const onRockyMoveRef = useRef(onRockyMove);
@@ -545,9 +551,9 @@ export function RockyWorld({
     });
   }, []);
 
-  // Idle wandering along the route.
+  // Idle wandering along the route (not while someone else is steering him live).
   useEffect(() => {
-    if (!animate) return;
+    if (!animate || controlledX !== null) return;
     let timer: number;
     const schedule = () => {
       timer = window.setTimeout(
@@ -574,7 +580,13 @@ export function RockyWorld({
     };
     schedule();
     return () => window.clearTimeout(timer);
-  }, [walkTo, reaction, animate]);
+  }, [walkTo, reaction, animate, controlledX !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The host steering their Rocky live: walk where they put him.
+  useEffect(() => {
+    if (controlledX === null || Math.abs(controlledX - xRef.current) < 1) return;
+    void walkTo(controlledX, Math.abs(controlledX - xRef.current) > 30);
+  }, [controlledX, walkTo]);
 
   // Every so often Rocky acts out his mood (3D only).
   useEffect(() => {
@@ -738,6 +750,10 @@ export function RockyWorld({
       x: px,
       y: ((e.clientY - rect.top) / rect.height) * 100,
     });
+    if (onFloorClick) {
+      onFloorClick(Math.max(5, Math.min(95, px)));
+      return;
+    }
     if (!playing) void walkTo(px, Math.abs(px - xRef.current) > 30);
   }
 
