@@ -317,3 +317,27 @@ describe('reactions and pictures', () => {
     expect((await request(app).get('/api/chat/gifs?q=cat').set(as(ANA))).body).toEqual({ enabled: false, gifs: [] })
   })
 })
+
+describe('GIF search', () => {
+  it('searches GIPHY with the server key and shares results so the quota lasts', async () => {
+    const calls: string[] = []
+    const realFetch = globalThis.fetch
+    process.env.ROCKY_GIPHY_API_KEY = 'test-key'
+    globalThis.fetch = (async (url: string) => {
+      calls.push(url)
+      return new Response(JSON.stringify({ data: [{ id: 'abcDEF123', title: 'cat', images: { fixed_width_small: { url: 'https://media.giphy.com/x.gif' } } }] }))
+    }) as typeof fetch
+    try {
+      const { app } = build()
+      await enroll(app, ANA, LUIS)
+      const a = await request(app).get('/api/chat/gifs?q=Cat').set(as(ANA))
+      expect(a.body).toEqual({ enabled: true, gifs: [{ id: 'abcDEF123', title: 'cat', preview: 'https://media.giphy.com/x.gif' }] })
+      await request(app).get('/api/chat/gifs?q=cat ').set(as(LUIS))
+      expect(calls).toHaveLength(1)
+      expect(calls[0]).toContain('rating=g')
+    } finally {
+      globalThis.fetch = realFetch
+      delete process.env.ROCKY_GIPHY_API_KEY
+    }
+  })
+})

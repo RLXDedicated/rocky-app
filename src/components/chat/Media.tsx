@@ -152,15 +152,17 @@ export function GifPicker({ onPick, onUpload }: { onPick: (id: string) => void; 
   const [results, setResults] = useState<GifResult[] | null>(null)
   const [enabled, setEnabled] = useState(true)
   useEffect(() => {
+    // Search once they pause typing, and not for a single letter (the pilot shares a small GIPHY quota).
+    const term = q.trim().length >= 2 ? q.trim() : ''
     const t = window.setTimeout(() => {
       chatApi
-        .gifs(q)
+        .gifs(term)
         .then((r) => {
           setEnabled(r.enabled)
           setResults(r.gifs)
         })
         .catch(() => setResults([]))
-    }, 350)
+    }, 700)
     return () => window.clearTimeout(t)
   }, [q])
   return (

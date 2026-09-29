@@ -101,6 +101,11 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
   const store = persistence.chat
   const repo = persistence.repoStore
   const sent = new Map<string, number[]>()
+  // GIPHY's free key allows ~100 searches an hour for the whole pilot, so
+  // results are shared and kept for an hour (trending and common words hit it constantly).
+  const gifCache = new Map<string, { at: number; gifs: { id: string; title: string; preview: string }[] }>()
+  const GIF_CACHE_MS = 60 * 60_000
+  const GIF_CACHE_MAX = 300
 
   function directory() {
     const byKey = new Map<string, string>()
@@ -399,7 +404,11 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
     /** GIF search (GIPHY, family-friendly rating). Empty query = trending. Off when no key is configured. */
     async gifs(query: string) {
       if (!giphyKey) return { enabled: false, gifs: [] }
-      const q = query.trim().slice(0, 50)
+      const q = query.trim().replace(/\s+/g, ' ').slice(0, 50)
+      const key = q.toLowerCase()
+      const now = clock.now().getTime()
+      const hit = gifCache.get(key)
+      if (hit && now - hit.at < GIF_CACHE_MS) return { enabled: true, gifs: hit.gifs }
       const url = q
         ? `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(giphyKey)}&q=${encodeURIComponent(q)}&limit=24&rating=g`
         : `https://api.giphy.com/v1/gifs/trending?api_key=${encodeURIComponent(giphyKey)}&limit=24&rating=g`
@@ -407,13 +416,15 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
         const res = await fetchFn(url)
         if (!res.ok) return { enabled: true, gifs: [] }
         const json = (await res.json()) as { data?: { id: string; title?: string; images?: Record<string, { url?: string; width?: string; height?: string }> }[] }
-        return {
-          enabled: true,
-          gifs: (json.data ?? [])
-            .filter((g) => GIF_ID.test(g.id))
-            .map((g) => ({ id: g.id, title: g.title ?? '', preview: g.images?.fixed_width_small?.url ?? g.images?.fixed_width?.url ?? '' }))
-            .filter((g) => g.preview.startsWith('https://')),
+        const gifs = (json.data ?? [])
+          .filter((g) => GIF_ID.test(g.id))
+          .map((g) => ({ id: g.id, title: g.title ?? '', preview: g.images?.fixed_width_small?.url ?? g.images?.fixed_width?.url ?? '' }))
+          .filter((g) => g.preview.startsWith('https://'))
+        if (gifs.length) {
+          if (gifCache.size >= GIF_CACHE_MAX) gifCache.delete(gifCache.keys().next().value!)
+          gifCache.set(key, { at: now, gifs })
         }
+        return { enabled: true, gifs }
       } catch {
         return { enabled: true, gifs: [] }
       }
