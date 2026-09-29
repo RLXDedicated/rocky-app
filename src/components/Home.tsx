@@ -9,6 +9,8 @@ import { refreshFromServer } from '../services/remoteSync'
 import { EVOLUTION_LEVELS } from '../engine/petProgress'
 import type { Agent, GameState } from '../types/domain'
 import styles from './Home.module.css'
+import { ChallengeChip } from './extras/ChallengeChip'
+import { PhotoStudio } from './extras/PhotoStudio'
 import { LoadingRocky } from './LoadingRocky'
 import { Celebration, type CelebrationData } from './pet/Celebration'
 import { NameTag } from './pet/NameTag'
@@ -65,6 +67,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
   const [facts, setFacts] = useState<ProgressFacts | null>(null)
   const [pet, setPet] = useState<PetCache>(() => loadPetCache())
   const [shopOpen, setShopOpen] = useState(false)
+  const [photoOpen, setPhotoOpen] = useState(false)
   const [arranging, setArranging] = useState(false)
   const [shopTab, setShopTab] = useState<ShopTab>('hat')
   const [inboxOpen, setInboxOpen] = useState(false)
@@ -371,6 +374,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
             const r = run({ type: 'litter', id })
             return r.ok ? (r.reward ?? null) : null
           }}
+          onPhoto={() => setPhotoOpen(true)}
           onOpenPantry={(tab) => {
             setShopTab(tab === 'food' ? 'food' : 'soap')
             setShopOpen(true)
@@ -391,6 +395,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
                     <b>{team.score}%</b>
                   </button>
                 )}
+                <ChallengeChip />
                 {onOpenNotes && !(pet.state.quiz.date === todayKey() && pet.state.quiz.rewarded) && (
                   <button type="button" className={styles.notesChip} onClick={onOpenNotes}>
                     <span aria-hidden="true">📝</span> Today’s Note Check
@@ -471,6 +476,11 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
                     <span>
                       <span aria-hidden="true">🔥</span> {gameState.currentStreak} {gameState.currentStreak === 1 ? 'day' : 'days'}
                     </span>
+                    {(gameState.streakShields ?? 0) > 0 && (
+                      <span title="Streak shields: each one saves your streak for one missed day. Earn them with QA Passes (max 2).">
+                        <span aria-hidden="true">🛡️</span> {gameState.streakShields}
+                      </span>
+                    )}
                     <span className={styles.statMore}>Progress ›</span>
                   </button>
                   {xpBurst !== null && (
@@ -539,6 +549,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
         }}
       />
 
+      {photoOpen && <PhotoStudio rockyName={agent.rockyName} onClose={() => setPhotoOpen(false)} />}
       {celebration && <Celebration data={celebration} mood={mood} evolutionStage={gameState.evolutionStage} onClose={() => setCelebration(null)} />}
     </div>
   )

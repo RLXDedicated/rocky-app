@@ -142,6 +142,8 @@ export interface GameStats {
   arcadeCoins: number;
   arcadeRounds: number;
   arcadeBest: Record<string, number>;
+  /** Best scores per week (keyed by the week's Monday; this week and last) — the weekly Arcade ranking. */
+  arcadeWeeks: Record<string, Record<string, number>>;
 }
 
 export interface LitterState {
@@ -344,7 +346,15 @@ function emptyGames(date: string, prev?: GameStats): GameStats {
     arcadeCoins: 0,
     arcadeRounds: 0,
     arcadeBest: { ...(prev?.arcadeBest ?? {}) },
+    arcadeWeeks: { ...(prev?.arcadeWeeks ?? {}) },
   };
+}
+
+/** The Monday (YYYY-MM-DD, local) of the week `now` falls in — the Arcade ranking's week. */
+export function arcadeWeekOf(now: Date): string {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return todayKey(d);
 }
 
 const num = (v: unknown, fallback: number) =>
@@ -487,6 +497,18 @@ function normalizeGames(raw: unknown, today: string): GameStats {
           typeof v === "number" &&
           Number.isFinite(v),
       ),
+    ),
+    arcadeWeeks: Object.fromEntries(
+      Object.entries(g.arcadeWeeks && typeof g.arcadeWeeks === "object" ? g.arcadeWeeks : {})
+        .filter(([w, v]) => /^\d{4}-\d{2}-\d{2}$/.test(w) && v && typeof v === "object")
+        .map(([w, v]) => [
+          w,
+          Object.fromEntries(
+            Object.entries(v as Record<string, unknown>).filter(
+              ([k, n]) => (ARCADE_GAMES as readonly string[]).includes(k) && typeof n === "number" && Number.isFinite(n),
+            ),
+          ) as Record<string, number>,
+        ]),
     ),
   };
 }
@@ -883,6 +905,11 @@ export function applyPetAction(
         ),
       );
       const best = Math.max(state.games.arcadeBest[action.game] ?? 0, clamped);
+      const week = arcadeWeekOf(ctx.now);
+      const weekBest = state.games.arcadeWeeks[week] ?? {};
+      // Keep this week and last week only.
+      const lastWeek = arcadeWeekOf(new Date(ctx.now.getTime() - 7 * 86_400_000));
+      const keep = Object.fromEntries(Object.entries(state.games.arcadeWeeks).filter(([w]) => w === lastWeek));
       const next: PetState = {
         ...state,
         gameCoins: state.gameCoins + coins,
@@ -892,6 +919,7 @@ export function applyPetAction(
           arcadeCoins: state.games.arcadeCoins + coins,
           arcadeRounds: state.games.arcadeRounds + 1,
           arcadeBest: { ...state.games.arcadeBest, [action.game]: best },
+          arcadeWeeks: { ...keep, [week]: { ...weekBest, [action.game]: Math.max(weekBest[action.game] ?? 0, clamped) } },
         },
       };
       return {

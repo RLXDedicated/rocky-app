@@ -990,6 +990,15 @@ export const CLOSET: ClosetItem[] = [
 
   // Gifts only: an admin hands these out (Admin → bulk actions or the agent's card).
   {
+    id: "decor-arcade-trophy",
+    slot: "decor",
+    name: "Arcade champion trophy",
+    requirement: "Be #1 in an Arcade game for a week",
+    isUnlocked: () => false,
+    price: 0,
+    gift: true,
+  },
+  {
     id: "back-tester-wings",
     slot: "back",
     name: "Tester prism wings",

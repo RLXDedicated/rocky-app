@@ -90,6 +90,10 @@ export interface ChatStore {
   toggleReaction(messageId: number, agentId: string, emoji: string, at: string): boolean
   listReactions(messageIds: number[]): ReactionRecord[]
 
+  /** The channel's pinned announcement (one per channel), or null. */
+  getPin(channelId: string): { messageId: number; pinnedBy: string; pinnedAt: string } | null
+  setPin(channelId: string, pin: { messageId: number; pinnedBy: string; pinnedAt: string } | null): void
+
   addAttachment(a: AttachmentRecord): void
   getAttachment(id: string): AttachmentRecord | null
   /** Attachments (with their bytes) created in [from, to) — for the daily admin backup. */

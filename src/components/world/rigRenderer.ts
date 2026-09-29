@@ -124,7 +124,7 @@ export interface RigRenderer {
 }
 
 export function createRigRenderer(canvas: HTMLCanvasElement): RigRenderer | null {
-  const gl = (canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: true }) ??
+  const gl = (canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: true, preserveDrawingBuffer: true }) ??
     canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null
   if (!gl || gl.isContextLost()) return null
 

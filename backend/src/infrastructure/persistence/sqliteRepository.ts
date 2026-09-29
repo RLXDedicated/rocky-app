@@ -25,6 +25,7 @@ interface GameStateRow {
   last_positive_action_at: string | null
   last_activity_label: string | null
   last_activity_at: string | null
+  streak_shields?: number
 }
 
 function rowToGameState(row: GameStateRow): GameState {
@@ -41,6 +42,7 @@ function rowToGameState(row: GameStateRow): GameState {
     lastPositiveActionAt: row.last_positive_action_at,
     lastActivityLabel: row.last_activity_label,
     lastActivityAt: row.last_activity_at,
+    streakShields: row.streak_shields ?? 0,
   }
 }
 
@@ -159,7 +161,7 @@ export class SqliteRepositoryStore implements RepositoryStore {
              xp = ?, level = ?, energy = ?, mood = ?, evolution_stage = ?,
              current_streak = ?, best_streak = ?, last_check_in_date = ?,
              last_alert_at = ?, last_positive_action_at = ?,
-             last_activity_label = ?, last_activity_at = ?
+             last_activity_label = ?, last_activity_at = ?, streak_shields = ?
            WHERE agent_id = ?`,
         ).run(
           state.xp,
@@ -174,6 +176,7 @@ export class SqliteRepositoryStore implements RepositoryStore {
           state.lastPositiveActionAt,
           state.lastActivityLabel,
           state.lastActivityAt,
+          state.streakShields ?? 0,
           agentId,
         )
       },

@@ -410,6 +410,42 @@ export interface ChatMessage {
   hidden: boolean
   at: string
   reactions?: ChatReaction[]
+  /** Someone wrote "@<my name>" in it. */
+  mentionsMe?: boolean
+  /** The author's email — only sent to Rocky admins (for moderating from the conversation). */
+  email?: string
+}
+export interface ChatPinned {
+  id: number
+  name: string
+  body: string
+  at: string
+  pinnedBy: string
+  pinnedAt: string
+}
+export interface Challenge {
+  id: number
+  title: string
+  team: string | null
+  leaderId: string | null
+  metric: 'checkins' | 'qa'
+  target: number
+  startDay: string
+  endDay: string
+  reward: { item: { id: string; name: string; slot: string } | null; coins: number }
+  score: number
+  members: number
+  status: 'upcoming' | 'active' | 'won' | 'missed' | 'cancelled'
+  settledAt: string | null
+}
+export interface ArcadeBoard {
+  week: string
+  games: Record<string, { top: { rank: number; id: string; name: string; score: number; me: boolean }[]; myRank: number | null; myScore: number; players: number }>
+}
+export interface Photo {
+  id: string
+  caption: string | null
+  at: string
 }
 export interface ChatReaction {
   emoji: string
@@ -462,6 +498,38 @@ export interface ChatBackupStatus {
 
 const chatPath = (id: string) => `/api/chat/channels/${encodeURIComponent(id)}`
 
+const authHeaders = (): Record<string, string> => {
+  const token = getSessionToken()
+  return { 'X-Agent-Email': getAgentEmail() ?? '', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+}
+
+/** Team challenges, the Arcade's weekly ranking and Rocky's photo album. */
+export const extrasApi = {
+  challenges: () => request<{ challenges: Challenge[] }>('/api/challenges'),
+  adminChallenges: () => request<{ challenges: Challenge[] }>('/api/admin/challenges'),
+  createChallenge: (c: {
+    title: string
+    leaderId: string | null
+    metric: 'checkins' | 'qa'
+    target: number
+    startDay: string
+    endDay: string
+    rewardItem: string | null
+    rewardCoins: number
+  }) => request<Challenge>('/api/admin/challenges', post(c)),
+  cancelChallenge: (id: number) => request<{ ok: boolean }>(`/api/admin/challenges/${id}`, { method: 'DELETE' }),
+  arcadeBoard: (last = false) => request<ArcadeBoard>(`/api/arcade/leaderboard${last ? '?week=last' : ''}`),
+  photos: () => request<{ photos: Photo[] }>('/api/photos'),
+  savePhoto: (blob: Blob, caption: string) =>
+    request<Photo>(`/api/photos?caption=${encodeURIComponent(caption)}`, { method: 'POST', body: blob, headers: { 'Content-Type': blob.type || 'image/png' } }),
+  deletePhoto: (id: string) => request<{ ok: boolean }>(`/api/photos/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  photo: async (id: string): Promise<Blob> => {
+    const res = await fetchWithRetry(`${API_BASE_URL}/api/photos/${encodeURIComponent(id)}`, { headers: authHeaders() })
+    if (!res.ok) throw new Error('That photo could not be loaded.')
+    return res.blob()
+  },
+}
+
 export const chatApi = {
   rules: () => request<ChatRules>('/api/chat/rules'),
   acceptRules: (version: string) => request<ChatRules>('/api/chat/rules', post({ version })),
@@ -472,7 +540,7 @@ export const chatApi = {
     const q = new URLSearchParams()
     if (opts.before !== undefined) q.set('before', String(opts.before))
     if (opts.after !== undefined) q.set('after', String(opts.after))
-    return request<{ channel: string; messages: ChatMessage[]; more: boolean }>(`${chatPath(id)}/messages${q.size ? `?${q}` : ''}`)
+    return request<{ channel: string; messages: ChatMessage[]; more: boolean; pinned?: ChatPinned | null }>(`${chatPath(id)}/messages${q.size ? `?${q}` : ''}`)
   },
   send: (id: string, text: string, confirm = false) => request<ChatMessage>(`${chatPath(id)}/messages`, post({ text, confirm })),
   markRead: (id: string, messageId: number) => request<{ ok: boolean }>(`${chatPath(id)}/read`, post({ id: messageId })),
@@ -500,6 +568,7 @@ export const chatApi = {
     ),
   adminReports: (all = false) => request<{ reports: AdminChatReport[] }>(`/api/admin/chat/reports${all ? '?all=1' : ''}`),
   adminResolve: (id: number, action: 'hide' | 'dismiss') => request<{ ok: boolean }>(`/api/admin/chat/reports/${id}`, post({ action })),
+  adminPin: (messageId: number, pin: boolean) => request<{ pinned: ChatPinned | null }>(`/api/admin/chat/messages/${messageId}/pin`, post({ pin })),
   adminHide: (messageId: number) => request<{ ok: boolean }>(`/api/admin/chat/messages/${messageId}/hide`, post()),
   adminMute: (email: string, hours: number, reason: string) => request<{ mutedUntil: string | null }>('/api/admin/chat/mute', post({ email, hours, reason })),
   adminExport: (from: string, to: string) => request<{ from: string; to: string; exportedAt: string; messages: unknown[] }>(`/api/admin/chat/export?from=${from}&to=${to}`),

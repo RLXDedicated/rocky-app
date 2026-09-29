@@ -9,6 +9,7 @@ import { BulkTab } from './AdminBulk'
 import { ChatsTab } from './AdminChats'
 import { PeopleTab } from './AdminPeople'
 import { GamesTab } from './AdminGames'
+import { ChallengesTab } from './AdminChallenges'
 import {
   EVENT_TYPE_ES,
   MOOD_ES,
@@ -28,7 +29,7 @@ import {
 // same QA event endpoints an audit integration would use (never a direct
 // XP/Energy edit). See backend/src/application/adminApplicationService.ts.
 
-type Tab = 'overview' | 'agents' | 'rewards' | 'shop' | 'games' | 'people' | 'chats' | 'records'
+type Tab = 'overview' | 'agents' | 'rewards' | 'challenges' | 'shop' | 'games' | 'people' | 'chats' | 'records'
 type Sub = 'overview' | 'activity' | 'catalog' | 'economy' | 'audit' | 'system'
 
 /** Sub-sections inside a tab (things that belong together live in one place). */
@@ -131,6 +132,7 @@ export function AdminConsole() {
               ['overview', '📊 Resumen'],
               ['agents', `👤 Agentes${agents ? ` (${agents.length})` : ''}`],
               ['rewards', '🎁 Regalos y recompensas'],
+              ['challenges', '🏆 Retos'],
               ['shop', '🛍️ Tienda y economía'],
               ['games', '🎮 Minijuegos'],
               ['people', '👥 Roles y equipos'],
@@ -202,6 +204,7 @@ export function AdminConsole() {
         {tab === 'rewards' && <BulkTab key={rewardPick?.join(',') ?? ''} agents={agents} initial={rewardPick} onChanged={onChanged} onError={onError} />}
         {tab === 'shop' && (subOf('shop') === 'economy' ? <EconomyTab onOpen={setSelected} onError={onError} /> : <ShopTab onChanged={onChanged} onError={onError} />)}
         {tab === 'games' && <GamesTab onChanged={onChanged} onError={onError} />}
+        {tab === 'challenges' && <ChallengesTab onChanged={onChanged} onError={onError} />}
         {tab === 'people' && <PeopleTab onChanged={onChanged} onError={onError} />}
         {tab === 'chats' && <ChatsTab onChanged={onChanged} onError={onError} />}
         {tab === 'records' &&

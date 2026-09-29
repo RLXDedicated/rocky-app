@@ -1057,6 +1057,38 @@ export const THIRD_DECOR: Record<string, DecorArt> = {
       </>
     ),
   },
+  "decor-arcade-trophy": {
+    play: "cheer",
+    viewBox: "0 0 90 120",
+    left: 26,
+    width: 8,
+    svg: (
+      <>
+        <defs>
+          <linearGradient id="arc-gold" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#fff3b0" />
+            <stop offset="0.5" stopColor="#f5b82e" />
+            <stop offset="1" stopColor="#b8780a" />
+          </linearGradient>
+        </defs>
+        {shadow(45, 116, 34)}
+        <rect x="18" y="92" width="54" height="22" rx="4" fill="#312e81" />
+        <rect x="24" y="98" width="42" height="9" rx="2" fill="#4338ca" />
+        <text x="45" y="105.5" fontSize="7" fontWeight="800" textAnchor="middle" fill="#e0e7ff" fontFamily="Poppins, sans-serif">
+          ARCADE #1
+        </text>
+        <rect x="38" y="70" width="14" height="22" fill="url(#arc-gold)" />
+        <path d="M16 12 L74 12 L70 44 C66 62 56 70 45 70 C34 70 24 62 20 44 Z" fill="url(#arc-gold)" stroke="#8a5a00" strokeWidth="1.6" />
+        <path d="M16 18 C0 18 2 44 22 46 M74 18 C90 18 88 44 68 46" stroke="#f5b82e" strokeWidth="5" fill="none" />
+        {/* A little joystick on the cup */}
+        <rect x="36" y="32" width="18" height="12" rx="3" fill="#1e1b4b" />
+        <path d="M45 32 L45 22" stroke="#1e1b4b" strokeWidth="3" />
+        <circle cx="45" cy="21" r="4.5" fill="#e2445c" className="rocky-pulse" />
+        {spark(22, 8, 5, "#fffbe0", "at1")}
+        {spark(72, 30, 4, "#fffbe0", "at2", 0.9)}
+      </>
+    ),
+  },
   "decor-disco-ball": {
     play: "cheer",
     viewBox: "0 0 80 110",

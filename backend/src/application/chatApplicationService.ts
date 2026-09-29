@@ -197,7 +197,31 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       hidden: !!m.hiddenAt,
       at: m.createdAt,
       reactions: m.hiddenAt ? [] : reactionsFor(reactions, viewerId),
+      mentionsMe: !m.hiddenAt && m.authorId !== viewerId && mentions(m.body, viewerId),
+      // Rocky admins moderate straight from the conversation (hide, pause), which needs the author's email.
+      ...(isStaff(viewerId) ? { email: m.authorId } : {}),
     }
+  }
+
+  /** "@Ana Perez" in a message (case-insensitive, whole name). */
+  function mentions(body: string, agentId: string): boolean {
+    if (!body.includes('@')) return false
+    const name = nameOf(agentId).toLowerCase()
+    const text = body.toLowerCase()
+    let i = text.indexOf('@' + name)
+    while (i >= 0) {
+      const after = text[i + 1 + name.length]
+      if (after === undefined || !/[\p{L}\p{N}]/u.test(after)) return true
+      i = text.indexOf('@' + name, i + 1)
+    }
+    return false
+  }
+
+  function pinnedOf(channelId: string) {
+    const pin = store.getPin(channelId)
+    const m = pin ? store.getMessage(pin.messageId) : null
+    if (!pin || !m || m.hiddenAt) return null
+    return { id: m.id, name: nameOf(m.authorId), body: m.body, at: m.createdAt, pinnedBy: nameOf(pin.pinnedBy), pinnedAt: pin.pinnedAt }
   }
   /** Everyone who should get a live copy of a message in this channel. */
   function audience(channel: ChannelRecord): string[] {
@@ -259,7 +283,11 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
     store.addMember(channel.id, agentId, now.toISOString())
     const saved = store.addMessage({ channelId: channel.id, authorId: agentId, body, flagged, createdAt: now.toISOString(), hiddenAt: null, hiddenBy: null })
     store.setLastRead(channel.id, agentId, saved.id)
-    for (const id of audience(channel)) bus.publish([id], { t: 'chat.message', channel: channel.id, kind: channel.kind, message: toClient(saved, id) })
+    for (const id of audience(channel)) {
+      const message = toClient(saved, id)
+      bus.publish([id], { t: 'chat.message', channel: channel.id, kind: channel.kind, message })
+      if (message.mentionsMe) bus.publish([id], { t: 'chat.mention', channel: channel.id, kind: channel.kind, message })
+    }
     return saved
   }
 
@@ -333,6 +361,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
         channel: channel.id,
         messages: rows.map((m) => toClient(m, agentId, reactions.filter((r) => r.messageId === m.id))),
         more: opts.after === undefined && rows.length === PAGE,
+        pinned: pinnedOf(channel.id),
       }
     },
 
@@ -394,7 +423,10 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       const already = current.some((r) => r.agentId === agentId && r.emoji === emoji)
       if (!already && new Set(current.map((r) => r.emoji)).size >= MAX_REACTIONS_PER_MESSAGE && !current.some((r) => r.emoji === emoji))
         throw ApiError.validation('This message already has lots of different reactions — pick one of those.')
-      store.toggleReaction(m.id, agentId, emoji, clock.now().toISOString())
+      const added = store.toggleReaction(m.id, agentId, emoji, clock.now().toISOString())
+      // Let the author know someone reacted (for their notification), unless it's their own reaction.
+      if (added && m.authorId !== agentId)
+        bus.publish([m.authorId], { t: 'chat.reacted', channel: channel.id, id: m.id, emoji, name: nameOf(agentId) })
       const rows = store.listReactions([m.id])
       for (const id of audience(channel))
         if (id !== agentId) bus.publish([id], { t: 'chat.reaction', channel: channel.id, id: m.id, reactions: reactionsFor(rows, id) })
@@ -510,6 +542,21 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
           message: m ? { id: m.id, channel: m.channelId, email: m.authorId, name: nameOf(m.authorId), body: m.body, hidden: !!m.hiddenAt, at: m.createdAt } : null,
         }
       })
+    },
+
+    /** Pins a message as the conversation's announcement (one at a time), or unpins it. */
+    adminPin(messageId: number, pin: boolean, actor: ChatActor) {
+      const m = store.getMessage(messageId)
+      if (!m || m.hiddenAt) throw ApiError.notFound('That message could not be found.')
+      const channel = store.getChannel(m.channelId)
+      if (!channel) throw ApiError.notFound('That conversation could not be found.')
+      const current = store.getPin(channel.id)
+      if (pin) store.setPin(channel.id, { messageId, pinnedBy: actor.id, pinnedAt: clock.now().toISOString() })
+      else if (current?.messageId === messageId) store.setPin(channel.id, null)
+      audit(actor, m.authorId, pin ? 'chat.admin.pin' : 'chat.admin.unpin', { channel: channel.id, message: messageId })
+      const pinned = pinnedOf(channel.id)
+      bus.publish(audience(channel), { t: 'chat.pinned', channel: channel.id, pinned })
+      return { pinned }
     },
 
     adminHide(messageId: number, actor: ChatActor) {

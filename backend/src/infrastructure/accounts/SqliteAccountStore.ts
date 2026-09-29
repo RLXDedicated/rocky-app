@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord } from './AccountStore'
 
 interface LedgerDbRow {
   entry_id: number
@@ -246,6 +246,60 @@ export class SqliteAccountStore implements AccountStore {
         'INSERT INTO agent_titles (agent_id, title, updated_at, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT(agent_id) DO UPDATE SET title = excluded.title, updated_at = excluded.updated_at, updated_by = excluded.updated_by',
       )
       .run(agentId, title, at, by)
+  }
+
+  listChallenges(): ChallengeRecord[] {
+    const rows = this.db.prepare('SELECT * FROM team_challenges ORDER BY challenge_id DESC').all() as Record<string, unknown>[]
+    return rows.map((r) => ({
+      id: r.challenge_id as number,
+      title: r.title as string,
+      leaderId: (r.leader_id as string | null) ?? null,
+      metric: r.metric as 'checkins' | 'qa',
+      target: r.target as number,
+      startDay: r.start_day as string,
+      endDay: r.end_day as string,
+      rewardItem: (r.reward_item as string | null) ?? null,
+      rewardCoins: r.reward_coins as number,
+      createdBy: r.created_by as string,
+      createdAt: r.created_at as string,
+      settledAt: (r.settled_at as string | null) ?? null,
+      result: (r.result as ChallengeRecord['result']) ?? null,
+      finalScore: (r.final_score as number | null) ?? null,
+    }))
+  }
+  addChallenge(c: Omit<ChallengeRecord, 'id' | 'settledAt' | 'result' | 'finalScore'>): ChallengeRecord {
+    const res = this.db
+      .prepare(
+        'INSERT INTO team_challenges (title, leader_id, metric, target, start_day, end_day, reward_item, reward_coins, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(c.title, c.leaderId, c.metric, c.target, c.startDay, c.endDay, c.rewardItem, c.rewardCoins, c.createdBy, c.createdAt)
+    return { ...c, id: Number(res.lastInsertRowid), settledAt: null, result: null, finalScore: null }
+  }
+  settleChallenge(id: number, result: 'won' | 'missed' | 'cancelled', finalScore: number | null, at: string): void {
+    this.db.prepare('UPDATE team_challenges SET settled_at = ?, result = ?, final_score = ? WHERE challenge_id = ? AND settled_at IS NULL').run(at, result, finalScore, id)
+  }
+
+  listPhotos(agentId: string) {
+    const rows = this.db.prepare('SELECT photo_id, agent_id, mime, caption, created_at FROM rocky_photos WHERE agent_id = ? ORDER BY created_at DESC').all(agentId) as {
+      photo_id: string
+      agent_id: string
+      mime: string
+      caption: string | null
+      created_at: string
+    }[]
+    return rows.map((r) => ({ id: r.photo_id, agentId: r.agent_id, mime: r.mime, caption: r.caption, createdAt: r.created_at }))
+  }
+  getPhoto(id: string): PhotoRecord | null {
+    const r = this.db.prepare('SELECT * FROM rocky_photos WHERE photo_id = ?').get(id) as
+      | { photo_id: string; agent_id: string; mime: string; data: Uint8Array; caption: string | null; created_at: string }
+      | undefined
+    return r ? { id: r.photo_id, agentId: r.agent_id, mime: r.mime, data: r.data, caption: r.caption, createdAt: r.created_at } : null
+  }
+  addPhoto(p: PhotoRecord): void {
+    this.db.prepare('INSERT INTO rocky_photos (photo_id, agent_id, mime, data, caption, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(p.id, p.agentId, p.mime, p.data, p.caption, p.createdAt)
+  }
+  deletePhoto(id: string): void {
+    this.db.prepare('DELETE FROM rocky_photos WHERE photo_id = ?').run(id)
   }
 
   getTesters(): string[] {

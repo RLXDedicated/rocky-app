@@ -68,6 +68,7 @@ export function sanitizeGameState(raw: unknown): GameState {
       : INITIAL_GAME_STATE.lastPositiveActionAt,
     lastActivityLabel: isNullableString(raw.lastActivityLabel) ? raw.lastActivityLabel : INITIAL_GAME_STATE.lastActivityLabel,
     lastActivityAt: isNullableString(raw.lastActivityAt) ? raw.lastActivityAt : INITIAL_GAME_STATE.lastActivityAt,
+    streakShields: typeof raw.streakShields === 'number' && Number.isFinite(raw.streakShields) ? Math.max(0, Math.min(2, Math.floor(raw.streakShields))) : 0,
   }
 }
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { adminUnlocked, CLOSET, SHOP_UNLOCK, sectionUnlock, type ItemSlot } from '../../game/closet'
+import { adminUnlocked, CLOSET, resolveCatalog, SHOP_UNLOCK, sectionUnlock, type ItemSlot } from '../../game/closet'
+import { ShopPanel } from '../world/ShopPanel'
 import { FOODS, SOAPS, findFood, findSoap, GAME_CAPS } from '../../game/pantry'
 import { apiClient, type AdminPetDetail } from '../../services/apiClient'
 import styles from './AdminConsole.module.css'
@@ -62,6 +63,8 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
   useEffect(() => {
     void load()
   }, [load])
+
+  const [preview, setPreview] = useState(false)
 
   async function run(action: () => Promise<unknown>, success: string) {
     setBusy(true)
@@ -406,6 +409,36 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
 
       <section className={styles.drawerSection}>
         <h3>Accesorios</h3>
+        <button className={styles.btnGhost} onClick={() => setPreview(true)}>
+          👁 Ver la tienda como la ve este agente
+        </button>
+        {preview && (
+          <>
+            <div className={styles.previewBanner} role="status">
+              Vista previa de la tienda de <b>{agentId}</b> — solo lectura: nada se compra ni se cambia.
+              <button className={styles.btnGhost} onClick={() => setPreview(false)}>
+                Cerrar vista previa
+              </button>
+            </div>
+            <ShopPanel
+              open
+              onClose={() => setPreview(false)}
+              outfit={st.outfit}
+              facts={pet.facts}
+              owned={st.owned}
+              granted={st.granted}
+              unlocks={st.unlocks}
+              catalog={resolveCatalog(pet.catalog)}
+              coins={pet.coins}
+              treats={pet.treats}
+              onChange={() => {}}
+              onBuy={() => false}
+              onBuyTreats={() => {}}
+              inventory={st.inventory}
+              pantryOverrides={pet.catalog}
+            />
+          </>
+        )}
         <div className={styles.subTabs}>
           {(Object.keys(SLOT_ES) as ItemSlot[]).map((k) => (
             <button key={k} className={`${styles.subTab} ${slot === k ? styles.subTabActive : ''}`} onClick={() => setSlot(k)}>

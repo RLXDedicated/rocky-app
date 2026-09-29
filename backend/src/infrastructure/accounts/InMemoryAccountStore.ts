@@ -1,5 +1,5 @@
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord } from './AccountStore'
 
 const clone = <T>(v: T): T => (v === undefined || v === null ? v : (JSON.parse(JSON.stringify(v)) as T))
 const newest = <T extends { id: number }>(rows: T[], limit: number) => [...rows].sort((a, b) => b.id - a.id).slice(0, limit)
@@ -128,6 +128,36 @@ export class InMemoryAccountStore implements AccountStore {
     if (title) this.titles.set(agentId, title)
     else this.titles.delete(agentId)
   }
+  private challenges: ChallengeRecord[] = []
+  private photos = new Map<string, PhotoRecord>()
+  listChallenges() {
+    return [...this.challenges].reverse().map((c) => ({ ...c }))
+  }
+  addChallenge(c: Omit<ChallengeRecord, 'id' | 'settledAt' | 'result' | 'finalScore'>) {
+    const row: ChallengeRecord = { ...c, id: this.challenges.length + 1, settledAt: null, result: null, finalScore: null }
+    this.challenges.push(row)
+    return { ...row }
+  }
+  settleChallenge(id: number, result: 'won' | 'missed' | 'cancelled', finalScore: number | null, at: string) {
+    const c = this.challenges.find((x) => x.id === id)
+    if (c && !c.settledAt) Object.assign(c, { settledAt: at, result, finalScore })
+  }
+  listPhotos(agentId: string) {
+    return [...this.photos.values()]
+      .filter((p) => p.agentId === agentId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map(({ data: _data, ...rest }) => rest)
+  }
+  getPhoto(id: string) {
+    return this.photos.get(id) ?? null
+  }
+  addPhoto(p: PhotoRecord) {
+    this.photos.set(p.id, { ...p })
+  }
+  deletePhoto(id: string) {
+    this.photos.delete(id)
+  }
+
   private testers = new Set<string>()
   getTesters() {
     return [...this.testers]

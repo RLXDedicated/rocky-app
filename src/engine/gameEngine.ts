@@ -274,6 +274,26 @@ export interface CheckInResult {
   evolved: boolean
 }
 
+/** Most streak shields an agent can hold at once. */
+export const MAX_STREAK_SHIELDS = 2
+
+/**
+ * The streak after today's check-in, spending shields on missed days: a gap
+ * of N missed days is forgiven when the agent holds at least N shields.
+ */
+export function shieldedStreak(
+  previousStreak: number,
+  lastCheckInDate: string | null,
+  today: string,
+  shields: number,
+): { currentStreak: number; alreadyCheckedInToday: boolean; shieldsUsed: number } {
+  const base = calculateStreak(previousStreak, lastCheckInDate, today)
+  if (base.alreadyCheckedInToday || !lastCheckInDate || previousStreak <= 0) return { ...base, shieldsUsed: 0 }
+  const missed = daysBetweenKeys(lastCheckInDate, today) - 1
+  if (missed >= 1 && missed <= shields) return { currentStreak: previousStreak + 1, alreadyCheckedInToday: false, shieldsUsed: missed }
+  return { ...base, shieldsUsed: 0 }
+}
+
 const CHECK_IN_XP = GAME_CONFIG.xp.checkIn
 const CHECK_IN_ENERGY = GAME_CONFIG.energy.checkIn
 
@@ -284,7 +304,8 @@ export function processCheckIn(
   agentId: string = DEFAULT_AGENT_ID,
 ): CheckInResult {
   const today = todayKey(now)
-  const { currentStreak, alreadyCheckedInToday } = calculateStreak(state.currentStreak, state.lastCheckInDate, today)
+  const shields = state.streakShields ?? 0
+  const { currentStreak, alreadyCheckedInToday, shieldsUsed } = shieldedStreak(state.currentStreak, state.lastCheckInDate, today, shields)
 
   if (alreadyCheckedInToday) {
     return { state, events: [], newAchievements: [], alreadyCheckedInToday: true, leveledUp: false, evolved: false }
@@ -301,7 +322,7 @@ export function processCheckIn(
       agentId,
       date: today,
       timestamp: now.toISOString(),
-      payload: { xpGained: CHECK_IN_XP, energyGained: CHECK_IN_ENERGY, streak: currentStreak },
+      payload: { xpGained: CHECK_IN_XP, energyGained: CHECK_IN_ENERGY, streak: currentStreak, ...(shieldsUsed ? { shieldsUsed } : {}) },
     },
   ]
 
@@ -325,6 +346,7 @@ export function processCheckIn(
     currentStreak,
     bestStreak,
     evolutionStage,
+    streakShields: shields - shieldsUsed,
     lastCheckInDate: today,
     lastPositiveActionAt: now.toISOString(),
     lastActivityLabel: 'Check-in completed',
@@ -397,6 +419,8 @@ export function processQAPass(
     energy,
     level,
     evolutionStage,
+    // A clean audit earns a streak shield (kept for a missed day later).
+    streakShields: Math.min(MAX_STREAK_SHIELDS, (state.streakShields ?? 0) + 1),
     lastPositiveActionAt: now.toISOString(),
     lastActivityLabel: 'QA Pass recorded',
     lastActivityAt: now.toISOString(),

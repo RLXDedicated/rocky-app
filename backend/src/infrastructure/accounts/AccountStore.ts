@@ -64,6 +64,34 @@ export interface SessionRecord {
 /** A title shown next to the name. Grants no permissions. */
 export type AgentTitle = 'qa' | 'leader'
 
+export interface ChallengeRecord {
+  id: number
+  title: string
+  /** The team (its leader), or null for everyone in the pilot. */
+  leaderId: string | null
+  metric: 'checkins' | 'qa'
+  /** Percent to reach (check-in rate or QA pass rate). */
+  target: number
+  startDay: string
+  endDay: string
+  rewardItem: string | null
+  rewardCoins: number
+  createdBy: string
+  createdAt: string
+  settledAt: string | null
+  result: 'won' | 'missed' | 'cancelled' | null
+  finalScore: number | null
+}
+
+export interface PhotoRecord {
+  id: string
+  agentId: string
+  mime: string
+  data: Uint8Array
+  caption: string | null
+  createdAt: string
+}
+
 export interface AccountStore {
   getPetProfile(agentId: string): PetProfileRecord | null
   savePetProfile(agentId: string, state: unknown, updatedAt: string): PetProfileRecord
@@ -92,6 +120,15 @@ export interface AccountStore {
   /** Titles by agent (qa analysts, team leaders). */
   getTitles(): Record<string, AgentTitle>
   setTitle(agentId: string, title: AgentTitle | null, by: string, at: string): void
+  listChallenges(): ChallengeRecord[]
+  addChallenge(c: Omit<ChallengeRecord, 'id' | 'settledAt' | 'result' | 'finalScore'>): ChallengeRecord
+  settleChallenge(id: number, result: 'won' | 'missed' | 'cancelled', finalScore: number | null, at: string): void
+
+  listPhotos(agentId: string): Omit<PhotoRecord, 'data'>[]
+  getPhoto(id: string): PhotoRecord | null
+  addPhoto(p: PhotoRecord): void
+  deletePhoto(id: string): void
+
   /** Agents with the "Tester" badge. */
   getTesters(): string[]
   setTester(agentId: string, on: boolean, by: string, at: string): void

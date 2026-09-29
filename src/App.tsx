@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styles from "./App.module.css";
 import { Achievements } from "./components/Achievements";
 import { AdminConsole } from "./components/admin/AdminConsole";
@@ -22,6 +22,7 @@ import { loadPetCache } from "./game/petClient";
 import { gameEnabled } from "./game/pantry";
 import { QASimulator } from "./components/QASimulator";
 import { ReminderHost } from "./components/ReminderHost";
+import { NotificationHost } from "./components/extras/NotificationHost";
 import { TeamLeaderboard } from "./components/TeamLeaderboard";
 import { TeamPage } from "./components/TeamPage";
 import {
@@ -69,6 +70,8 @@ type View =
 // browser still has the toggle switched on in localStorage.
 function App() {
   const [view, setView] = useState<View>("home");
+  const openChat = useCallback(() => setView("chat"), []);
+  const openHome = useCallback(() => setView("home"), []);
   // With a backend, every agent signs in (email + PIN) so their Rocky loads
   // from the server on any device — never a fresh local-only Rocky.
   const [needsLogin, setNeedsLogin] = useState(
@@ -338,6 +341,7 @@ function App() {
       {view === "dev-controls" && import.meta.env.DEV && <DevControls />}
 
       <ReminderHost />
+      {isRemoteModeEnabled() && <NotificationHost onOpenChat={openChat} onOpenHome={openHome} />}
 
       {arrival && view !== 'home' && (
         <div className={styles.arrival} role="status">

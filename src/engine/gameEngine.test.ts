@@ -929,3 +929,25 @@ describe('processXpGrant (QA/admin XP)', () => {
     expect(processXpGrant({ ...INITIAL_GAME_STATE, xp: 50 }, -40).state.xp).toBe(50)
   })
 })
+
+describe('streak shields', () => {
+  it('a QA Pass earns a shield (max 2) and a shield saves the streak for a missed day', async () => {
+    const { processCheckIn, processQAPass, shieldedStreak } = await import('./gameEngine')
+    const { INITIAL_GAME_STATE } = await import('../types/domain')
+    let s = { ...INITIAL_GAME_STATE }
+    s = processCheckIn(s, [], new Date(2026, 8, 1, 10)).state
+    s = processCheckIn(s, [], new Date(2026, 8, 2, 10)).state
+    expect(s.currentStreak).toBe(2)
+    for (let i = 0; i < 3; i++) s = processQAPass(s, [], new Date(2026, 8, 2, 11 + i)).state
+    expect(s.streakShields).toBe(2)
+    // Missed Sept 3: the shield keeps the streak going.
+    s = processCheckIn(s, [], new Date(2026, 8, 4, 10)).state
+    expect(s.currentStreak).toBe(3)
+    expect(s.streakShields).toBe(1)
+    // Missed two days with one shield left: the streak starts over, shield kept.
+    s = processCheckIn(s, [], new Date(2026, 8, 7, 10)).state
+    expect(s.currentStreak).toBe(1)
+    expect(s.streakShields).toBe(1)
+    expect(shieldedStreak(4, '2026-09-01', '2026-09-03', 1)).toEqual({ currentStreak: 5, alreadyCheckedInToday: false, shieldsUsed: 1 })
+  })
+})

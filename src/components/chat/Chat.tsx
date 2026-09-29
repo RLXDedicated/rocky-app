@@ -9,6 +9,7 @@ import styles from './Chat.module.css'
 import { NameBadges } from '../TitleBadge'
 import { stickerOf } from './Stickers'
 import { mediaPreview } from './Media'
+import { notificationsOn, notificationsSupported, setNotifications } from '../../services/notify'
 
 function ago(at: string): string {
   const mins = Math.round((Date.now() - Date.parse(at)) / 60_000)
@@ -34,6 +35,7 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const presenceOf = usePresence()
+  const [notifOn, setNotifOn] = useState(notificationsOn())
 
   async function loadChannels(select?: string) {
     try {
@@ -139,6 +141,17 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
         <aside className={styles.sidebar} aria-label="Conversations">
           <div className={styles.sideHead}>
             <h1>Chat</h1>
+            {notificationsSupported() && (
+              <button
+                type="button"
+                className={styles.ghost}
+                onClick={() => void setNotifications(!notifOn).then(setNotifOn)}
+                title={notifOn ? 'Notifications are on — you’ll hear about messages, mentions and visitors while Rocky is in the background' : 'Get a notification for messages, @mentions and visitors'}
+                aria-pressed={notifOn}
+              >
+                {notifOn ? '🔔' : '🔕'}
+              </button>
+            )}
             <button type="button" className={styles.primary} onClick={() => void pick()}>
               + New chat
             </button>

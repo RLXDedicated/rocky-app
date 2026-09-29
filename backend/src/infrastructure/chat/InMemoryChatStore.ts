@@ -90,6 +90,15 @@ export class InMemoryChatStore implements ChatStore {
     const ids = new Set(messageIds)
     return this.reactions.filter((r) => ids.has(r.messageId)).map(({ messageId, agentId, emoji }) => ({ messageId, agentId, emoji }))
   }
+  private pins = new Map<string, { messageId: number; pinnedBy: string; pinnedAt: string }>()
+  getPin(channelId: string) {
+    return this.pins.get(channelId) ?? null
+  }
+  setPin(channelId: string, pin: { messageId: number; pinnedBy: string; pinnedAt: string } | null) {
+    if (pin) this.pins.set(channelId, pin)
+    else this.pins.delete(channelId)
+  }
+
   addAttachment(a: AttachmentRecord) {
     this.attachments.set(a.id, { ...a })
   }

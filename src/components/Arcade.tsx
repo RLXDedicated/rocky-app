@@ -9,6 +9,7 @@ import {
 import { calculateMood } from "../engine/gameEngine";
 import { ARCADE_CAP, arcadeReward, gameEnabled, type ArcadeGame } from "../game/pantry";
 import { BoxStack, BubblePop, MudSplat, RockyRun, RockySays } from "./arcade/MoreGames";
+import { ArcadeBoard, medalFor } from "./extras/ArcadeBoard";
 import {
   loadPetCache,
   performPetAction,
@@ -223,6 +224,9 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
                 <strong>{g.name}</strong>
                 <p>{g.blurb}</p>
                 <small>
+                  {medalFor(g.id, games.arcadeBest[g.id] ?? 0) && (
+                    <span title="Your medal for this game">{medalFor(g.id, games.arcadeBest[g.id] ?? 0)} </span>
+                  )}
                   Best:{" "}
                   {g.id === "memory"
                     ? "★".repeat(games.arcadeBest[g.id] ?? 0) || "—"
@@ -259,6 +263,13 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
               </li>
             )}
           </ul>
+        )}
+        {!playing && (
+          <ArcadeBoard
+            games={GAMES.filter((g) => gameEnabled(pet.overrides, g.id)).map((g) => g.id)}
+            names={Object.fromEntries(GAMES.map((g) => [g.id, g.name]))}
+            refreshKey={games.arcadeRounds}
+          />
         )}
       </div>
     </main>

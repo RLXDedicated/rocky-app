@@ -1552,6 +1552,11 @@
   top: 162px;
 }
 
+.photoButton {
+  top: 206px;
+  font-size: 1.05rem;
+}
+
 @media (max-width: 640px) {
   .sound {
     top: 10px;
@@ -1560,6 +1565,10 @@
 
   .arrangeButton {
     top: 54px;
+  }
+
+  .photoButton {
+    top: 98px;
   }
 
   .arrangeBar {

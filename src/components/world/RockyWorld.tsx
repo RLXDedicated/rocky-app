@@ -136,6 +136,8 @@ interface Props {
   onLitter?: (id: string) => { coins: number; xp: number } | null;
   /** Opens the shop's pantry (food or soaps). */
   onOpenPantry?: (tab: TrayTab) => void;
+  /** Take a photo of Rocky (the camera button). */
+  onPhoto?: () => void;
   /** Visiting a friend: no bag, no litter, no arranging. */
   visitor?: boolean;
   /** Other agents' Rockys here live (visitors, or the host when you visit). */
@@ -322,6 +324,7 @@ export function RockyWorld({
   onKeepy,
   onLitter,
   onOpenPantry,
+  onPhoto,
   visitor = false,
   guests = [],
   floatReacts = [],
@@ -1254,7 +1257,7 @@ export function RockyWorld({
     <section className={styles.world} aria-label="Rocky's world">
       {!arranging && <div className={styles.hud}>{hud}</div>}
 
-      <div className={styles.stage} ref={worldRef} onClick={handleStageClick}>
+      <div className={styles.stage} ref={worldRef} onClick={handleStageClick} data-rocky-stage>
         <div className={styles.scene}>
           <SceneArt id={outfit.scene} live={animate} />
         </div>
@@ -1716,6 +1719,7 @@ export function RockyWorld({
           <button
             type="button"
             className={`${styles.sound} ${styles.arrangeButton}`}
+            data-no-photo
             onClick={onStartArrange}
             aria-label="Arrange your world"
             title="Arrange your world"
@@ -1735,10 +1739,26 @@ export function RockyWorld({
             </svg>
           </button>
         )}
+        {onPhoto && !arranging && (
+          <button
+            type="button"
+            className={`${styles.sound} ${styles.photoButton}`}
+            data-no-photo
+            onClick={(e) => {
+              e.stopPropagation();
+              onPhoto();
+            }}
+            aria-label="Take a photo of Rocky"
+            title="Take a photo of Rocky"
+          >
+            📸
+          </button>
+        )}
         <div className={styles.vignette} aria-hidden="true" />
         <button
           type="button"
           className={styles.sound}
+          data-no-photo
           onClick={toggleSound}
           aria-pressed={!muted}
           aria-label={muted ? "Turn sound on" : "Turn sound off"}

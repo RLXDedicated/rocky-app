@@ -844,3 +844,20 @@
   font-size: 0.78rem;
   color: var(--text-muted);
 }
+
+.previewBanner {
+  position: fixed;
+  z-index: 400;
+  bottom: 16px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: #1e1b4b;
+  color: #e0e7ff;
+  font-size: 0.9rem;
+  box-shadow: 0 12px 30px rgba(15, 35, 65, 0.35);
+  transform: translateX(-50%);
+}

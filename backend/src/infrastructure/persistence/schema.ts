@@ -267,6 +267,48 @@ export const MIGRATION_006_PEOPLE = `
     ('kcolina@rlx.us', 'qa', '2026-09-29T12:00:00.000Z', 'seed');
 `
 
+/** Pinned chat announcements, weekly team challenges and Rocky's photo album. */
+export const MIGRATION_011_EXTRAS = `
+  CREATE TABLE chat_pins (
+    channel_id TEXT PRIMARY KEY,
+    message_id INTEGER NOT NULL,
+    pinned_by  TEXT NOT NULL,
+    pinned_at  TEXT NOT NULL
+  );
+
+  CREATE TABLE team_challenges (
+    challenge_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title        TEXT NOT NULL,
+    leader_id    TEXT,
+    metric       TEXT NOT NULL CHECK (metric IN ('checkins', 'qa')),
+    target       INTEGER NOT NULL,
+    start_day    TEXT NOT NULL,
+    end_day      TEXT NOT NULL,
+    reward_item  TEXT,
+    reward_coins INTEGER NOT NULL DEFAULT 0,
+    created_by   TEXT NOT NULL,
+    created_at   TEXT NOT NULL,
+    settled_at   TEXT,
+    result       TEXT,
+    final_score  INTEGER
+  );
+
+  CREATE TABLE rocky_photos (
+    photo_id   TEXT PRIMARY KEY,
+    agent_id   TEXT NOT NULL,
+    mime       TEXT NOT NULL,
+    data       BLOB NOT NULL,
+    caption    TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX idx_rocky_photos_agent ON rocky_photos(agent_id, created_at);
+`
+
+/** Streak shields: earned with QA Passes, spent on missed days. */
+export const MIGRATION_010_STREAK_SHIELDS = `
+  ALTER TABLE game_state ADD COLUMN streak_shields INTEGER NOT NULL DEFAULT 0;
+`
+
 /** Chat reactions (emoji on a message) and image/GIF attachments (kept like messages: 90 days). */
 export const MIGRATION_009_CHAT_MEDIA = `
   CREATE TABLE chat_reactions (

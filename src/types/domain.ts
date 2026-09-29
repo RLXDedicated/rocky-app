@@ -50,6 +50,8 @@ export interface GameState {
   lastPositiveActionAt: string | null // ISO timestamp of most recent Check-in or QA Pass
   lastActivityLabel: string | null
   lastActivityAt: string | null // ISO timestamp
+  /** Streak shields (earned with QA Passes, max 2): each one saves the streak for one missed day. */
+  streakShields?: number
 }
 
 export interface Agent {
@@ -73,4 +75,5 @@ export const INITIAL_GAME_STATE: GameState = {
   lastPositiveActionAt: null,
   lastActivityLabel: null,
   lastActivityAt: null,
+  streakShields: 0,
 }

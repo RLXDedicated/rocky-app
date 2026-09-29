@@ -37,6 +37,18 @@ const hub = attachLiveHub(server, live, {
 })
 // Nightly chat housekeeping: 90-day retention and the daily backup.
 startChatJobs(live.jobs)
+// Hourly: settle finished team challenges (pay the winners) and crown last week's Arcade champions.
+const houseJobs = () => {
+  try {
+    live.challenges.settle()
+    live.pet.awardArcadeChampions()
+  } catch (err) {
+    console.error('[rocky-backend] house jobs failed:', err)
+  }
+}
+houseJobs()
+const houseTimer = setInterval(houseJobs, 60 * 60_000)
+houseTimer.unref()
 const backup = live.jobs.status().target
 console.log(`[rocky-backend] live channel at /api/live; chat backups: volume ${backup.local ? 'on' : 'off'}, bucket ${backup.bucket ? 'on' : 'off'}, ${backup.encrypted ? 'encrypted' : 'NOT encrypted (set ROCKY_CHAT_BACKUP_KEY)'}`)
 

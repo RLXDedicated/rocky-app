@@ -29,6 +29,7 @@ import {
   MINI_GAMES,
   gameEnabled,
   gameKey,
+  ARCADE_GAMES,
 } from "../../../src/game/pantry";
 import {
   collectionKey,
@@ -60,6 +61,7 @@ import {
   factsFrom,
   initialPetState,
   normalizePetState,
+  arcadeWeekOf,
   refreshPetState,
   treatsAvailable,
   type LedgerEntry,
@@ -751,6 +753,71 @@ export function createPetApplicationService({
     },
 
     /** The chat bubble style an agent is wearing (null = the plain one). */
+    /** The Arcade's weekly ranking: top 5 per game (this week, or last week with `previous`), and where the viewer stands. */
+    arcadeBoard(viewerId: string, previous = false) {
+      const now = clock.now();
+      const repo = persistence.repoStore;
+      const week = arcadeWeekOf(previous ? new Date(now.getTime() - 7 * 86_400_000) : now);
+      const scores = repo.listAgentIds().map((id) => {
+        const record = accounts.getPetProfile(id);
+        const best = record ? (normalizePetState(record.state, now).games.arcadeWeeks[week] ?? {}) : {};
+        return { id, best };
+      });
+      const games = Object.fromEntries(
+        ARCADE_GAMES.map((game) => {
+          const ranked = scores
+            .filter((x) => (x.best[game] ?? 0) > 0)
+            .sort((a, b) => b.best[game]! - a.best[game]!);
+          return [
+            game,
+            {
+              top: ranked.slice(0, 5).map((x, i) => ({
+                rank: i + 1,
+                id: friendKey(x.id),
+                name: publicName(x.id, repo.forAgent(x.id).getAgent().name),
+                score: x.best[game]!,
+                me: x.id === viewerId,
+              })),
+              myRank: ranked.findIndex((x) => x.id === viewerId) + 1 || null,
+              myScore: scores.find((x) => x.id === viewerId)?.best[game] ?? 0,
+              players: ranked.length,
+            },
+          ];
+        }),
+      );
+      return { week, games };
+    },
+
+    /**
+     * Once a week: last week's #1 in each Arcade game gets the Arcade trophy
+     * (a gift-only home item) and 50 coins. Runs from the hourly jobs; a
+     * marker in the catalogue overrides makes it happen only once per week.
+     */
+    awardArcadeChampions(): number {
+      const now = clock.now();
+      const last = arcadeWeekOf(new Date(now.getTime() - 7 * 86_400_000));
+      const marker = `arcade-award:${last}`;
+      if (accounts.getCatalogOverrides()[marker]) return 0;
+      const board = this.arcadeBoard("", true).games as Record<string, { top: { id: string; score: number }[] }>;
+      const byKey = new Map(persistence.repoStore.listAgentIds().map((id) => [friendKey(id), id]));
+      const actor = { id: "rocky-arcade", via: "arcade" };
+      let awarded = 0;
+      for (const [game, { top }] of Object.entries(board)) {
+        const champ = top[0] ? byKey.get(top[0].id) : undefined;
+        if (!champ) continue;
+        try {
+          this.grantItem(champ, "decor-arcade-trophy", actor);
+          this.adjustCoins(champ, 50, `Arcade champion: ${game} (week of ${last})`, actor);
+          this.sendGiftNote(champ, `You were last week’s #1 in the Arcade (${game})! 🏆 A trophy and 50 coins for Rocky.`, actor);
+          awarded++;
+        } catch {
+          // keep going for the other games
+        }
+      }
+      accounts.setCatalogOverride(marker, { price: null, enabled: true }, actor.id, now.toISOString());
+      return awarded;
+    },
+
     bubbleOf(agentId: string): string | null {
       const state = load(agentId, clock.now()).state;
       const id = state.outfit.bubble ?? null;

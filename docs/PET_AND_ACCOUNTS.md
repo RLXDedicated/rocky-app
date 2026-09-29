@@ -489,3 +489,29 @@ dots).
 - **Tester badge**: `agent_testers` (migration 008). A moss-green/walnut
   "TESTER" chip next to the name, added to any title; set in Roles y
   equipos or from the Agentes selection.
+
+## Pilot extras (2026-09-29)
+
+- **Team challenges** (`team_challenges`, migration 011; Admin → Retos): a
+  goal for one leader's team or the whole pilot — weekday check-in rate or
+  QA pass rate — over a date window, with an item and/or coins as reward.
+  Members see a live chip on Home. An hourly job (and every read) settles
+  finished challenges once and pays winners (gift + coins + inbox note).
+- **Streak shields** (`game_state.streak_shields`, migration 010): each QA
+  Pass earns one (max 2); a check-in after N missed days spends N shields
+  to keep the streak. Shown as 🛡️ on Home.
+- **Browser notifications** (🔔 in Chat): 1-to-1/home messages, @mentions,
+  reactions to my messages and visitors, only while Rocky is in the
+  background. **@mentions**: typing `@` suggests teammates; `chat.mention`
+  goes to the person named; their copy is highlighted.
+- **Photo album** (`rocky_photos`, 24 per agent, private): 📸 on Rocky's
+  world composes a framed photo from the stage's layers (scene, items,
+  wings, rig canvas, outfit); save it, share it in General or download it.
+- **Arcade**: bronze/silver/gold medals per game, a weekly top-5 per game
+  (`arcadeWeeks` in the pet state), and every Monday last week's #1 per
+  game gets the gift-only *Arcade champion trophy* and 50 coins (once per
+  week, marker `arcade-award:<week>` in catalog overrides).
+- **Admin**: pin any chat message as the conversation's announcement
+  (`chat_pins`); hide / pause 24 h straight from the conversation (admins
+  receive the author's email on messages); preview the shop exactly as an
+  agent sees it (agent card → Mascota y coins).

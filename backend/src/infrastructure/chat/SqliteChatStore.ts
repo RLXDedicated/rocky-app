@@ -167,6 +167,20 @@ export class SqliteChatStore implements ChatStore {
     return rows.map((r) => ({ messageId: r.message_id, agentId: r.agent_id, emoji: r.emoji }))
   }
 
+  getPin(channelId: string) {
+    const r = this.db.prepare('SELECT message_id, pinned_by, pinned_at FROM chat_pins WHERE channel_id = ?').get(channelId) as
+      | { message_id: number; pinned_by: string; pinned_at: string }
+      | undefined
+    return r ? { messageId: r.message_id, pinnedBy: r.pinned_by, pinnedAt: r.pinned_at } : null
+  }
+  setPin(channelId: string, pin: { messageId: number; pinnedBy: string; pinnedAt: string } | null) {
+    if (!pin) this.db.prepare('DELETE FROM chat_pins WHERE channel_id = ?').run(channelId)
+    else
+      this.db
+        .prepare('INSERT INTO chat_pins (channel_id, message_id, pinned_by, pinned_at) VALUES (?, ?, ?, ?) ON CONFLICT(channel_id) DO UPDATE SET message_id = excluded.message_id, pinned_by = excluded.pinned_by, pinned_at = excluded.pinned_at')
+        .run(channelId, pin.messageId, pin.pinnedBy, pin.pinnedAt)
+  }
+
   addAttachment(a: AttachmentRecord) {
     this.db
       .prepare('INSERT INTO chat_attachments (attachment_id, channel_id, uploader_id, mime, size, data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
