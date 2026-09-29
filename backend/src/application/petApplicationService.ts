@@ -4,7 +4,7 @@
 // every change is saved together with its coin-ledger entry and audit-trail
 // entry in one transaction.
 import { ApiError } from "../api/errors";
-import { withStaffPerks } from "../../../src/game/closet";
+import { SHOP_UNLOCK, withStaffPerks } from "../../../src/game/closet";
 import type { PersistenceContext } from "../infrastructure/persistenceContext";
 import type {
   AuditRow,
@@ -26,6 +26,9 @@ import {
   FOODS,
   hash,
   SOAPS,
+  MINI_GAMES,
+  gameEnabled,
+  gameKey,
 } from "../../../src/game/pantry";
 import {
   collectionKey,
@@ -47,6 +50,9 @@ import {
   visitorSide,
   type VisitKind,
   adminGrantItem,
+  adminGrantMany,
+  adminUnlock,
+  adminRelock,
   adminRestoreNeeds,
   adminRevokeItem,
   applyPetAction,
@@ -94,6 +100,7 @@ export interface PetApplicationServiceDeps {
   isStaff?: (agentId: string) => boolean;
   /** Titles shown next to names (QA analyst, team leader). */
   titleOf?: (agentId: string) => string | null;
+  testerOf?: (agentId: string) => boolean;
   /** A leader's Rocky mirrors her team's spirit (see peopleApplicationService). */
   teamMood?: (agentId: string) => import("../../../src/types/domain").Mood | null;
 }
@@ -107,12 +114,46 @@ export function friendKey(agentId: string): string {
 export type BulkOp =
   | { kind: "coins"; delta: number; note: string }
   | { kind: "treats"; delta: number }
-  | { kind: "item"; itemId: string }
+  /** itemId: an item, a section ("slot:hat") or the whole shop ("*"); mode "unlock" = they buy it with their own coins. */
+  | { kind: "item"; itemId: string; mode?: "grant" | "unlock" }
   | { kind: "inventory"; itemId: string; qty: number }
   | { kind: "needs" }
   | { kind: "message"; text: string }
   | { kind: "litter" }
   | { kind: "games" };
+
+const SLOT_NAMES: Record<string, string> = {
+  hat: "every hat",
+  glasses: "all the glasses",
+  neck: "all the neckwear",
+  back: "all the wings & backs",
+  body: "all the shirts",
+  aura: "every aura",
+  bubble: "every chat bubble",
+  scene: "every background",
+  decor: "every home item",
+  fx: "every effect",
+};
+
+/** "slot:hat" / "*" (a whole section / the whole shop). */
+function isShopKey(key: string): boolean {
+  return key === SHOP_UNLOCK || (key.startsWith("slot:") && key.slice(5) in SLOT_NAMES);
+}
+
+function checkUnlockKey(key: string) {
+  const item = findItem(key);
+  if (isShopKey(key)) return;
+  if (!item) throw ApiError.validation(`Unknown item "${key}".`);
+  if (item.staff || item.gift) throw ApiError.validation(`"${item.name}" can only be gifted, not unlocked for purchase.`);
+}
+
+/** How a gift / unlock reads in the agent's inbox ("a new Cat ears", "every hat", "the whole shop"). */
+function shopKeyName(key: string): string | null {
+  if (key === SHOP_UNLOCK) return "the whole shop";
+  if (isShopKey(key)) return SLOT_NAMES[key.slice(5)]!;
+  const item = findItem(key);
+  return item ? `a new ${item.name}` : null;
+}
 
 export const PANTRY_IDS = [
   ...FOODS.map((f) => f.id),
@@ -127,6 +168,7 @@ export function createPetApplicationService({
   clock = systemClock,
   isStaff = () => false,
   titleOf = () => null,
+  testerOf = () => false,
   teamMood = () => null,
 }: PetApplicationServiceDeps) {
   const accounts = persistence.accounts;
@@ -405,6 +447,14 @@ export function createPetApplicationService({
     },
 
     grantItem(agentId: string, itemId: string, actor: Actor): PetView {
+      if (isShopKey(itemId))
+        return adminChange(
+          agentId,
+          actor,
+          "admin.item.grant",
+          { itemId },
+          (state) => ({ state: adminGrantMany(state, itemId, resolveCatalog(accounts.getCatalogOverrides())) }),
+        );
       if (!findItem(itemId))
         throw ApiError.validation(`Unknown item "${itemId}".`);
       return adminChange(
@@ -414,6 +464,17 @@ export function createPetApplicationService({
         { itemId },
         (state) => ({ state: adminGrantItem(state, itemId) }),
       );
+    },
+
+    /** Lets the agent buy an item / section / the whole shop with their own coins, skipping the progress requirement. */
+    unlockItem(agentId: string, key: string, actor: Actor): PetView {
+      checkUnlockKey(key);
+      return adminChange(agentId, actor, "admin.item.unlock", { key }, (state) => ({ state: adminUnlock(state, key) }));
+    },
+
+    relockItem(agentId: string, key: string, actor: Actor): PetView {
+      checkUnlockKey(key);
+      return adminChange(agentId, actor, "admin.item.relock", { key }, (state) => ({ state: adminRelock(state, key) }));
     },
 
     revokeItem(agentId: string, itemId: string, actor: Actor): PetView {
@@ -549,6 +610,25 @@ export function createPetApplicationService({
       });
     },
 
+    /** Every mini-game with its on/off switch (Admin → Minijuegos). */
+    getGames() {
+      const overrides = accounts.getCatalogOverrides();
+      return {
+        games: MINI_GAMES.map((g) => ({ ...g, enabled: gameEnabled(overrides, g.id) })),
+      };
+    },
+
+    setGame(id: string, enabled: boolean, actor: Actor) {
+      const game = MINI_GAMES.find((g) => g.id === id);
+      if (!game) throw ApiError.validation(`Unknown game "${id}".`);
+      return persistence.withTransaction(() => {
+        const now = clock.now();
+        accounts.setCatalogOverride(gameKey(game.id), { price: null, enabled }, actor.id, now.toISOString());
+        audit(null, actor, "admin.game", { game: game.id, enabled }, now);
+        return this.getGames();
+      });
+    },
+
     setCatalogItem(
       itemId: string,
       value: { price: number | null; enabled: boolean | null },
@@ -649,6 +729,7 @@ export function createPetApplicationService({
             rockyName: agent.rockyName,
             staff: isStaff(id),
             title: titleOf(id),
+            tester: testerOf(id),
             level: game.level,
             stage: game.evolutionStage,
             mood: teamMood(id) ?? game.mood,
@@ -708,6 +789,7 @@ export function createPetApplicationService({
         rockyName: agent.rockyName,
         staff: isStaff(agentId),
         title: titleOf(agentId),
+        tester: testerOf(agentId),
         level: game.level,
         stage: game.evolutionStage,
         mood: teamMood(agentId) ?? game.mood,
@@ -720,6 +802,7 @@ export function createPetApplicationService({
           state.owned,
           state.granted,
           catalog,
+          state.unlocks,
         ),
         visitors: state.inbox
           .filter((e) => e.kind === "visit")
@@ -868,14 +951,15 @@ export function createPetApplicationService({
           else if (op.kind === "treats")
             this.adjustTreats(agentId, op.delta, actor);
           else if (op.kind === "item") {
-            this.grantItem(agentId, op.itemId, actor);
-            const item = findItem(op.itemId);
-            if (item)
-              this.sendGiftNote(
-                agentId,
-                `QA gave Rocky a new ${item.name}!`,
-                actor,
-              );
+            const what = shopKeyName(op.itemId);
+            if (op.mode === "unlock") {
+              this.unlockItem(agentId, op.itemId, actor);
+              if (what)
+                this.sendGiftNote(agentId, `QA unlocked ${what} in the shop for you — buy it with your coins!`, actor);
+            } else {
+              this.grantItem(agentId, op.itemId, actor);
+              if (what) this.sendGiftNote(agentId, `QA gave Rocky ${what}!`, actor);
+            }
           } else if (op.kind === "inventory")
             this.giveInventory(agentId, op.itemId, op.qty, actor);
           else if (op.kind === "needs") this.restoreNeeds(agentId, actor);

@@ -18,6 +18,8 @@ import { Leaderboard } from "./components/Leaderboard";
 import { Onboarding } from "./components/Onboarding";
 import { Progress } from "./components/Progress";
 import { NotesGame } from "./components/NotesGame";
+import { loadPetCache } from "./game/petClient";
+import { gameEnabled } from "./game/pantry";
 import { QASimulator } from "./components/QASimulator";
 import { ReminderHost } from "./components/ReminderHost";
 import { TeamLeaderboard } from "./components/TeamLeaderboard";
@@ -171,7 +173,10 @@ function App() {
     internal?: boolean;
   }[] = [
     { view: "home", label: "Rocky", icon: "home" },
-    { view: "notes", label: "Note Check", icon: "note" },
+    // Admins can switch the notes quiz off (Admin → Minijuegos).
+    ...(gameEnabled(loadPetCache().overrides, "notes")
+      ? [{ view: "notes" as View, label: "Note Check", icon: "note" as NavIconName }]
+      : []),
     { view: "arcade", label: "Games", icon: "games" },
     ...(isRemoteModeEnabled()
       ? [{ view: "chat" as View, label: "Chat", icon: "chat" as NavIconName }]
@@ -257,7 +262,7 @@ function App() {
         </nav>
         {isBackendConfigured() && getAgentEmail() && (
           <div className={styles.account}>
-            <NameBadges staff={getAgentRole() === "ADMIN"} title={myRole?.title} />
+            <NameBadges staff={getAgentRole() === "ADMIN"} title={myRole?.title} tester={myRole?.tester} />
             <span className={styles.accountEmail} title={getAgentEmail() ?? ""}>
               {getAgentEmail()}
             </span>
@@ -276,7 +281,7 @@ function App() {
         <Home
           onOpenTeam={() => setView("my-team")}
           onOpenProgress={() => setView("progress")}
-          onOpenNotes={() => setView("notes")}
+          onOpenNotes={gameEnabled(loadPetCache().overrides, "notes") ? () => setView("notes") : undefined}
         />
       )}
       {view === "progress" && <Progress />}

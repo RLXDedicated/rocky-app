@@ -7,7 +7,8 @@ import {
   type ReactElement,
 } from "react";
 import { calculateMood } from "../engine/gameEngine";
-import { ARCADE_CAP, arcadeReward, type ArcadeGame } from "../game/pantry";
+import { ARCADE_CAP, arcadeReward, gameEnabled, type ArcadeGame } from "../game/pantry";
+import { BoxStack, BubblePop, MudSplat, RockyRun, RockySays } from "./arcade/MoreGames";
 import {
   loadPetCache,
   performPetAction,
@@ -35,6 +36,41 @@ const GAMES: {
     blurb: "Move Rocky to catch falling snacks. Dodge the mud!",
     icon: "🍎",
     howTo: "Move with the mouse, your finger or the ← → keys. 30 seconds.",
+  },
+  {
+    id: "run",
+    name: "Rocky Run",
+    blurb: "Rocky's late for a delivery! Jump over the boxes and cones.",
+    icon: "🏃",
+    howTo: "Tap the field (or press space) to jump. One bump ends the run.",
+  },
+  {
+    id: "whack",
+    name: "Mud Splat",
+    blurb: "Mud keeps popping up. Splat it fast — but never splat Rocky!",
+    icon: "💥",
+    howTo: "Tap the mud (+1) and the gold coins (+3). Tapping Rocky costs 2. 30 seconds.",
+  },
+  {
+    id: "bubbles",
+    name: "Bubble Pop",
+    blurb: "Pop the bubbles from Rocky's bath before they float away.",
+    icon: "🫧",
+    howTo: "Tap bubbles (+1) and gold ones (+3). Avoid the spiky purple ones (−3). 30 seconds.",
+  },
+  {
+    id: "stack",
+    name: "Box Stack",
+    blurb: "Stack the delivery boxes as high as you can.",
+    icon: "📦",
+    howTo: "Tap (or press space) to drop the sliding box. Only the part on top of the stack stays.",
+  },
+  {
+    id: "simon",
+    name: "Rocky Says",
+    blurb: "Watch the pattern, then play it back. It grows every round!",
+    icon: "🎵",
+    howTo: "Watch the pads light up, then tap them in the same order.",
   },
   {
     id: "typo",
@@ -161,10 +197,25 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
             {playing === "memory" && (
               <MemoryMatch onDone={(s) => finish("memory", s)} />
             )}
+            {playing === "run" && (
+              <RockyRun rocky={rocky} onDone={(s) => finish("run", s)} />
+            )}
+            {playing === "whack" && (
+              <MudSplat rocky={rocky} onDone={(s) => finish("whack", s)} />
+            )}
+            {playing === "bubbles" && (
+              <BubblePop onDone={(s) => finish("bubbles", s)} />
+            )}
+            {playing === "simon" && (
+              <RockySays rocky={rocky} onDone={(s) => finish("simon", s)} />
+            )}
+            {playing === "stack" && (
+              <BoxStack onDone={(s) => finish("stack", s)} />
+            )}
           </section>
         ) : (
           <ul className={styles.grid}>
-            {GAMES.map((g) => (
+            {GAMES.filter((g) => gameEnabled(pet.overrides, g.id)).map((g) => (
               <li key={g.id} className={styles.card}>
                 <span className={styles.icon} aria-hidden="true">
                   {g.icon}
@@ -187,7 +238,7 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
                 </button>
               </li>
             ))}
-            {onOpenNotes && (
+            {onOpenNotes && gameEnabled(pet.overrides, "notes") && (
               <li className={`${styles.card} ${styles.cardNotes}`}>
                 <span className={styles.icon} aria-hidden="true">
                   📝

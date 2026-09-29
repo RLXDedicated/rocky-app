@@ -267,6 +267,15 @@ export const MIGRATION_006_PEOPLE = `
     ('kcolina@rlx.us', 'qa', '2026-09-29T12:00:00.000Z', 'seed');
 `
 
+/** Testers of the pilot: a "Tester" badge next to their name, set by admins. */
+export const MIGRATION_008_TESTERS = `
+  CREATE TABLE agent_testers (
+    agent_id  TEXT PRIMARY KEY,
+    added_at  TEXT NOT NULL,
+    added_by  TEXT NOT NULL
+  );
+`
+
 /** Anibal (Rocky admin, shown as DEV) is also a quality analyst. Kept if an admin already set a title. */
 export const MIGRATION_007_DEV_QA = `
   INSERT OR IGNORE INTO agent_titles (agent_id, title, updated_at, updated_by) VALUES

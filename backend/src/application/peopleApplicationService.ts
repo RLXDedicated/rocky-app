@@ -96,6 +96,7 @@ export function createPeopleApplicationService({ persistence, pet, isStaff, isOn
       const leader = accounts.getTeams()[agentId] ?? null
       return {
         title,
+        tester: accounts.getTesters().includes(agentId),
         admin: isStaff(agentId),
         team: title === 'leader' ? spirit(agentId) : null,
         leader: leader ? { id: friendKey(leader), name: nameOf(leader) } : null,
@@ -138,19 +139,21 @@ export function createPeopleApplicationService({ persistence, pet, isStaff, isOn
     adminPeople() {
       const titles = accounts.getTitles()
       const teams = accounts.getTeams()
-      const ids = new Set([...repo.listAgentIds(), ...Object.keys(titles)])
+      const testers = new Set(accounts.getTesters())
+      const ids = new Set([...repo.listAgentIds(), ...Object.keys(titles), ...testers])
       return [...ids]
         .map((id) => ({
           email: id,
           name: nameOf(id),
           title: titles[id] ?? null,
+          tester: testers.has(id),
           leader: teams[id] ?? null,
           signedUp: repo.hasAgent(id),
         }))
         .sort((a, b) => a.name.localeCompare(b.name))
     },
 
-    adminSetPerson(email: string, change: { title?: AgentTitle | null; leader?: string | null }, actor: { id: string; via?: string }) {
+    adminSetPerson(email: string, change: { title?: AgentTitle | null; leader?: string | null; tester?: boolean }, actor: { id: string; via?: string }) {
       const at = clock.now().toISOString()
       if (change.title !== undefined) {
         accounts.setTitle(email, change.title, actor.id, at)
@@ -158,6 +161,7 @@ export function createPeopleApplicationService({ persistence, pet, isStaff, isOn
         if (change.title !== 'leader')
           for (const [member, leader] of Object.entries(accounts.getTeams())) if (leader === email) accounts.setLeader(member, null, actor.id, at)
       }
+      if (change.tester !== undefined) accounts.setTester(email, change.tester, actor.id, at)
       if (change.leader !== undefined) {
         if (change.leader && titleOf(change.leader) !== 'leader') throw ApiError.validation('That person is not a team leader yet.')
         if (change.leader === email) throw ApiError.validation('A leader cannot be in her own team.')

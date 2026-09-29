@@ -23,10 +23,14 @@ export function createPeopleRouter(people: PeopleApplicationService): Router {
   })
   router.put('/admin/people/:email', admin, (req: Request, res: Response) => {
     const body = parseJsonBody(req.body)
-    const change: { title?: 'qa' | 'leader' | null; leader?: string | null } = {}
+    const change: { title?: 'qa' | 'leader' | null; leader?: string | null; tester?: boolean } = {}
     if ('title' in body) {
       if (body.title !== null && !TITLES.includes(body.title as (typeof TITLES)[number])) throw ApiError.validation('title must be "qa", "leader" or null.')
       change.title = body.title as 'qa' | 'leader' | null
+    }
+    if ('tester' in body) {
+      if (typeof body.tester !== 'boolean') throw ApiError.validation('tester must be true or false.')
+      change.tester = body.tester
     }
     if ('leader' in body) {
       if (body.leader !== null && typeof body.leader !== 'string') throw ApiError.validation('leader must be an email or null.')

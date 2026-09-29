@@ -181,7 +181,7 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
                     </span>
                     <span className={styles.channelText}>
                       <strong>
-                        {c.kind === 'general' ? 'General — everyone' : c.title} <NameBadges staff={c.with?.staff} title={c.with?.title} />
+                        {c.kind === 'general' ? 'General — everyone' : c.title} <NameBadges staff={c.with?.staff} title={c.with?.title} tester={c.with?.tester} />
                       </strong>
                       <small>{c.last ? `${c.last.mine ? 'You' : c.last.name}: ${(stickerOf(c.last.body) ? `🐂 ${stickerOf(c.last.body)!.label}` : c.last.body) || 'message hidden'}` : 'No messages yet'}</small>
                     </span>
@@ -204,7 +204,7 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
                   ←
                 </button>
                 <strong>
-                  {current.kind === 'general' ? 'General — everyone in the pilot' : current.title} <NameBadges staff={current.with?.staff} title={current.with?.title} />
+                  {current.kind === 'general' ? 'General — everyone in the pilot' : current.title} <NameBadges staff={current.with?.staff} title={current.with?.title} tester={current.with?.tester} />
                 </strong>
                 {current.with && <small>{presenceOf(current.with.id) ? '● Online now' : `${current.with.rockyName}’s human`}</small>}
               </header>

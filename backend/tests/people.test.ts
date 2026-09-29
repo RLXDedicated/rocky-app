@@ -50,6 +50,22 @@ describe('titles', () => {
     const msg = await request(app).post('/api/chat/channels/general/messages').set(as(QA)).send({ text: 'hola' })
     expect(msg.body.title).toBe('qa')
   })
+
+  it('admins put and take the Tester badge, alongside any title', async () => {
+    const app = build()
+    for (const e of [QA, A]) await request(app).get('/api/agent/me').set(as(e))
+    await request(app).put(`/api/admin/people/${A}`).set(as(ADMIN)).send({ tester: true }).expect(200)
+    await request(app).put(`/api/admin/people/${QA}`).set(as(ADMIN)).send({ tester: true }).expect(200)
+    expect((await request(app).get('/api/me/role').set(as(A))).body).toMatchObject({ tester: true, title: null })
+    const friends = await request(app).get('/api/friends').set(as(A))
+    expect(friends.body.friends.find((f: { name: string }) => f.name === 'Madiaz')).toMatchObject({ title: 'qa', tester: true })
+    await request(app).post('/api/chat/rules').set(as(A)).send({ version: RULES_VERSION })
+    const msg = await request(app).post('/api/chat/channels/general/messages').set(as(A)).send({ text: 'probando' })
+    expect(msg.body.tester).toBe(true)
+    await request(app).put(`/api/admin/people/${A}`).set(as(ADMIN)).send({ tester: false }).expect(200)
+    expect((await request(app).get('/api/me/role').set(as(A))).body.tester).toBe(false)
+    expect((await request(app).put(`/api/admin/people/${A}`).set(as(QA)).send({ tester: true })).status).toBe(403)
+  })
 })
 
 describe('teams', () => {

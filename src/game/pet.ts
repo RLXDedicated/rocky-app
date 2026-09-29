@@ -18,6 +18,9 @@ import {
   DEFAULT_OUTFIT,
   findItem,
   isUsable,
+  isItemUnlocked,
+  SHOP_UNLOCK,
+  sectionUnlock,
   sanitizeOutfit,
   sanitizeSpots,
   type CatalogOverrides,
@@ -41,6 +44,7 @@ import {
   ARCADE_GAMES,
   ARCADE_MAX_SCORE,
   arcadeReward,
+  gameEnabled,
   type ArcadeGame,
   type LitterPiece,
 } from "./pantry";
@@ -49,6 +53,11 @@ const ARCADE_NAMES: Record<ArcadeGame, string> = {
   catch: "Treat Catch",
   typo: "Typo Hunt",
   memory: "Memory Match",
+  run: "Rocky Run",
+  whack: "Mud Splat",
+  bubbles: "Bubble Pop",
+  simon: "Rocky Says",
+  stack: "Box Stack",
 };
 
 export const NEEDS_MAX = 100;
@@ -93,6 +102,8 @@ export interface PetState {
   owned: string[];
   /** Items an admin gave the agent (usable even before the progress unlock, and free). */
   granted: string[];
+  /** What an admin unlocked for the agent to buy with their own coins: item ids, "slot:<slot>" or "*" (see adminUnlocked). */
+  unlocks: string[];
   needs: Needs;
   /** Daily counters. */
   day: { date: string; pets: number; plays: number; baths: number };
@@ -290,6 +301,7 @@ export function initialPetState(now: Date = new Date()): PetState {
     },
     owned: [],
     granted: [],
+    unlocks: [],
     needs: {
       health: 100,
       happiness: 80,
@@ -386,6 +398,7 @@ export function normalizePetState(
     },
     owned: ids(r.owned).filter((id) => !(id in RETIRED_ITEMS)),
     granted: ids(r.granted),
+    unlocks: ids(r.unlocks),
     needs: {
       health: clamp(num(needs.health, base.needs.health)),
       happiness: clamp(num(needs.happiness, base.needs.happiness)),
@@ -858,6 +871,7 @@ export function applyPetAction(
     case "arcade": {
       if (!(ARCADE_GAMES as readonly string[]).includes(action.game))
         return fail("invalid");
+      if (!gameEnabled(ctx.overrides, action.game)) return fail("unavailable");
       const score = Math.floor(Number(action.score));
       if (!Number.isFinite(score) || score < 0) return fail("invalid");
       const clamped = Math.min(ARCADE_MAX_SCORE[action.game], score);
@@ -909,7 +923,7 @@ export function applyPetAction(
       )
         return fail("owned");
       if (item.enabled === false) return fail("unavailable");
-      if (!item.isUnlocked(ctx.facts)) return fail("locked");
+      if (!isItemUnlocked(item, ctx.facts, state.unlocks)) return fail("locked");
       if (coinBalance(state, ctx.facts) < item.price) return fail("coins");
       return {
         ok: true,
@@ -940,6 +954,7 @@ export function applyPetAction(
     case "quiz": {
       if (!action.answers || typeof action.answers !== "object")
         return fail("invalid");
+      if (!gameEnabled(ctx.overrides, "notes")) return fail("unavailable");
       const answers: Record<string, number> = {};
       for (const [k, v] of Object.entries(action.answers))
         if (typeof v === "number" && Number.isInteger(v)) answers[k] = v;
@@ -996,6 +1011,7 @@ export function applyPetAction(
             state.owned,
             state.granted,
             catalog,
+            state.unlocks,
           ),
         },
       };
@@ -1134,6 +1150,25 @@ export function adminGrantItem(state: PetState, itemId: string): PetState {
     : { ...state, granted: [...state.granted, itemId] };
 }
 
+/** Lets the agent buy an item (id), a whole section ("slot:hat") or the whole shop ("*") without the progress requirement. */
+export function adminUnlock(state: PetState, key: string): PetState {
+  return state.unlocks.includes(key) ? state : { ...state, unlocks: [...state.unlocks, key] };
+}
+
+/** Removes an unlock (items already bought stay the agent's). */
+export function adminRelock(state: PetState, key: string): PetState {
+  return state.unlocks.includes(key) ? { ...state, unlocks: state.unlocks.filter((k) => k !== key) } : state;
+}
+
+/** Gives every regular item of a section ("slot:hat") or of the whole shop ("*") — never staff or gift-only items. */
+export function adminGrantMany(state: PetState, key: string, catalog: ClosetItem[] = CLOSET): PetState {
+  const ids = catalog
+    .filter((i) => !i.staff && !i.gift && (key === SHOP_UNLOCK || sectionUnlock(i.slot) === key))
+    .map((i) => i.id)
+    .filter((id) => !state.granted.includes(id));
+  return ids.length ? { ...state, granted: [...state.granted, ...ids] } : state;
+}
+
 /** Takes an item away (gift or purchase — purchases are not refunded unless the admin also grants coins). */
 export function adminRevokeItem(
   state: PetState,
@@ -1154,6 +1189,7 @@ export function adminRevokeItem(
       next.owned,
       next.granted,
       catalog,
+      next.unlocks,
     ),
   };
 }
@@ -1234,7 +1270,7 @@ export function canUse(
   item: ClosetItem,
   facts: ProgressFacts,
 ): boolean {
-  return isUsable(item, facts, state.owned, state.granted);
+  return isUsable(item, facts, state.owned, state.granted, state.unlocks);
 }
 
 /** How Rocky feels about his needs, for speech lines and the needs dock. */

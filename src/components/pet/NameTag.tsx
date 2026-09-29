@@ -10,13 +10,14 @@ interface NameTagProps {
   vip?: boolean
   /** QA analyst / team leader badge. */
   title?: Title
+  tester?: boolean
 }
 
 /**
  * Rocky's name, printed on an RLX shipping tag that hangs off the habitat.
  * Tapping it renames the pet — the name only lives on this device.
  */
-export function NameTag({ name, subtitle, onRename, vip = false, title }: NameTagProps) {
+export function NameTag({ name, subtitle, onRename, vip = false, title, tester }: NameTagProps) {
   const [draft, setDraft] = useState<string | null>(null)
 
   if (draft !== null) {
@@ -62,7 +63,7 @@ export function NameTag({ name, subtitle, onRename, vip = false, title }: NameTa
     <button className={styles.tag} onClick={() => setDraft(name)} aria-label={`${name}. Rename your Rocky`}>
       <span className={styles.tagHole} aria-hidden="true" />
       <span className={styles.tagName}>
-        {name} <NameBadges staff={vip} title={title} size="md" />
+        {name} <NameBadges staff={vip} title={title} tester={tester} size="md" />
       </span>
       <span className={styles.tagSub}>{subtitle}</span>
       <span className={styles.tagEdit}>Rename</span>

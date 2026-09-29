@@ -13,7 +13,7 @@
 //
 // Pure module: shared by the frontend and the backend.
 
-import type { Collection } from "./closet";
+import type { CatalogOverrides, Collection } from "./closet";
 
 export type Season = Collection;
 
@@ -351,21 +351,82 @@ export const GAME_CAPS = { coins: 60, xp: 12 } as const;
 // Arcade: quick mini-games that pay coins only (no XP), with their own daily
 // cap. The browser reports the score; the server clamps it and pays.
 // ---------------------------------------------------------------------------
-export type ArcadeGame = "catch" | "typo" | "memory";
-export const ARCADE_GAMES: readonly ArcadeGame[] = ["catch", "typo", "memory"];
+export type ArcadeGame =
+  | "catch"
+  | "typo"
+  | "memory"
+  | "run"
+  | "whack"
+  | "bubbles"
+  | "simon"
+  | "stack";
+export const ARCADE_GAMES: readonly ArcadeGame[] = [
+  "catch",
+  "typo",
+  "memory",
+  "run",
+  "whack",
+  "bubbles",
+  "simon",
+  "stack",
+];
 
 /** Highest score each game can reach in one round (anything above is clamped). */
 export const ARCADE_MAX_SCORE: Record<ArcadeGame, number> = {
   catch: 80,
   typo: 24,
   memory: 3,
+  run: 60,
+  whack: 60,
+  bubbles: 80,
+  simon: 20,
+  stack: 40,
 };
 export const ARCADE_CAP = { coins: 50 } as const;
 
-/** Coins for one round: Treat Catch 1 per 3 treats, Typo Hunt 1 per typo fixed, Memory 4/7/10 by stars — 10 max. */
+/** Coins for one round — 10 max, whatever the game. */
 export function arcadeReward(game: ArcadeGame, score: number): number {
   const s = Math.max(0, Math.min(ARCADE_MAX_SCORE[game], Math.floor(score)));
-  if (game === "catch") return Math.min(10, Math.floor(s / 3));
-  if (game === "typo") return Math.min(10, s);
-  return [0, 4, 7, 10][s] ?? 0;
+  switch (game) {
+    case "catch":
+    case "run":
+    case "whack":
+      return Math.min(10, Math.floor(s / 3));
+    case "typo":
+    case "simon":
+      return Math.min(10, s);
+    case "bubbles":
+      return Math.min(10, Math.floor(s / 4));
+    case "stack":
+      return Math.min(10, Math.floor(s / 2));
+    case "memory":
+      return [0, 4, 7, 10][s] ?? 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Which games are switched on. Admins toggle each one (Admin → Minijuegos);
+// the switch lives in the catalogue overrides as "game:<id>".
+// ---------------------------------------------------------------------------
+export type MiniGame = ArcadeGame | "notes";
+
+export const MINI_GAMES: { id: MiniGame; name: string; kind: string; defaultOn: boolean }[] = [
+  { id: "catch", name: "Treat Catch", kind: "Reflejos", defaultOn: true },
+  { id: "run", name: "Rocky Run", kind: "Saltar obstáculos", defaultOn: true },
+  { id: "whack", name: "Mud Splat", kind: "Reflejos", defaultOn: true },
+  { id: "bubbles", name: "Bubble Pop", kind: "Reflejos", defaultOn: true },
+  { id: "stack", name: "Box Stack", kind: "Precisión", defaultOn: true },
+  { id: "simon", name: "Rocky Says", kind: "Memoria", defaultOn: true },
+  { id: "memory", name: "Memory Match", kind: "Memoria", defaultOn: true },
+  // Spelling and the notes quiz felt like homework to the testers: off by default.
+  { id: "typo", name: "Typo Hunt", kind: "Ortografía", defaultOn: false },
+  { id: "notes", name: "Note Check (quiz diario)", kind: "Quiz de notas", defaultOn: true },
+];
+
+export const gameKey = (id: MiniGame) => `game:${id}`;
+
+export function gameEnabled(overrides: CatalogOverrides | undefined, id: MiniGame): boolean {
+  const o = overrides?.[gameKey(id)];
+  if (o && typeof o.enabled === "boolean") return o.enabled;
+  return MINI_GAMES.find((g) => g.id === id)?.defaultOn ?? false;
 }

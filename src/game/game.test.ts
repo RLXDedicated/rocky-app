@@ -524,10 +524,12 @@ describe("arcade and retired items", () => {
         run(s, { type: "arcade", game: "memory", score: 2 }).state.gameCoins,
     ).toBe(7);
     expect(
-      run(s, { type: "arcade", game: "typo", score: 999 }).ok &&
-        run(s, { type: "arcade", game: "typo", score: 999 }).state.games
-          .arcadeBest.typo,
-    ).toBe(24);
+      run(s, { type: "arcade", game: "simon", score: 999 }).ok &&
+        run(s, { type: "arcade", game: "simon", score: 999 }).state.games
+          .arcadeBest.simon,
+    ).toBe(20);
+    // Typo Hunt is off unless an admin switches it on.
+    expect(run(s, { type: "arcade", game: "typo", score: 5 })).toMatchObject({ ok: false, reason: "unavailable" });
     expect(
       run(s, { type: "arcade", game: "chess" as never, score: 3 }),
     ).toMatchObject({ ok: false, reason: "invalid" });

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactElement } from 'react'
 import {
   collectionOpen,
   isUsable,
+  isItemUnlocked,
+  adminUnlocked,
   itemsFor,
   MAX_DECOR,
   SINGLE_SLOTS,
@@ -84,6 +86,8 @@ interface Props {
   owned: readonly string[]
   /** Items an admin gifted (usable regardless of progress). */
   granted: readonly string[]
+  /** What an admin unlocked for the agent to buy (item ids, "slot:<slot>", "*"). */
+  unlocks?: readonly string[]
   /** The shop with any admin price/availability edits. */
   catalog: ClosetItem[]
   coins: number
@@ -117,6 +121,7 @@ export function ShopPanel({
   facts,
   owned,
   granted,
+  unlocks = [],
   catalog,
   coins,
   treats,
@@ -166,7 +171,7 @@ export function ShopPanel({
   }
 
   // Items taken out of the shop by an admin stay visible only to agents who already have them.
-  const visible = (i: ClosetItem) => (i.staff || i.gift ? granted.includes(i.id) : i.enabled !== false || isUsable(i, facts, owned, granted))
+  const visible = (i: ClosetItem) => (i.staff || i.gift ? granted.includes(i.id) : i.enabled !== false || isUsable(i, facts, owned, granted, unlocks))
   const closetFor = (t: Tab): ClosetItem[] => {
     if (t === 'style') return [...itemsFor('body', catalog, granted), ...itemsFor('aura', catalog, granted)]
     if (t === 'spooky' || t === 'holiday') return catalog.filter((i) => i.season === t)
@@ -313,18 +318,19 @@ export function ShopPanel({
           <>
             {season && <h3 className={styles.groupTitle}>Looks and world</h3>}
             <p className={styles.count}>
-              {items.filter((i) => isUsable(i, facts, owned, granted)).length} of {items.length} owned
+              {items.filter((i) => isUsable(i, facts, owned, granted, unlocks)).length} of {items.length} owned
               {tab === 'decor' ? ` · ${outfit.decor.length}/${MAX_DECOR} placed · tap them in the world and Rocky plays with them` : ''}
             </p>
             <ul className={styles.grid}>
               {items.map((item) => {
-                const usable = isUsable(item, facts, owned, granted)
-                const unlocked = usable || item.isUnlocked(facts)
+                const usable = isUsable(item, facts, owned, granted, unlocks)
+                const unlocked = usable || isItemUnlocked(item, facts, unlocks)
+                const byQa = !usable && !item.isUnlocked(facts) && adminUnlocked(item, unlocks)
                 const on = usable && isEquipped(item.slot, item.id)
                 const short = item.price - coins
                 let state: string
                 if (!unlocked) state = item.requirement
-                else if (!usable) state = short > 0 ? `${short} more coins` : 'Tap to buy'
+                else if (!usable) state = (byQa ? 'Unlocked by QA · ' : '') + (short > 0 ? `${short} more coins` : 'Tap to buy')
                 else
                   state = on
                     ? ['hat', 'glasses', 'neck', 'back', 'body'].includes(item.slot)

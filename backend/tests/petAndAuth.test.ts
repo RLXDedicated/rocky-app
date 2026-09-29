@@ -963,7 +963,7 @@ describe("Arcade", () => {
     const r = await request(app)
       .post("/api/pet/actions")
       .set(as(AGENT))
-      .send({ type: "arcade", game: "typo", score: 6 });
+      .send({ type: "arcade", game: "simon", score: 6 });
     expect(r.body.ok).toBe(true);
     expect(r.body.reward).toEqual({ coins: 6, xp: 0 });
     expect(
@@ -981,5 +981,49 @@ describe("Arcade", () => {
       .get(`/api/admin/agents/${AGENT}/pet`)
       .set(as(ADMIN));
     expect(detail.body.ledger[0]).toMatchObject({ kind: "game", delta: 6 });
+  });
+
+  it("lets an admin switch games on and off for everyone", async () => {
+    const app = build();
+    const typo = () =>
+      request(app).post("/api/pet/actions").set(as(AGENT)).send({ type: "arcade", game: "typo", score: 3 });
+    expect((await typo()).body).toMatchObject({ ok: false, reason: "unavailable" });
+    const games = await request(app).get("/api/admin/games").set(as(ADMIN));
+    expect(games.body.games.find((g: { id: string }) => g.id === "typo")).toMatchObject({ enabled: false });
+    await request(app).put("/api/admin/games/typo").set(as(ADMIN)).send({ enabled: true }).expect(200);
+    expect((await typo()).body).toMatchObject({ ok: true });
+    await request(app).put("/api/admin/games/catch").set(as(ADMIN)).send({ enabled: false }).expect(200);
+    expect(
+      (await request(app).post("/api/pet/actions").set(as(AGENT)).send({ type: "arcade", game: "catch", score: 3 })).body,
+    ).toMatchObject({ ok: false, reason: "unavailable" });
+    expect((await request(app).put("/api/admin/games/typo").set(as(AGENT)).send({ enabled: false })).status).toBe(403);
+  });
+});
+
+describe("Shop unlocks", () => {
+  it("unlocks an item, a section or the whole shop to BUY, and gifts a whole section", async () => {
+    const app = build();
+    const buy = (itemId: string) =>
+      request(app).post("/api/pet/actions").set(as(AGENT)).send({ type: "buy", itemId });
+    await request(app).get("/api/pet").set(as(AGENT)).expect(200);
+    await request(app).post(`/api/admin/agents/${AGENT}/coins`).set(as(ADMIN)).send({ delta: 5000, note: "test" }).expect(200);
+    expect((await buy("hat-knight")).body).toMatchObject({ ok: false, reason: "locked" });
+    await request(app).post(`/api/admin/agents/${AGENT}/items`).set(as(ADMIN)).send({ itemId: "hat-knight", action: "unlock" }).expect(200);
+    const bought = await buy("hat-knight");
+    expect(bought.body.ok).toBe(true);
+    expect(bought.body.state.owned).toContain("hat-knight");
+    // A whole section, then the whole shop.
+    expect((await buy("glasses-diamond")).body.reason).toBe("locked");
+    await request(app).post("/api/admin/bulk").set(as(ADMIN)).send({ agentIds: [AGENT], op: { kind: "item", itemId: "slot:glasses", mode: "unlock" } }).expect(200);
+    expect((await buy("glasses-diamond")).body.ok).toBe(true);
+    expect((await buy("scene-space")).body.reason).toBe("locked");
+    await request(app).post(`/api/admin/agents/${AGENT}/items`).set(as(ADMIN)).send({ itemId: "*", action: "unlock" }).expect(200);
+    expect((await buy("scene-space")).body.ok).toBe(true);
+    // Gift-only and admin-only items can't be unlocked for purchase.
+    expect((await request(app).post(`/api/admin/agents/${AGENT}/items`).set(as(ADMIN)).send({ itemId: "back-tester-wings", action: "unlock" })).status).toBe(422);
+    // Gifting a whole section.
+    const gifted = await request(app).post(`/api/admin/agents/${AGENT}/items`).set(as(ADMIN)).send({ itemId: "slot:decor", action: "grant" });
+    expect(gifted.body.state.granted).toContain("decor-piano");
+    expect(gifted.body.state.granted).not.toContain("back-nova-wings");
   });
 });

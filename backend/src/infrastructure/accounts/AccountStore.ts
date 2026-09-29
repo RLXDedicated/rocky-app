@@ -92,6 +92,9 @@ export interface AccountStore {
   /** Titles by agent (qa analysts, team leaders). */
   getTitles(): Record<string, AgentTitle>
   setTitle(agentId: string, title: AgentTitle | null, by: string, at: string): void
+  /** Agents with the "Tester" badge. */
+  getTesters(): string[]
+  setTester(agentId: string, on: boolean, by: string, at: string): void
   /** Which leader each agent reports to (member → leader). */
   getTeams(): Record<string, string>
   setLeader(memberId: string, leaderId: string | null, by: string, at: string): void

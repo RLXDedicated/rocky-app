@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { peopleApi, type AdminPerson } from '../../services/apiClient'
-import { TitleBadge } from '../TitleBadge'
+import { TesterBadge, TitleBadge } from '../TitleBadge'
 import styles from './AdminConsole.module.css'
 
 /**
@@ -12,7 +12,7 @@ export function PeopleTab({ onChanged, onError }: { onChanged: (m: string) => vo
   const [people, setPeople] = useState<AdminPerson[] | null>(null)
   const [query, setQuery] = useState('')
   const [newEmail, setNewEmail] = useState('')
-  const [newTitle, setNewTitle] = useState<'qa' | 'leader'>('qa')
+  const [newTitle, setNewTitle] = useState<'qa' | 'leader' | 'tester'>('qa')
 
   const load = () =>
     peopleApi
@@ -25,7 +25,7 @@ export function PeopleTab({ onChanged, onError }: { onChanged: (m: string) => vo
 
   const leaders = useMemo(() => (people ?? []).filter((p) => p.title === 'leader'), [people])
 
-  async function save(email: string, change: { title?: 'qa' | 'leader' | null; leader?: string | null }, msg: string) {
+  async function save(email: string, change: { title?: 'qa' | 'leader' | null; leader?: string | null; tester?: boolean }, msg: string) {
     try {
       await peopleApi.adminSetPerson(email, change)
       onChanged(msg)
@@ -41,7 +41,8 @@ export function PeopleTab({ onChanged, onError }: { onChanged: (m: string) => vo
   return (
     <div className={styles.stack}>
       <p className={styles.muted}>
-        Los títulos solo muestran una insignia junto al nombre (QA azul, LEAD verde azulado): no dan permisos. Cada líder ve únicamente a su equipo en “My team” y
+        Los títulos solo muestran una insignia junto al nombre (QA azul, LEAD verde azulado, TESTER verde-café): no dan permisos. TESTER se suma al
+        título (alguien puede ser QA y Tester a la vez); quítalo o ponlo cuando quieras. Cada líder ve únicamente a su equipo en “My team” y
         su Rocky refleja el espíritu del equipo. Los líderes no tienen acceso a los chats.
       </p>
 
@@ -60,18 +61,24 @@ export function PeopleTab({ onChanged, onError }: { onChanged: (m: string) => vo
           )
         })}
         <div className={styles.card}>
-          <h3>Dar un título por correo</h3>
+          <h3>Dar un título o la insignia Tester por correo</h3>
           <p className={styles.muted}>Sirve también para personas que aún no han entrado a Rocky.</p>
           <div className={styles.inlineForm}>
             <input className={styles.field} placeholder="correo@rlx.us" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-            <select className={styles.select} value={newTitle} onChange={(e) => setNewTitle(e.target.value as 'qa' | 'leader')}>
+            <select className={styles.select} value={newTitle} onChange={(e) => setNewTitle(e.target.value as 'qa' | 'leader' | 'tester')}>
               <option value="qa">QA</option>
               <option value="leader">Líder</option>
+              <option value="tester">Tester</option>
             </select>
             <button
               className={styles.btnPrimary}
               onClick={() => {
-                if (newEmail.trim()) void save(newEmail.trim().toLowerCase(), { title: newTitle }, 'Título asignado.').then(() => setNewEmail(''))
+                if (newEmail.trim())
+                  void save(
+                    newEmail.trim().toLowerCase(),
+                    newTitle === 'tester' ? { tester: true } : { title: newTitle },
+                    newTitle === 'tester' ? 'Insignia Tester asignada.' : 'Título asignado.',
+                  ).then(() => setNewEmail(''))
               }}
             >
               Asignar
@@ -89,6 +96,7 @@ export function PeopleTab({ onChanged, onError }: { onChanged: (m: string) => vo
             <tr>
               <th>Agente</th>
               <th>Título</th>
+              <th>Tester</th>
               <th>Equipo (líder)</th>
             </tr>
           </thead>
@@ -96,7 +104,7 @@ export function PeopleTab({ onChanged, onError }: { onChanged: (m: string) => vo
             {shown.map((p) => (
               <tr key={p.email}>
                 <td>
-                  <strong>{p.name}</strong> <TitleBadge title={p.title} />
+                  <strong>{p.name}</strong> <TitleBadge title={p.title} /> {p.tester && <TesterBadge />}
                   <br />
                   <small className={styles.muted}>
                     {p.email}
@@ -117,6 +125,15 @@ export function PeopleTab({ onChanged, onError }: { onChanged: (m: string) => vo
                     <option value="qa">QA</option>
                     <option value="leader">Líder</option>
                   </select>
+                </td>
+                <td>
+                  <label className={styles.field}>
+                    <input
+                      type="checkbox"
+                      checked={!!p.tester}
+                      onChange={(e) => void save(p.email, { tester: e.target.checked }, e.target.checked ? `${p.name}: insignia Tester puesta.` : `${p.name}: insignia Tester quitada.`)}
+                    />
+                  </label>
                 </td>
                 <td>
                   {p.title === 'leader' ? (

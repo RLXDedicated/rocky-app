@@ -63,11 +63,12 @@ export interface ChatDeps {
   /** Rocky admins get the VIP badge next to their name. */
   isStaff?: (agentId: string) => boolean
   titleOf?: (agentId: string) => string | null
+  testerOf?: (agentId: string) => boolean
   /** The author's chat bubble style (a shop item). */
   bubbleOf?: (agentId: string) => string | null
 }
 
-export function createChatApplicationService({ persistence, bus, clock = systemClock, isStaff = () => false, titleOf = () => null, bubbleOf = () => null }: ChatDeps) {
+export function createChatApplicationService({ persistence, bus, clock = systemClock, isStaff = () => false, titleOf = () => null, testerOf = () => false, bubbleOf = () => null }: ChatDeps) {
   const store = persistence.chat
   const repo = persistence.repoStore
   const sent = new Map<string, number[]>()
@@ -93,6 +94,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       rockyName: agent.rockyName,
       staff: isStaff(agentId),
       title: titleOf(agentId),
+      tester: testerOf(agentId),
       stage: game.evolutionStage,
       mood: game.mood,
     }
@@ -141,6 +143,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       name: nameOf(m.authorId),
       staff: isStaff(m.authorId),
       title: titleOf(m.authorId),
+      tester: testerOf(m.authorId),
       style: bubbleOf(m.authorId),
       mine: m.authorId === viewerId,
       body: m.hiddenAt ? '' : m.body,

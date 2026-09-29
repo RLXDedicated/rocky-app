@@ -384,7 +384,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
           hud={
             <>
               <div className={styles.hudLeft}>
-                <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} vip={vip} title={myRole?.title} />
+                <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} vip={vip} title={myRole?.title} tester={myRole?.tester} />
                 {team && (
                   <button type="button" className={styles.notesChip} onClick={onOpenTeam} title="Your Rocky's mood follows your team">
                     <span aria-hidden="true">🤝</span> Team spirit
@@ -518,6 +518,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
         facts={facts}
         owned={pet.state.owned}
         granted={pet.state.granted}
+        unlocks={pet.state.unlocks}
         catalog={catalog}
         coins={coins}
         treats={treats}

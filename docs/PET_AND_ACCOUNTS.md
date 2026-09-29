@@ -467,3 +467,25 @@ dots).
   or bulk actions → "Regalar accesorio").
 - **Nova wings** (`back-nova-wings`): Rocky-admin only (in `STAFF_ITEMS`) —
   three flapping tiers, energy veins, rune ring, lightning and stardust.
+
+## Admin console, unlocks, mini-games and testers (2026-09-29)
+
+- **Console layout**: Resumen (+ Actividad) · Agentes · Regalos y recompensas
+  (bulk) · Tienda y economía (catálogo + economía) · Minijuegos · Roles y
+  equipos · Chats · Registro y sistema (auditoría + sistema). Selecting agents
+  in *Agentes* offers "Regalar / desbloquear…" (opens the rewards tab with
+  them selected) and "Marcar / Quitar Tester".
+- **Gift vs unlock**: `PetState.unlocks` holds item ids, `slot:<slot>` or
+  `*`. *Regalar* grants the items for free (a whole section or the whole
+  shop too, never staff or gift-only items). *Desbloquear* only skips the
+  progress requirement — the agent still buys with their own coins
+  (`adminUnlocked` / `isItemUnlocked` in closet.ts). Per agent in the agent
+  card, or in bulk (`op.kind = "item"`, `mode: "grant" | "unlock"`).
+- **Mini-games**: Treat Catch, Rocky Run, Mud Splat, Bubble Pop, Box Stack,
+  Rocky Says, Memory Match, Typo Hunt and Note Check. Each can be switched
+  on/off for everyone in Admin → Minijuegos (override key `game:<id>`;
+  `gameEnabled` in pantry.ts). Typo Hunt is off by default. A game that is
+  off disappears from the Arcade and the server refuses to pay for it.
+- **Tester badge**: `agent_testers` (migration 008). A moss-green/walnut
+  "TESTER" chip next to the name, added to any title; set in Roles y
+  equipos or from the Agentes selection.

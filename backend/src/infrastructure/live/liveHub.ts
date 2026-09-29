@@ -92,7 +92,7 @@ export function attachLiveHub(server: Server, live: LiveContext, opts: LiveHubOp
   }
   function member(c: Conn) {
     const p = live.pet.publicProfile(c.agentId!)
-    return { id: p.id, name: p.name, rockyName: p.rockyName, staff: p.staff, title: p.title, stage: p.stage, mood: p.mood, outfit: p.outfit, x: c.x, host: c.room === c.agentId }
+    return { id: p.id, name: p.name, rockyName: p.rockyName, staff: p.staff, title: p.title, tester: p.tester, stage: p.stage, mood: p.mood, outfit: p.outfit, x: c.x, host: c.room === c.agentId }
   }
   /** One entry per agent inside a home (an agent may have two tabs open). */
   function members(hostId: string) {

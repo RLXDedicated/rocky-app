@@ -1098,6 +1098,17 @@ export function RockyWorld({
         if (!h.moved) say("Hold the soap and scrub me! 🧼", 2200);
         else if (scrubRef.current.progress < 1 && scrubRef.current.progress > 0)
           say("A bit more scrubbing…", 1600);
+        // A bath left half-way: a few seconds to pick the soap up again, then
+        // the foam rinses off and the scrub starts over.
+        if (scrubRef.current.progress < 1) {
+          window.clearTimeout(foamTimer.current);
+          foamTimer.current = window.setTimeout(() => {
+            if (heldRef.current?.what === "soap") return;
+            setFoam([]);
+            setScrub(0);
+            scrubRef.current.progress = 0;
+          }, 4000);
+        }
       } else if (h.what === "litter") {
         if (h.moved && overBin(e.clientX, e.clientY)) throwAway(h.id);
         else if (!h.moved) say("Drag it to the bin!", 1600);
@@ -1144,7 +1155,7 @@ export function RockyWorld({
     window.clearTimeout(foamTimer.current);
     // Foam that's left alone slowly disappears (and the scrub resets).
     foamTimer.current = window.setTimeout(() => {
-      if (heldRef.current) return;
+      if (heldRef.current?.what === "soap") return;
       setFoam([]);
       setScrub(0);
       scrubRef.current.progress = 0;
@@ -1769,9 +1780,12 @@ export function RockyWorld({
               setTray(null);
               onOpenPantry?.(tray);
             }}
+            // The bag gets out of the way once a snack or soap is on its way to Rocky, so he's always in view.
+            away={!!held && held.moved && (held.what === "food" || held.what === "soap")}
           />
         )}
-        {scrub > 0 && scrub < 1 && (
+        {/* Only while the soap is in hand — a bath left half-way never leaves the meter stuck on screen. */}
+        {scrub > 0 && scrub < 1 && held?.what === "soap" && (
           <div
             className={styles.scrubMeter}
             role="progressbar"

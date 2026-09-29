@@ -3,6 +3,7 @@
 // call an Application Service, and shape the response. None of them
 // compute XP/Energy/Level/Mood/Streak/Evolution/Achievements — grep this
 // file if you doubt it (Phase 12 §23 architecture quality check).
+import { ARCADE_GAMES } from "../../../src/game/pantry";
 import { Router, type Request, type Response } from "express";
 import { requireRole } from "../middleware/devIdentity";
 import {
@@ -85,7 +86,7 @@ function parsePetAction(body: Record<string, unknown>): PetAction {
   if (type === "arcade") {
     const game = requireEnum(
       body.game,
-      ["catch", "typo", "memory"] as const,
+      ARCADE_GAMES,
       "game",
     );
     if (typeof body.score !== "number" || !Number.isFinite(body.score))
@@ -505,13 +506,18 @@ export function createApiRouter(services: ApiServices): Router {
       const itemId = requireNonEmptyString(body.itemId, "itemId");
       const action = requireEnum(
         body.action,
-        ["grant", "revoke"] as const,
+        ["grant", "revoke", "unlock", "relock"] as const,
         "action",
       );
+      const id = req.params.id!;
       res.json(
         action === "grant"
-          ? services.pet.grantItem(req.params.id!, itemId, actorOf(req))
-          : services.pet.revokeItem(req.params.id!, itemId, actorOf(req)),
+          ? services.pet.grantItem(id, itemId, actorOf(req))
+          : action === "unlock"
+            ? services.pet.unlockItem(id, itemId, actorOf(req))
+            : action === "relock"
+              ? services.pet.relockItem(id, itemId, actorOf(req))
+              : services.pet.revokeItem(id, itemId, actorOf(req)),
       );
     },
   );
@@ -695,7 +701,11 @@ export function createApiRouter(services: ApiServices): Router {
     else if (kind === "treats")
       parsed = { kind, delta: requireInteger(op.delta, "op.delta", 1000) };
     else if (kind === "item")
-      parsed = { kind, itemId: requireNonEmptyString(op.itemId, "op.itemId") };
+      parsed = {
+        kind,
+        itemId: requireNonEmptyString(op.itemId, "op.itemId"),
+        mode: op.mode === undefined ? "grant" : requireEnum(op.mode, ["grant", "unlock"] as const, "op.mode"),
+      };
     else if (kind === "inventory")
       parsed = {
         kind,
@@ -754,6 +764,18 @@ export function createApiRouter(services: ApiServices): Router {
       );
     },
   );
+
+  // Mini-games: each one can be switched on or off for everyone.
+  router.get("/admin/games", adminOnly, (_req: Request, res: Response) => {
+    res.json(services.pet.getGames());
+  });
+
+  router.put("/admin/games/:id", adminOnly, (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body);
+    if (typeof body.enabled !== "boolean")
+      throw ApiError.validation('"enabled" must be true or false.');
+    res.json(services.pet.setGame(req.params.id!, body.enabled, actorOf(req)));
+  });
 
   // Limited collections (seasonal specials, themed packs): closed unless an admin opens them.
   router.patch(

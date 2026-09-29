@@ -102,10 +102,11 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const admins = new Set(config.adminEmails)
   const isStaff = (agentId: string) => admins.has(agentId.toLowerCase())
   const titleOf = (agentId: string) => persistence.accounts.getTitles()[agentId] ?? null
+  const testerOf = (agentId: string) => persistence.accounts.getTesters().includes(agentId)
   // Late-bound: people needs pet (profiles) and pet needs people (a leader's team mood).
   let people: PeopleApplicationService | null = null
-  const pet = createPetApplicationService({ persistence, clock: options.clock, isStaff, titleOf, teamMood: (id) => people?.teamMood(id) ?? null })
-  const chat = createChatApplicationService({ persistence, bus, clock: options.clock, isStaff, titleOf, bubbleOf: (id) => pet.bubbleOf(id) })
+  const pet = createPetApplicationService({ persistence, clock: options.clock, isStaff, titleOf, testerOf, teamMood: (id) => people?.teamMood(id) ?? null })
+  const chat = createChatApplicationService({ persistence, bus, clock: options.clock, isStaff, titleOf, testerOf, bubbleOf: (id) => pet.bubbleOf(id) })
   people = createPeopleApplicationService({ persistence, pet, isStaff, isOnline: (id) => bus.isOnline(id), clock: options.clock })
   const jobs = createChatJobs(chat, options.backupTarget ?? backupTargetFromEnv(process.env, config.persistenceDriver === 'sqlite' ? config.dbPath : null), options.clock)
   const live: LiveContext = { auth, pet, chat, bus, jobs, persistence }

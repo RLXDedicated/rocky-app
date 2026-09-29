@@ -129,6 +129,7 @@ export interface FriendSummary {
   staff?: boolean
   /** QA analyst or team leader badge. */
   title?: 'qa' | 'leader' | null
+  tester?: boolean
   level: number
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -145,6 +146,7 @@ export interface FriendDetail {
   rockyName: string
   staff?: boolean
   title?: 'qa' | 'leader' | null
+  tester?: boolean
   level: number
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -159,7 +161,7 @@ export type BulkOp =
   | { kind: 'coins'; delta: number; note: string }
   | { kind: 'xp'; xp: number; reason: string }
   | { kind: 'treats'; delta: number }
-  | { kind: 'item'; itemId: string }
+  | { kind: 'item'; itemId: string; mode?: 'grant' | 'unlock' }
   | { kind: 'inventory'; itemId: string; qty: number }
   | { kind: 'needs' }
   | { kind: 'message'; text: string }
@@ -214,6 +216,14 @@ export interface AdminPetDetail {
   audit: AuditRow[]
   sessions: { createdAt: string; lastSeenAt: string; expiresAt: string; userAgent: string | null; revokedAt: string | null; active: boolean }[]
   hasPin: boolean
+}
+
+export interface AdminGame {
+  id: string
+  name: string
+  kind: string
+  defaultOn: boolean
+  enabled: boolean
 }
 
 export interface AdminCatalogItem {
@@ -372,6 +382,7 @@ export interface ChatPerson {
   name: string
   staff?: boolean
   title?: 'qa' | 'leader' | null
+  tester?: boolean
   rockyName: string
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -391,6 +402,7 @@ export interface ChatMessage {
   name: string
   staff?: boolean
   title?: 'qa' | 'leader' | null
+  tester?: boolean
   /** The author's chat bubble style (shop item id). */
   style?: string | null
   mine: boolean
@@ -480,6 +492,7 @@ export interface TeamSpirit {
 }
 export interface MyRole {
   title: 'qa' | 'leader' | null
+  tester?: boolean
   admin: boolean
   team: TeamSpirit | null
   leader: { id: string; name: string } | null
@@ -510,6 +523,7 @@ export interface AdminPerson {
   email: string
   name: string
   title: 'qa' | 'leader' | null
+  tester?: boolean
   leader: string | null
   signedUp: boolean
 }
@@ -518,7 +532,7 @@ export const peopleApi = {
   me: () => request<MyRole>('/api/me/role'),
   myTeam: () => request<{ spirit: TeamSpirit | null; members: TeamMember[] }>('/api/my-team'),
   adminPeople: () => request<{ people: AdminPerson[] }>('/api/admin/people'),
-  adminSetPerson: (email: string, change: { title?: 'qa' | 'leader' | null; leader?: string | null }) =>
+  adminSetPerson: (email: string, change: { title?: 'qa' | 'leader' | null; leader?: string | null; tester?: boolean }) =>
     request<AdminPerson | null>(`/api/admin/people/${encodeURIComponent(email)}`, { method: 'PUT', body: JSON.stringify(change) }),
 }
 
@@ -554,7 +568,8 @@ export const apiClient = {
   getAdminPet: (agentId: string) => request<AdminPetDetail>(agentPath(agentId, '/pet')),
   adjustCoins: (agentId: string, delta: number, note: string) => request<PetView>(agentPath(agentId, '/coins'), post({ delta, note })),
   adjustTreats: (agentId: string, delta: number) => request<PetView>(agentPath(agentId, '/treats'), post({ delta })),
-  setItem: (agentId: string, itemId: string, action: 'grant' | 'revoke') => request<PetView>(agentPath(agentId, '/items'), post({ itemId, action })),
+  /** itemId: an item, a section ("slot:hat") or the whole shop ("*"); unlock = they can buy it with their coins. */
+  setItem: (agentId: string, itemId: string, action: 'grant' | 'revoke' | 'unlock' | 'relock') => request<PetView>(agentPath(agentId, '/items'), post({ itemId, action })),
   restoreNeeds: (agentId: string) => request<PetView>(agentPath(agentId, '/needs/restore'), post()),
   giveInventory: (agentId: string, itemId: string, qty: number) => request<PetView>(agentPath(agentId, '/inventory'), post({ itemId, qty })),
   sendMessage: (agentId: string, text: string) => request<PetView>(agentPath(agentId, '/message'), post({ text })),
@@ -564,6 +579,8 @@ export const apiClient = {
   resetPet: (agentId: string) => request<PetView>(agentPath(agentId, '/pet/reset'), post()),
   resetPin: (agentId: string) => request<{ ok: boolean; sessionsRevoked: number }>(agentPath(agentId, '/pin-reset'), post()),
   revokeSessions: (agentId: string) => request<{ ok: boolean; sessionsRevoked: number }>(agentPath(agentId, '/sessions/revoke'), post()),
+  getGames: () => request<{ games: AdminGame[] }>('/api/admin/games'),
+  setGame: (id: string, enabled: boolean) => request<{ games: AdminGame[] }>(`/api/admin/games/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
   getCatalog: () => request<{ items: AdminCatalogItem[]; overrides: CatalogOverrides; collections: AdminCollection[] }>('/api/admin/catalog'),
   setCollection: (id: string, value: { enabled: boolean; from?: string | null; until?: string | null }) =>
     request<{ items: AdminCatalogItem[]; overrides: CatalogOverrides; collections: AdminCollection[] }>(

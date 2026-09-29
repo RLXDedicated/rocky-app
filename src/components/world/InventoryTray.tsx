@@ -24,16 +24,18 @@ interface Props {
   /** Keyboard/click use without dragging. */
   onUse: (item: TrayItem, tab: TrayTab) => void
   onShop: () => void
+  /** Slides the bag out of the way (while an item is dragged onto Rocky or he's being scrubbed). */
+  away?: boolean
 }
 
 /**
  * Rocky's bag: foods to drag onto him, and soaps to scrub him with. Every
  * item can also be used with a tap or the keyboard (Enter/Space).
  */
-export function InventoryTray({ tab, onTab, onClose, foods, soaps, onGrab, onUse, onShop }: Props) {
+export function InventoryTray({ tab, onTab, onClose, foods, soaps, onGrab, onUse, onShop, away = false }: Props) {
   const items = tab === 'food' ? foods : soaps
   return (
-    <div className={styles.tray} role="dialog" aria-label="Rocky's bag">
+    <div className={`${styles.tray} ${away ? styles.trayAway : ''}`} role="dialog" aria-label="Rocky's bag" aria-hidden={away || undefined}>
       <div className={styles.trayHead}>
         <div className={styles.trayTabs} role="tablist">
           <button

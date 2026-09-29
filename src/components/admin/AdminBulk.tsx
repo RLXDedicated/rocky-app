@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CLOSET } from '../../game/closet'
+import { CLOSET, SHOP_UNLOCK, sectionUnlock, type ItemSlot } from '../../game/closet'
 import { FOODS, SOAPS } from '../../game/pantry'
 import { apiClient, type AdminAgentSummary, type BulkOp } from '../../services/apiClient'
 import styles from './AdminConsole.module.css'
@@ -9,7 +9,11 @@ type Kind = BulkOp['kind']
 const KINDS: { id: Kind; label: string; hint: string }[] = [
   { id: 'coins', label: 'Coins', hint: 'Otorga (o descuenta) coins. Queda en el ledger de cada agente.' },
   { id: 'xp', label: 'Experiencia (XP)', hint: 'XP extra como evento XP_GRANT: sube niveles y evoluciones.' },
-  { id: 'item', label: 'Regalar accesorio', hint: 'Cualquier accesorio, fondo, objeto o efecto — gratis y sin requisitos.' },
+  {
+    id: 'item',
+    label: '🛍️ Tienda: regalar o desbloquear',
+    hint: 'Un artículo, una sección entera o toda la tienda. Regalar = gratis al instante. Desbloquear = se salta el requisito de progreso, pero lo compran con sus propios coins.',
+  },
   { id: 'inventory', label: 'Comida / jabón', hint: 'Pone comida (o un jabón) en la bolsa de cada Rocky.' },
   { id: 'treats', label: 'Premios', hint: 'Premios básicos extra (los que se ganan con check-ins).' },
   { id: 'message', label: 'Mensaje', hint: 'Rocky se lo dice al agente al abrir la app; queda en su buzón.' },
@@ -17,6 +21,23 @@ const KINDS: { id: Kind; label: string; hint: string }[] = [
   { id: 'litter', label: 'Limpiar basura', hint: 'Quita la basura del mundo de cada Rocky.' },
   { id: 'games', label: 'Reiniciar topes de juegos', hint: 'Permite volver a ganar coins/XP en minijuegos hoy.' },
 ]
+
+type Scope = 'item' | 'section' | 'all'
+
+const SECTION_ES: [ItemSlot, string][] = [
+  ['hat', '🎩 Gorros'],
+  ['glasses', '🕶️ Gafas'],
+  ['neck', '🎀 Cuello'],
+  ['back', '🪽 Alas y espalda'],
+  ['body', '👕 Camisetas'],
+  ['scene', '🏞️ Fondos'],
+  ['decor', '🪴 Objetos del hogar'],
+  ['fx', '❄️ Efectos'],
+  ['bubble', '💬 Burbujas de chat'],
+]
+const SECTION_NAME = Object.fromEntries(SECTION_ES) as Record<ItemSlot, string>
+/** Admin-only items are handled by the server, so they are never offered here. */
+const GIFTABLE = CLOSET.filter((i) => !i.staff)
 
 /** One-click seasonal events: several operations for everyone selected. */
 const PRESETS: { label: string; ops: BulkOp[] }[] = [
@@ -48,18 +69,23 @@ const PRESETS: { label: string; ops: BulkOp[] }[] = [
 
 interface Props {
   agents: AdminAgentSummary[] | null
+  /** Agents picked in the Agents tab. */
+  initial?: string[] | null
   onChanged: (message: string) => void
   onError: (message: string) => void
 }
 
 /** Admin superpowers: run one operation (or a seasonal kit) for many Rockys at once. */
-export function BulkTab({ agents, onChanged, onError }: Props) {
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+export function BulkTab({ agents, initial, onChanged, onError }: Props) {
+  const [selected, setSelected] = useState<Set<string>>(new Set(initial ?? []))
   const [filter, setFilter] = useState('')
-  const [kind, setKind] = useState<Kind>('coins')
+  const [kind, setKind] = useState<Kind>(initial?.length ? 'item' : 'coins')
+  const [scope, setScope] = useState<Scope>('item')
+  const [section, setSection] = useState<ItemSlot>('hat')
+  const [mode, setMode] = useState<'grant' | 'unlock'>('grant')
   const [amount, setAmount] = useState('50')
   const [text, setText] = useState('')
-  const [itemId, setItemId] = useState(CLOSET.find((i) => i.price > 0)!.id)
+  const [itemId, setItemId] = useState(GIFTABLE.find((i) => i.price > 0)!.id)
   const [pantryId, setPantryId] = useState(FOODS[0]!.id)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -90,8 +116,11 @@ export function BulkTab({ agents, onChanged, onError }: Props) {
         return Number.isInteger(n) && n > 0 && text.trim() ? { kind, xp: n, reason: text.trim() } : null
       case 'treats':
         return Number.isInteger(n) && n !== 0 ? { kind, delta: n } : null
-      case 'item':
-        return { kind, itemId }
+      case 'item': {
+        const key = scope === 'all' ? SHOP_UNLOCK : scope === 'section' ? sectionUnlock(section) : itemId
+        if (mode === 'unlock' && scope === 'item' && CLOSET.find((i) => i.id === itemId)?.gift) return null
+        return { kind, itemId: key, mode }
+      }
       case 'inventory':
         return Number.isInteger(n) && n !== 0 ? { kind, itemId: pantryId, qty: n } : null
       case 'message':
@@ -127,6 +156,12 @@ export function BulkTab({ agents, onChanged, onError }: Props) {
     } finally {
       setBusy(false)
     }
+  }
+
+  function itemLabel() {
+    const what =
+      scope === 'all' ? 'toda la tienda' : scope === 'section' ? `la sección ${SECTION_NAME[section]}` : (CLOSET.find((i) => i.id === itemId)?.name ?? itemId)
+    return `${mode === 'grant' ? 'Regalar' : 'Desbloquear para comprar'}: ${what}`
   }
 
   const op = buildOp()
@@ -185,17 +220,44 @@ export function BulkTab({ agents, onChanged, onError }: Props) {
         <p className={styles.muted}>{info.hint}</p>
         <div className={styles.inlineForm}>
           {kind === 'item' && (
-            <select value={itemId} onChange={(e) => setItemId(e.target.value)} aria-label="Accesorio">
-              {CLOSET.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.season === 'spooky' ? '🎃 ' : i.season === 'holiday' ? '🎄 ' : ''}
-                  {i.name} ({i.slot})
-                </option>
-              ))}
-            </select>
+            <>
+              <select className={styles.select} value={scope} onChange={(e) => setScope(e.target.value as Scope)} aria-label="Alcance">
+                <option value="item">Un artículo</option>
+                <option value="section">Una sección completa</option>
+                <option value="all">Toda la tienda</option>
+              </select>
+              {scope === 'item' && (
+                <select className={styles.select} value={itemId} onChange={(e) => setItemId(e.target.value)} aria-label="Artículo">
+                  {SECTION_ES.map(([slot, label]) => (
+                    <optgroup key={slot} label={label}>
+                      {GIFTABLE.filter((i) => i.slot === slot).map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.season === 'spooky' ? '🎃 ' : i.season === 'holiday' ? '🎄 ' : i.gift ? '🎁 ' : ''}
+                          {i.name}
+                          {i.price ? ` · ${i.price} coins` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              )}
+              {scope === 'section' && (
+                <select className={styles.select} value={section} onChange={(e) => setSection(e.target.value as ItemSlot)} aria-label="Sección">
+                  {SECTION_ES.map(([slot, label]) => (
+                    <option key={slot} value={slot}>
+                      {label} ({GIFTABLE.filter((i) => i.slot === slot && !i.gift).length})
+                    </option>
+                  ))}
+                </select>
+              )}
+              <select className={styles.select} value={mode} onChange={(e) => setMode(e.target.value as 'grant' | 'unlock')} aria-label="Modo">
+                <option value="grant">🎁 Regalar (gratis)</option>
+                <option value="unlock">🔓 Desbloquear (lo compran con sus coins)</option>
+              </select>
+            </>
           )}
           {kind === 'inventory' && (
-            <select value={pantryId} onChange={(e) => setPantryId(e.target.value)} aria-label="Comida o jabón">
+            <select className={styles.select} value={pantryId} onChange={(e) => setPantryId(e.target.value)} aria-label="Comida o jabón">
               <optgroup label="Comida">
                 {FOODS.map((f) => (
                   <option key={f.id} value={f.id}>
@@ -228,7 +290,7 @@ export function BulkTab({ agents, onChanged, onError }: Props) {
             type="button"
             className={styles.btnPrimary}
             disabled={busy || !op || count === 0}
-            onClick={() => op && void runOps([op], info.label)}
+            onClick={() => op && void runOps([op], kind === 'item' ? itemLabel() : info.label)}
           >
             {busy ? 'Aplicando…' : `Aplicar a ${count || '…'}`}
           </button>

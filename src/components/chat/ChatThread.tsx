@@ -171,9 +171,9 @@ export function ChatThread({
           const grouped = prev && prev.from === m.from && Date.parse(m.at) - Date.parse(prev.at) < 5 * 60_000
           return (
             <div key={m.id} className={`${styles.msg} ${m.mine ? styles.mine : ''} ${grouped ? styles.grouped : ''} ${m.staff && !m.hidden ? styles.vip : ''}`}>
-              {!grouped && (!m.mine || m.staff || m.title) && (
+              {!grouped && (!m.mine || m.staff || m.title || m.tester) && (
                 <span className={styles.author}>
-                  {m.mine ? 'You' : m.name} <NameBadges staff={m.staff} title={m.title} />
+                  {m.mine ? 'You' : m.name} <NameBadges staff={m.staff} title={m.title} tester={m.tester} />
                 </span>
               )}
               <div className={styles.bubbleRow}>

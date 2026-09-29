@@ -248,6 +248,15 @@ export class SqliteAccountStore implements AccountStore {
       .run(agentId, title, at, by)
   }
 
+  getTesters(): string[] {
+    return (this.db.prepare('SELECT agent_id FROM agent_testers').all() as { agent_id: string }[]).map((r) => r.agent_id)
+  }
+
+  setTester(agentId: string, on: boolean, by: string, at: string): void {
+    if (!on) this.db.prepare('DELETE FROM agent_testers WHERE agent_id = ?').run(agentId)
+    else this.db.prepare('INSERT OR IGNORE INTO agent_testers (agent_id, added_at, added_by) VALUES (?, ?, ?)').run(agentId, at, by)
+  }
+
   getTeams(): Record<string, string> {
     const rows = this.db.prepare('SELECT member_id, leader_id FROM team_members').all() as { member_id: string; leader_id: string }[]
     return Object.fromEntries(rows.map((r) => [r.member_id, r.leader_id]))

@@ -59,11 +59,21 @@
 
 .nav {
   display: flex;
+  flex: 1 1 auto;
   gap: 4px;
+  min-width: 0;
+  /* Many sections on a laptop screen: the menu scrolls instead of pushing the account off-screen. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
 }
 
 .account {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -103,6 +113,8 @@
 }
 
 .navButton {
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 8px;

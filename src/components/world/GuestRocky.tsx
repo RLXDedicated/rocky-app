@@ -22,6 +22,7 @@ export interface Guest {
   /** A Rocky admin: golden aura and VIP badge. */
   staff?: boolean
   title?: 'qa' | 'leader' | null
+  tester?: boolean
   /** A reaction or line shown over this Rocky for a moment. */
   bubble?: string | null
   /** Bumps to replay the little hop when they act. */
@@ -84,7 +85,7 @@ export function GuestRocky({ guest, size, floor }: { guest: Guest; size: number;
       <span className={styles.guestTag}>
         {guest.host ? '🏠 ' : ''}
         {guest.name}
-        <NameBadges staff={guest.staff} title={guest.title} />
+        <NameBadges staff={guest.staff} title={guest.title} tester={guest.tester} />
         <i aria-label="live" />
       </span>
     </div>

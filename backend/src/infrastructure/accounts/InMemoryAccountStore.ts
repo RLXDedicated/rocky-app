@@ -128,6 +128,14 @@ export class InMemoryAccountStore implements AccountStore {
     if (title) this.titles.set(agentId, title)
     else this.titles.delete(agentId)
   }
+  private testers = new Set<string>()
+  getTesters() {
+    return [...this.testers]
+  }
+  setTester(agentId: string, on: boolean) {
+    if (on) this.testers.add(agentId)
+    else this.testers.delete(agentId)
+  }
   getTeams() {
     return Object.fromEntries(this.teams)
   }

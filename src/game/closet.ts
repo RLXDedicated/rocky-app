@@ -1274,19 +1274,41 @@ export function findItem(
   return id ? catalog.find((i) => i.id === id) : undefined;
 }
 
+/** Unlock key for a whole shop section (see adminUnlocked). */
+export const sectionUnlock = (slot: ItemSlot) => `slot:${slot}`;
+/** Unlock key for the whole shop. */
+export const SHOP_UNLOCK = "*";
+
+/**
+ * Whether an admin has unlocked this item for the agent to BUY with their own
+ * coins (skipping the progress requirement, not the price): by item id, by
+ * section ("slot:hat") or the whole shop ("*"). Staff and gift-only items
+ * can never be unlocked this way — they are only ever given.
+ */
+export function adminUnlocked(item: ClosetItem, unlocks: readonly string[] = []): boolean {
+  if (item.staff || item.gift || unlocks.length === 0) return false;
+  return unlocks.includes(item.id) || unlocks.includes(sectionUnlock(item.slot)) || unlocks.includes(SHOP_UNLOCK);
+}
+
+/** Unlocked by progress, or by an admin (see adminUnlocked). */
+export function isItemUnlocked(item: ClosetItem, facts: ProgressFacts, unlocks: readonly string[] = []): boolean {
+  return item.isUnlocked(facts) || adminUnlocked(item, unlocks);
+}
+
 /**
  * Whether the agent may use an item right now: gifted by an admin, or
- * unlocked by progress AND owned (free or bought).
+ * unlocked (by progress or an admin) AND owned (free or bought).
  */
 export function isUsable(
   item: ClosetItem,
   facts: ProgressFacts,
   owned: readonly string[],
   granted: readonly string[] = [],
+  unlocks: readonly string[] = [],
 ): boolean {
   if (granted.includes(item.id)) return true;
   return (
-    item.isUnlocked(facts) && (item.price === 0 || owned.includes(item.id))
+    isItemUnlocked(item, facts, unlocks) && (item.price === 0 || owned.includes(item.id))
   );
 }
 
@@ -1297,12 +1319,13 @@ export function sanitizeOutfit(
   owned: readonly string[],
   granted: readonly string[] = [],
   catalog: ClosetItem[] = CLOSET,
+  unlocks: readonly string[] = [],
 ): Outfit {
   const ok = (id: unknown, slot: ItemSlot) => {
     if (typeof id !== "string") return false;
     const item = findItem(id, catalog);
     return Boolean(
-      item && item.slot === slot && isUsable(item, facts, owned, granted),
+      item && item.slot === slot && isUsable(item, facts, owned, granted, unlocks),
     );
   };
   const o = outfit ?? {};

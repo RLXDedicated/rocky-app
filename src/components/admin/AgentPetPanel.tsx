@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CLOSET, type ItemSlot } from '../../game/closet'
+import { adminUnlocked, CLOSET, SHOP_UNLOCK, sectionUnlock, type ItemSlot } from '../../game/closet'
 import { FOODS, SOAPS, findFood, findSoap, GAME_CAPS } from '../../game/pantry'
 import { apiClient, type AdminPetDetail } from '../../services/apiClient'
 import styles from './AdminConsole.module.css'
@@ -169,7 +169,12 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
     )
   }
 
-  const items = CLOSET.filter((i) => i.slot === slot)
+  // Staff items are managed by the server (admins always hold them), so they aren't listed.
+  const items = CLOSET.filter((i) => i.slot === slot && !i.staff)
+  const unlocks = st.unlocks ?? []
+  const sectionKey = sectionUnlock(slot)
+  const sectionOpen = unlocks.includes(sectionKey)
+  const shopOpen = unlocks.includes(SHOP_UNLOCK)
   const parsedDelta = Number(delta)
   const validDelta = Number.isInteger(parsedDelta) && parsedDelta !== 0 && Math.abs(parsedDelta) <= 100000
 
@@ -408,6 +413,45 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
             </button>
           ))}
         </div>
+        <p className={styles.muted}>
+          <b>Regalar</b> = gratis al instante. <b>Desbloquear</b> = se salta el requisito de progreso, pero el agente lo compra con sus coins.
+        </p>
+        <div className={styles.actionRow}>
+          <button
+            className={styles.btnGhost}
+            disabled={busy}
+            onClick={() =>
+              window.confirm(`¿Regalar TODOS los artículos de “${SLOT_ES[slot]}” a ${agentId}?`) &&
+              void run(() => apiClient.setItem(agentId, sectionKey, 'grant'), `${SLOT_ES[slot]}: todo regalado.`)
+            }
+          >
+            🎁 Regalar toda la sección
+          </button>
+          <button
+            className={styles.btnGhost}
+            disabled={busy}
+            onClick={() =>
+              void run(
+                () => apiClient.setItem(agentId, sectionKey, sectionOpen ? 'relock' : 'unlock'),
+                sectionOpen ? `${SLOT_ES[slot]}: vuelve a sus requisitos.` : `${SLOT_ES[slot]}: desbloqueada para comprar.`,
+              )
+            }
+          >
+            {sectionOpen ? '🔒 Volver a bloquear la sección' : '🔓 Desbloquear sección para comprar'}
+          </button>
+          <button
+            className={styles.btnGhost}
+            disabled={busy}
+            onClick={() =>
+              void run(
+                () => apiClient.setItem(agentId, SHOP_UNLOCK, shopOpen ? 'relock' : 'unlock'),
+                shopOpen ? 'La tienda vuelve a sus requisitos.' : 'Tienda completa desbloqueada para comprar.',
+              )
+            }
+          >
+            {shopOpen ? '🔒 Volver a bloquear la tienda' : '🔓 Desbloquear toda la tienda'}
+          </button>
+        </div>
         <div className={styles.tableCard}>
           <table className={styles.table}>
             <thead>
@@ -421,12 +465,17 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
               {items.map((item) => {
                 const gifted = st.granted.includes(item.id)
                 const bought = st.owned.includes(item.id)
-                const unlocked = item.isUnlocked(pet.facts)
+                const byQa = adminUnlocked(item, unlocks)
+                const unlocked = item.isUnlocked(pet.facts) || byQa
+                const itemUnlock = unlocks.includes(item.id)
                 const inUse = [
                   st.outfit.hat,
                   st.outfit.glasses,
                   st.outfit.neck,
                   st.outfit.back,
+                  st.outfit.body,
+                  st.outfit.aura,
+                  st.outfit.bubble,
                   st.outfit.scene,
                   st.outfit.fx,
                   ...st.outfit.decor,
@@ -435,11 +484,13 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
                   ? 'Regalo'
                   : bought
                     ? 'Comprado'
-                    : item.price === 0 && unlocked
-                      ? 'Gratis'
-                      : unlocked
-                        ? `Desbloqueado · ${item.price} coins`
-                        : `Bloqueado · ${item.requirement}`
+                    : item.gift
+                      ? 'Solo por regalo'
+                      : item.price === 0 && unlocked
+                        ? 'Gratis'
+                        : unlocked
+                          ? `${byQa && !item.isUnlocked(pet.facts) ? 'Desbloqueado por QA' : 'Desbloqueado'} · ${item.price} coins`
+                          : `Bloqueado · ${item.requirement}`
                 return (
                   <tr key={item.id}>
                     <td>
@@ -456,13 +507,29 @@ export function AgentPetPanel({ agentId, tab, onChanged, onError }: Props) {
                           Quitar
                         </button>
                       ) : item.price === 0 && unlocked ? null : (
-                        <button
-                          className={styles.linkBtn}
-                          disabled={busy}
-                          onClick={() => void run(() => apiClient.setItem(agentId, item.id, 'grant'), `${item.name} regalado.`)}
-                        >
-                          Regalar
-                        </button>
+                        <span className={styles.actionRow}>
+                          <button
+                            className={styles.linkBtn}
+                            disabled={busy}
+                            onClick={() => void run(() => apiClient.setItem(agentId, item.id, 'grant'), `${item.name} regalado.`)}
+                          >
+                            Regalar
+                          </button>
+                          {!item.gift && (itemUnlock || !unlocked) && (
+                            <button
+                              className={styles.linkBtn}
+                              disabled={busy}
+                              onClick={() =>
+                                void run(
+                                  () => apiClient.setItem(agentId, item.id, itemUnlock ? 'relock' : 'unlock'),
+                                  itemUnlock ? `${item.name}: vuelve a su requisito.` : `${item.name}: desbloqueado para comprar.`,
+                                )
+                              }
+                            >
+                              {itemUnlock ? 'Bloquear' : 'Desbloquear'}
+                            </button>
+                          )}
+                        </span>
                       )}
                     </td>
                   </tr>

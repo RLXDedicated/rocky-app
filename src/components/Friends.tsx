@@ -148,7 +148,7 @@ export function Friends({
               <div className={styles.info}>
                 <strong>{f.rockyName}</strong>
                 <span>
-                  {f.name} <NameBadges staff={f.staff} title={f.title} />
+                  {f.name} <NameBadges staff={f.staff} title={f.title} tester={f.tester} />
                 </span>
                 <small>
                   Level {f.level} · {f.stage} · 🔥 {f.streak}
@@ -273,7 +273,7 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
               </button>
               <div className={styles.visitTag}>
                 <strong>
-                  {friend.rockyName} <NameBadges staff={friend.staff} title={friend.title} />
+                  {friend.rockyName} <NameBadges staff={friend.staff} title={friend.title} tester={friend.tester} />
                 </strong>
                 <span>
                   {friend.name} · Level {friend.level} {friend.stage} · 🔥 {friend.streak} · 🏅 {friend.badges}

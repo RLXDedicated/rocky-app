@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiClient, type AdminAgentSummary, type AdminOverview, type AdminSystem } from '../../services/apiClient'
+import { apiClient, peopleApi, type AdminAgentSummary, type AdminOverview, type AdminSystem } from '../../services/apiClient'
 import { getAgentEmail } from '../../services/identityService'
 import styles from './AdminConsole.module.css'
 import { BarList, ColumnChart, SERIES_ALERT, SERIES_GREEN } from './AdminCharts'
@@ -8,6 +8,7 @@ import { AuditTab, EconomyTab, ShopTab } from './AdminEconomy'
 import { BulkTab } from './AdminBulk'
 import { ChatsTab } from './AdminChats'
 import { PeopleTab } from './AdminPeople'
+import { GamesTab } from './AdminGames'
 import {
   EVENT_TYPE_ES,
   MOOD_ES,
@@ -27,7 +28,24 @@ import {
 // same QA event endpoints an audit integration would use (never a direct
 // XP/Energy edit). See backend/src/application/adminApplicationService.ts.
 
-type Tab = 'overview' | 'agents' | 'bulk' | 'economy' | 'shop' | 'people' | 'chats' | 'audit' | 'activity' | 'system'
+type Tab = 'overview' | 'agents' | 'rewards' | 'shop' | 'games' | 'people' | 'chats' | 'records'
+type Sub = 'overview' | 'activity' | 'catalog' | 'economy' | 'audit' | 'system'
+
+/** Sub-sections inside a tab (things that belong together live in one place). */
+const SUBS: Partial<Record<Tab, [Sub, string][]>> = {
+  overview: [
+    ['overview', 'Resumen'],
+    ['activity', 'Actividad'],
+  ],
+  shop: [
+    ['catalog', 'Catálogo y precios'],
+    ['economy', 'Economía y coins'],
+  ],
+  records: [
+    ['audit', 'Auditoría de cambios'],
+    ['system', 'Sistema'],
+  ],
+}
 type SortKey = 'id' | 'level' | 'xp' | 'energy' | 'streak' | 'lastCheckIn' | 'checkIns' | 'qaPasses' | 'alerts'
 type Filter = 'all' | 'atRisk' | 'checkedIn' | 'notCheckedIn'
 
@@ -41,6 +59,9 @@ interface Toast {
 export function AdminConsole() {
   const selfEmail = getAgentEmail()
   const [tab, setTab] = useState<Tab>('overview')
+  const [sub, setSub] = useState<Partial<Record<Tab, Sub>>>({})
+  const [rewardPick, setRewardPick] = useState<string[] | null>(null)
+  const subOf = (t: Tab): Sub | undefined => sub[t] ?? SUBS[t]?.[0]?.[0]
   const [overview, setOverview] = useState<AdminOverview | null>(null)
   const [agents, setAgents] = useState<AdminAgentSummary[] | null>(null)
   const [system, setSystem] = useState<AdminSystem | null>(null)
@@ -107,16 +128,14 @@ export function AdminConsole() {
         <nav className={styles.tabs} role="tablist">
           {(
             [
-              ['overview', 'Resumen'],
-              ['agents', `Agentes${agents ? ` (${agents.length})` : ''}`],
-              ['bulk', '⚡ Acciones masivas'],
-              ['economy', 'Economía'],
-              ['shop', 'Tienda'],
+              ['overview', '📊 Resumen'],
+              ['agents', `👤 Agentes${agents ? ` (${agents.length})` : ''}`],
+              ['rewards', '🎁 Regalos y recompensas'],
+              ['shop', '🛍️ Tienda y economía'],
+              ['games', '🎮 Minijuegos'],
               ['people', '👥 Roles y equipos'],
               ['chats', '💬 Chats'],
-              ['audit', 'Auditoría'],
-              ['activity', 'Actividad'],
-              ['system', 'Sistema'],
+              ['records', '📜 Registro y sistema'],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -140,21 +159,61 @@ export function AdminConsole() {
           </div>
         )}
 
-        {tab === 'overview' && (overview ? <OverviewTab overview={overview} onOpen={setSelected} /> : <p className={styles.muted}>Cargando…</p>)}
+        {SUBS[tab] && (
+          <div className={styles.subTabs} role="tablist" aria-label="Secciones">
+            {SUBS[tab]!.map(([key, label]) => (
+              <button
+                key={key}
+                role="tab"
+                aria-selected={subOf(tab) === key}
+                className={`${styles.subTab} ${subOf(tab) === key ? styles.subTabActive : ''}`}
+                onClick={() => setSub((s) => ({ ...s, [tab]: key }))}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {tab === 'overview' &&
+          (!overview ? (
+            <p className={styles.muted}>Cargando…</p>
+          ) : subOf('overview') === 'activity' ? (
+            <ActivityTab overview={overview} onOpen={setSelected} />
+          ) : (
+            <OverviewTab overview={overview} onOpen={setSelected} />
+          ))}
         {tab === 'agents' &&
           (agents ? (
-            <AgentsTab agents={agents} selfEmail={selfEmail} onOpen={setSelected} onChanged={onChanged} onError={onError} />
+            <AgentsTab
+              agents={agents}
+              selfEmail={selfEmail}
+              onOpen={setSelected}
+              onChanged={onChanged}
+              onError={onError}
+              onRewards={(ids) => {
+                setRewardPick(ids)
+                setTab('rewards')
+              }}
+            />
           ) : (
             <p className={styles.muted}>Cargando…</p>
           ))}
-        {tab === 'activity' && (overview ? <ActivityTab overview={overview} onOpen={setSelected} /> : <p className={styles.muted}>Cargando…</p>)}
-        {tab === 'system' && (system ? <SystemTab system={system} /> : <p className={styles.muted}>Cargando…</p>)}
-        {tab === 'bulk' && <BulkTab agents={agents} onChanged={onChanged} onError={onError} />}
-        {tab === 'economy' && <EconomyTab onOpen={setSelected} onError={onError} />}
-        {tab === 'shop' && <ShopTab onChanged={onChanged} onError={onError} />}
+        {tab === 'rewards' && <BulkTab key={rewardPick?.join(',') ?? ''} agents={agents} initial={rewardPick} onChanged={onChanged} onError={onError} />}
+        {tab === 'shop' && (subOf('shop') === 'economy' ? <EconomyTab onOpen={setSelected} onError={onError} /> : <ShopTab onChanged={onChanged} onError={onError} />)}
+        {tab === 'games' && <GamesTab onChanged={onChanged} onError={onError} />}
         {tab === 'people' && <PeopleTab onChanged={onChanged} onError={onError} />}
         {tab === 'chats' && <ChatsTab onChanged={onChanged} onError={onError} />}
-        {tab === 'audit' && <AuditTab onOpen={setSelected} onError={onError} />}
+        {tab === 'records' &&
+          (subOf('records') === 'system' ? (
+            system ? (
+              <SystemTab system={system} />
+            ) : (
+              <p className={styles.muted}>Cargando…</p>
+            )
+          ) : (
+            <AuditTab onOpen={setSelected} onError={onError} />
+          ))}
       </div>
 
       {selected && <AgentDrawer agentId={selected} selfEmail={selfEmail} onClose={closeDrawer} onChanged={onChanged} onError={onError} />}
@@ -348,12 +407,15 @@ function AgentsTab({
   onOpen,
   onChanged,
   onError,
+  onRewards,
 }: {
   agents: AdminAgentSummary[]
   selfEmail: string | null
   onOpen: (id: string) => void
   onChanged: (msg: string) => void
   onError: (msg: string) => void
+  /** Opens "Regalos y recompensas" with these agents already selected. */
+  onRewards: (ids: string[]) => void
 }) {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
@@ -439,6 +501,21 @@ function AgentsTab({
     if (done > 0) onChanged(kind === 'delete' ? `${done} agente(s) eliminados.` : `${label} registrado para ${done} agente(s).`)
   }
 
+  async function setTesters(ids: string[], on: boolean) {
+    setBusy(true)
+    const failures: string[] = []
+    for (const id of ids) {
+      try {
+        await peopleApi.adminSetPerson(id, { tester: on })
+      } catch (err) {
+        failures.push(`${id}: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+    setBusy(false)
+    if (failures.length) onError(`Fallaron ${failures.length}: ${failures.join(' · ')}`)
+    else onChanged(on ? `Insignia Tester puesta a ${ids.length} agente(s).` : `Insignia Tester quitada a ${ids.length} agente(s).`)
+  }
+
   const manual = manualEmail.trim().toLowerCase()
   const manualValid = LOOKS_LIKE_EMAIL.test(manual)
 
@@ -483,6 +560,15 @@ function AgentsTab({
           </button>
           <button className={styles.btnAlert} disabled={busy} onClick={() => void bulk('alert', [...picked])}>
             Alerta
+          </button>
+          <button className={styles.btnGhost} disabled={busy} onClick={() => onRewards([...picked])}>
+            🎁 Regalar / desbloquear…
+          </button>
+          <button className={styles.btnGhost} disabled={busy} onClick={() => void setTesters([...picked], true)}>
+            🐞 Marcar Tester
+          </button>
+          <button className={styles.btnGhost} disabled={busy} onClick={() => void setTesters([...picked], false)}>
+            Quitar Tester
           </button>
           <button className={styles.btnDanger} disabled={busy} onClick={() => void bulk('delete', [...picked])}>
             Eliminar

@@ -1,0 +1,283 @@
+.field {
+  position: relative;
+  height: min(440px, 60vh);
+  overflow: hidden;
+  border-radius: 16px;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+  container-type: size;
+}
+
+.hud {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 800;
+  color: var(--navy, #0f2341);
+  pointer-events: none;
+}
+
+.hud > span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Rocky Run */
+.runField {
+  cursor: pointer;
+  background: linear-gradient(#8fd3f4, #e8f7ff 60%);
+}
+
+.runHills {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22%;
+  height: 30%;
+  background: radial-gradient(ellipse 120px 60px at 60px 100%, #9fd8a0 98%, transparent 100%) repeat-x;
+  background-size: 180px 100%;
+  opacity: 0.8;
+}
+
+.runGround {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 78%;
+  bottom: 0;
+  background:
+    repeating-linear-gradient(90deg, #c99a63 0 40px, #b88650 40px 80px) top / 100% 10px no-repeat,
+    #d8b17f;
+}
+
+.box {
+  position: absolute;
+  border-radius: 4px;
+  background: #c99a63;
+  box-shadow: inset 0 0 0 3px #a8744d;
+}
+
+.box[data-kind='1'] {
+  background: #f97316;
+  box-shadow: inset 0 0 0 3px #c2410c;
+  border-radius: 40% 40% 4px 4px;
+}
+
+.box[data-kind='2'] {
+  background: #9aa4b1;
+  box-shadow: inset 0 0 0 3px #6b7280;
+}
+
+.runner {
+  position: absolute;
+  left: 10%;
+  width: 14%;
+  height: 22%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.runnerHit {
+  filter: grayscale(0.6);
+  transform: rotate(-18deg);
+}
+
+/* Mud Splat */
+.whackField {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(#bfe3f6, #cfe8c8 30%, #9fcf8f);
+}
+
+.whackGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3cqmin;
+  width: min(92%, 84cqh);
+  margin-top: 6%;
+}
+
+.hole {
+  position: relative;
+  aspect-ratio: 1.4;
+  overflow: hidden;
+  border: 0;
+  border-radius: 50% 50% 46% 46%;
+  background: radial-gradient(ellipse at 50% 70%, #3a2718 55%, #6b4a2f 58%, #8a5a3a 100%);
+  cursor: pointer;
+}
+
+.critter {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  bottom: -70%;
+  height: 80%;
+  display: grid;
+  place-items: center;
+  transition: bottom 0.12s ease-out;
+  pointer-events: none;
+}
+
+.critterUp {
+  bottom: 12%;
+}
+
+.critter img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mud {
+  width: 80%;
+  height: 70%;
+  border-radius: 48% 52% 40% 44%;
+  background: #7a5230;
+  box-shadow: inset -6px -6px 0 #5a3a1e;
+}
+
+.goldCoin {
+  display: grid;
+  place-items: center;
+  width: 64%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #f5b82e;
+  box-shadow: inset 0 0 0 4px #c07a0c;
+  color: #8a5a00;
+  font-weight: 800;
+  font-size: 5cqmin;
+}
+
+.pop,
+.floatPop {
+  position: absolute;
+  z-index: 4;
+  font-weight: 800;
+  color: var(--navy, #0f2341);
+  pointer-events: none;
+  animation: rise 0.8s ease-out forwards;
+}
+
+.pop {
+  left: 50%;
+  top: 10%;
+}
+
+@keyframes rise {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -30px);
+  }
+}
+
+/* Bubble Pop */
+.bubbleField {
+  background: linear-gradient(#38bdf8, #0369a1);
+}
+
+.bubble {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+
+.blue {
+  background: radial-gradient(circle at 32% 30%, #ffffff 0 12%, rgba(186, 230, 253, 0.55) 14%, rgba(56, 189, 248, 0.25) 70%, rgba(255, 255, 255, 0.7) 100%);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.75);
+}
+
+.gold {
+  background: radial-gradient(circle at 32% 30%, #ffffff 0 12%, #fde68a 14%, #f5b82e 75%, #c07a0c 100%);
+  box-shadow: 0 0 12px rgba(253, 230, 138, 0.9);
+}
+
+.spiky {
+  background: radial-gradient(circle, #6b21a8 0 55%, #3b0764 56%);
+  clip-path: polygon(50% 0, 61% 20%, 85% 15%, 80% 39%, 100% 50%, 80% 61%, 85% 85%, 61% 80%, 50% 100%, 39% 80%, 15% 85%, 20% 61%, 0 50%, 20% 39%, 15% 15%, 39% 20%);
+}
+
+/* Rocky Says */
+.saysField {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(#1e1b4b, #4c1d95);
+}
+
+.pads {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3cqmin;
+  width: min(80%, 70cqh);
+  margin-top: 6%;
+}
+
+.pad {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 24%;
+  background: var(--pad);
+  font-size: 9cqmin;
+  opacity: 0.55;
+  filter: saturate(0.7);
+  transition:
+    opacity 0.1s,
+    transform 0.1s,
+    filter 0.1s;
+  cursor: pointer;
+}
+
+.pad:disabled {
+  cursor: default;
+}
+
+.padLit {
+  opacity: 1;
+  filter: saturate(1.3) brightness(1.15);
+  transform: scale(1.05);
+  box-shadow: 0 0 24px var(--pad);
+}
+
+.saysRocky {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34%;
+  height: 34%;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Box Stack */
+.stackField {
+  cursor: pointer;
+  background: linear-gradient(#fde68a, #fbcfe8 60%, #c4b5fd);
+}
+
+.stackBox {
+  position: absolute;
+  border-radius: 3px;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .critter {
+    transition: none;
+  }
+}

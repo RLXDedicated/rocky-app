@@ -75,6 +75,38 @@
   animation: devBlink 1.05s steps(2, jump-none) infinite;
 }
 
+/* TESTER: moss green over walnut brown, like a field notebook. */
+.tester {
+  --glow: 132, 204, 22;
+  gap: 3px;
+  background: linear-gradient(135deg, #65a30d 0%, #3f6212 50%, #78350f 100%);
+  box-shadow: 0 0 0 1px rgba(217, 249, 157, 0.75) inset, 0 0 8px rgba(var(--glow), 0.5);
+  color: #fefce8;
+  text-shadow: 0 0 5px rgba(190, 242, 100, 0.8);
+}
+
+.testerBug {
+  display: inline-block;
+  font-size: 0.95em;
+  letter-spacing: 0;
+  text-shadow: none;
+  animation: bugWiggle 2.4s ease-in-out infinite;
+}
+
+@keyframes bugWiggle {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0);
+  }
+  78% {
+    transform: rotate(-14deg);
+  }
+  86% {
+    transform: rotate(12deg);
+  }
+}
+
 .group {
   display: inline-flex;
   gap: 4px;
@@ -110,7 +142,8 @@
 @media (prefers-reduced-motion: reduce) {
   .badge,
   .badge::after,
-  .devCursor {
+  .devCursor,
+  .testerBug {
     animation: none;
   }
 }
