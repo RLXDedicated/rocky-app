@@ -24,6 +24,7 @@ const SLOT_ES: Record<ItemSlot, string> = {
   decor: 'Decoración',
   fx: 'Ambientación',
   aura: 'Aura',
+  bubble: 'Burbujas de chat',
 }
 
 function Meter({ label, value, invert = false }: { label: string; value: number; invert?: boolean }) {

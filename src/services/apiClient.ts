@@ -33,10 +33,37 @@ export class AuthRequiredError extends Error {
   }
 }
 
+/** Shown when the backend can't be reached even after retrying. */
+export const CONNECTION_MESSAGE = 'Connection problem — check your internet and try again in a moment.'
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * fetch with a few retries for blips: the request never reached the server
+ * (network error) or the proxy couldn't reach it (502/503/504, e.g. while a
+ * new version of the backend is starting). Both are safe to repeat.
+ */
+async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  const delays = [800, 2000, 4000]
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await fetch(url, init)
+      if ((res.status === 502 || res.status === 503 || res.status === 504) && attempt < delays.length) {
+        await wait(delays[attempt]!)
+        continue
+      }
+      return res
+    } catch {
+      if (attempt >= delays.length) throw new Error(CONNECTION_MESSAGE)
+      await wait(delays[attempt]!)
+    }
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const email = getAgentEmail()
   const token = getSessionToken()
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await fetchWithRetry(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -60,7 +87,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       window.dispatchEvent(new CustomEvent('rocky:auth-required', { detail: message }))
       throw new AuthRequiredError(message || 'Please sign in again.')
     }
-    const error = new Error(message || `Rocky API ${init.method ?? 'GET'} ${path} failed with ${res.status}`)
+    const error = new Error(
+      message || (res.status >= 502 && res.status <= 504 ? CONNECTION_MESSAGE : `Rocky API ${init.method ?? 'GET'} ${path} failed with ${res.status}`),
+    )
     ;(error as Error & { status?: number; code?: string }).status = res.status
     ;(error as Error & { status?: number; code?: string }).code = code
     throw error
@@ -98,6 +127,8 @@ export interface FriendSummary {
   rockyName: string
   /** A Rocky admin (VIP badge). */
   staff?: boolean
+  /** QA analyst or team leader badge. */
+  title?: 'qa' | 'leader' | null
   level: number
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -113,6 +144,7 @@ export interface FriendDetail {
   name: string
   rockyName: string
   staff?: boolean
+  title?: 'qa' | 'leader' | null
   level: number
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -339,6 +371,7 @@ export interface ChatPerson {
   id: string
   name: string
   staff?: boolean
+  title?: 'qa' | 'leader' | null
   rockyName: string
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -357,6 +390,9 @@ export interface ChatMessage {
   from: string
   name: string
   staff?: boolean
+  title?: 'qa' | 'leader' | null
+  /** The author's chat bubble style (shop item id). */
+  style?: string | null
   mine: boolean
   body: string
   hidden: boolean
@@ -431,6 +467,59 @@ export const chatApi = {
   adminExport: (from: string, to: string) => request<{ from: string; to: string; exportedAt: string; messages: unknown[] }>(`/api/admin/chat/export?from=${from}&to=${to}`),
   adminBackups: () => request<ChatBackupStatus>('/api/admin/chat/backups'),
   adminBackupNow: (day: string) => request<{ count: number; uploaded: boolean; encrypted: boolean; file: string | null; error?: string }>('/api/admin/chat/backups', post({ day })),
+}
+
+// ---- People: titles and teams (mirrors backend peopleApplicationService) ----
+export interface TeamSpirit {
+  score: number
+  mood: import('../types/domain').Mood
+  checkedIn: number
+  total: number
+  qaRate: number | null
+  atRisk: number
+}
+export interface MyRole {
+  title: 'qa' | 'leader' | null
+  admin: boolean
+  team: TeamSpirit | null
+  leader: { id: string; name: string } | null
+}
+export interface TeamMember {
+  id: string
+  name: string
+  rockyName: string
+  stage: import('../types/domain').EvolutionStage
+  mood: import('../types/domain').Mood
+  outfit: import('../game/closet').Outfit
+  level: number
+  xp: number
+  streak: number
+  bestStreak: number
+  energy: number
+  online: boolean
+  checkedInToday: boolean
+  daysSinceCheckIn: number | null
+  checkIns: number
+  qaPasses: number
+  alerts: number
+  atRisk: boolean
+  riskReasons: string[]
+  lastCheckInDate: string | null
+}
+export interface AdminPerson {
+  email: string
+  name: string
+  title: 'qa' | 'leader' | null
+  leader: string | null
+  signedUp: boolean
+}
+
+export const peopleApi = {
+  me: () => request<MyRole>('/api/me/role'),
+  myTeam: () => request<{ spirit: TeamSpirit | null; members: TeamMember[] }>('/api/my-team'),
+  adminPeople: () => request<{ people: AdminPerson[] }>('/api/admin/people'),
+  adminSetPerson: (email: string, change: { title?: 'qa' | 'leader' | null; leader?: string | null }) =>
+    request<AdminPerson | null>(`/api/admin/people/${encodeURIComponent(email)}`, { method: 'PUT', body: JSON.stringify(change) }),
 }
 
 export const apiClient = {

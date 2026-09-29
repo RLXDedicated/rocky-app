@@ -15,11 +15,15 @@ export interface LiveBus {
   /** Filled in by the live hub: is this agent currently inside that host's home? */
   inRoom(agentId: string, hostId: string): boolean
   setRoomLookup(fn: (agentId: string, hostId: string) => boolean): void
+  /** Filled in by the live hub: does this agent have the app open right now? */
+  isOnline(agentId: string): boolean
+  setOnlineLookup(fn: (agentId: string) => boolean): void
 }
 
 export function createLiveBus(): LiveBus {
   const listeners = new Set<Listener>()
   let lookup: (agentId: string, hostId: string) => boolean = () => false
+  let online: (agentId: string) => boolean = () => false
   return {
     publish(agentIds, event) {
       if (agentIds.length === 0) return
@@ -32,6 +36,10 @@ export function createLiveBus(): LiveBus {
     inRoom: (agentId, hostId) => lookup(agentId, hostId),
     setRoomLookup(fn) {
       lookup = fn
+    },
+    isOnline: (agentId) => online(agentId),
+    setOnlineLookup(fn) {
+      online = fn
     },
   }
 }

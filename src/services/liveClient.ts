@@ -24,6 +24,7 @@ export interface RoomMember {
   name: string
   rockyName: string
   staff?: boolean
+  title?: 'qa' | 'leader' | null
   stage: EvolutionStage
   mood: Mood
   outfit: Outfit

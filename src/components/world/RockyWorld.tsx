@@ -69,6 +69,7 @@ import type { RockyClip } from "./rocky3dRuntime";
 import styles from "./World.module.css";
 import { GuestRocky, type Guest } from "./GuestRocky";
 import { VipAura } from "./VipAura";
+import { RetryImg, useNetworkRecovery } from "../assetRecovery";
 
 type Pose = "idle" | "walk" | "run" | "pet" | "eat" | "hop" | "bath";
 
@@ -423,6 +424,12 @@ export function RockyWorld({
   const [rigMode, setRigMode] = useState<"loading" | "ready" | "off">(() =>
     import.meta.env.MODE === "test" ? "off" : "loading",
   );
+  // Back online after a blip: try the animated rig again (it gives up while offline).
+  const recovered = useNetworkRecovery();
+  useEffect(() => {
+    if (recovered > 0 && import.meta.env.MODE !== "test")
+      setRigMode((m) => (m === "off" ? "loading" : m));
+  }, [recovered]);
   const hatRef = useRef<SVGSVGElement>(null);
   const glassesRef = useRef<SVGSVGElement>(null);
   const headRefs = useMemo(() => [glassesRef], []);
@@ -1527,8 +1534,7 @@ export function RockyWorld({
                 />
               )}
               {!is3d && (reaction || rigMode !== "ready") && (
-                <img
-                  key={src}
+                <RetryImg
                   src={src}
                   alt=""
                   className={styles.art}

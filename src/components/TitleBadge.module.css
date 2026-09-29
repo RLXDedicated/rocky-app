@@ -1,0 +1,69 @@
+.badge {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 6px;
+  font-family: var(--font-display, Poppins, sans-serif);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  vertical-align: middle;
+  color: #ffffff;
+  animation: titleGlow 2.6s ease-in-out infinite;
+}
+
+.sm {
+  padding: 3px 6px 2px;
+  font-size: 0.62rem;
+}
+
+.md {
+  padding: 4px 8px 3px;
+  font-size: 0.72rem;
+}
+
+/* A soft shine sweeping across */
+.badge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.65) 48%, transparent 66%);
+  transform: translateX(-130%);
+  animation: titleShine 3.4s ease-in-out infinite;
+}
+
+.qa {
+  --glow: 96, 165, 250;
+  background: linear-gradient(135deg, #60a5fa 0%, #2563eb 55%, #1e3a8a 100%);
+  box-shadow: 0 0 0 1px rgba(191, 219, 254, 0.8) inset, 0 0 8px rgba(var(--glow), 0.7);
+  text-shadow: 0 0 6px rgba(191, 219, 254, 0.9);
+}
+
+.leader {
+  --glow: 45, 212, 191;
+  background: linear-gradient(135deg, #5eead4 0%, #0d9488 55%, #115e59 100%);
+  box-shadow: 0 0 0 1px rgba(204, 251, 241, 0.8) inset, 0 0 8px rgba(var(--glow), 0.6);
+  text-shadow: 0 0 6px rgba(204, 251, 241, 0.9);
+}
+
+@keyframes titleGlow {
+  50% {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85) inset, 0 0 14px rgba(var(--glow), 0.95);
+  }
+}
+
+@keyframes titleShine {
+  55%,
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge,
+  .badge::after {
+    animation: none;
+  }
+}

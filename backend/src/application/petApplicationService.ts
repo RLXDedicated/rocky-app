@@ -92,6 +92,10 @@ export interface PetApplicationServiceDeps {
   clock?: Clock;
   /** Rocky admins (ROCKY_ADMIN_EMAILS): they get the VIP badge and the staff-only items. */
   isStaff?: (agentId: string) => boolean;
+  /** Titles shown next to names (QA analyst, team leader). */
+  titleOf?: (agentId: string) => string | null;
+  /** A leader's Rocky mirrors her team's spirit (see peopleApplicationService). */
+  teamMood?: (agentId: string) => import("../../../src/types/domain").Mood | null;
 }
 
 /** A stable, opaque id for a friend (never the email). */
@@ -122,6 +126,8 @@ export function createPetApplicationService({
   persistence,
   clock = systemClock,
   isStaff = () => false,
+  titleOf = () => null,
+  teamMood = () => null,
 }: PetApplicationServiceDeps) {
   const accounts = persistence.accounts;
 
@@ -642,9 +648,10 @@ export function createPetApplicationService({
             name: publicName(id, agent.name),
             rockyName: agent.rockyName,
             staff: isStaff(id),
+            title: titleOf(id),
             level: game.level,
             stage: game.evolutionStage,
-            mood: game.mood,
+            mood: teamMood(id) ?? game.mood,
             streak: game.currentStreak,
             feeling: needsSummary(state.needs),
             scene: state.outfit.scene,
@@ -660,6 +667,14 @@ export function createPetApplicationService({
             (b.lastActiveAt ?? "").localeCompare(a.lastActiveAt ?? "") ||
             a.name.localeCompare(b.name),
         );
+    },
+
+    /** The chat bubble style an agent is wearing (null = the plain one). */
+    bubbleOf(agentId: string): string | null {
+      const state = load(agentId, clock.now()).state;
+      const id = state.outfit.bubble ?? null;
+      if (!id) return null;
+      return state.granted.includes(id) || state.owned.includes(id) ? id : null;
     },
 
     /** Resolves a friend key to the agent (null for unknown keys or yourself). */
@@ -692,9 +707,10 @@ export function createPetApplicationService({
         name: publicName(agentId, agent.name),
         rockyName: agent.rockyName,
         staff: isStaff(agentId),
+        title: titleOf(agentId),
         level: game.level,
         stage: game.evolutionStage,
-        mood: game.mood,
+        mood: teamMood(agentId) ?? game.mood,
         streak: game.currentStreak,
         badges: repo.getAchievements().length,
         needs: state.needs,

@@ -101,8 +101,11 @@ export function RockyRig({ src, rig, size, mood, action, animate, facing = 0, lo
   // Artwork (texture) follows the current stage/mood image.
   useEffect(() => {
     let alive = true
+    let tries = 0
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const load = () => {
     const img = new Image()
-    img.src = src
+    img.src = tries === 0 ? src : `${src}?retry=${tries}`
     img
       .decode()
       .then(() => {
@@ -116,9 +119,19 @@ export function RockyRig({ src, rig, size, mood, action, animate, facing = 0, lo
         }
         readyRef.current()
       })
-      .catch(() => alive && failRef.current())
+      .catch(() => {
+        if (!alive) return
+        // A network blip: retry a few times before falling back to the plain image.
+        if (tries < 3) {
+          tries++
+          timer = setTimeout(load, 1500 * tries)
+        } else failRef.current()
+      })
+    }
+    load()
     return () => {
       alive = false
+      if (timer) clearTimeout(timer)
     }
   }, [src, rig])
 

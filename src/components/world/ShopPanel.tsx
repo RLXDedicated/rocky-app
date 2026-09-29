@@ -19,41 +19,49 @@ import { fxPreview } from './FxLayer'
 import { Coin } from './Coin'
 import styles from './Shop.module.css'
 
-type Tab = Exclude<ItemSlot, 'neck' | 'back'> | 'clothes' | 'treats' | 'food' | 'soap' | 'spooky' | 'holiday'
+type Tab = Exclude<ItemSlot, 'body' | 'aura'> | 'style' | 'treats' | 'food' | 'soap' | 'spooky' | 'holiday'
 export type ShopTab = Tab
 
-type Section = 'rocky' | 'world' | 'pantry' | 'seasonal'
+type Section = 'rocky' | 'world' | 'chat' | 'pantry' | 'seasonal'
 
-/** Four shops in one: what Rocky wears, his world, his pantry and the seasonal specials. */
+/** Five shops in one, each split by kind so everything is easy to find. */
 const SECTIONS: { id: Section; label: string; hint: string; tabs: { id: Tab; label: string }[] }[] = [
   {
     id: 'rocky',
     label: 'Rocky',
-    hint: 'Hats, glasses and clothes Rocky wears.',
+    hint: 'Everything Rocky wears, from head to wings.',
     tabs: [
-      { id: 'hat', label: 'Hats' },
-      { id: 'glasses', label: 'Glasses' },
-      { id: 'clothes', label: 'Clothes' },
+      { id: 'hat', label: '🎩 Hats' },
+      { id: 'glasses', label: '🕶️ Glasses' },
+      { id: 'neck', label: '🎀 Neck' },
+      { id: 'back', label: '🪽 Wings & backs' },
+      { id: 'style', label: '✨ Style' },
     ],
   },
   {
     id: 'world',
-    label: 'World',
+    label: 'Home',
     hint: 'Backgrounds, things that live with Rocky, and ambience effects.',
     tabs: [
-      { id: 'scene', label: 'Backgrounds' },
-      { id: 'decor', label: 'Items' },
-      { id: 'fx', label: 'Effects' },
+      { id: 'scene', label: '🏞️ Backgrounds' },
+      { id: 'decor', label: '🪴 Items' },
+      { id: 'fx', label: '❄️ Effects' },
     ],
+  },
+  {
+    id: 'chat',
+    label: 'Chat',
+    hint: 'How your messages look to everyone in Rocky chat.',
+    tabs: [{ id: 'bubble', label: '💬 Chat bubbles' }],
   },
   {
     id: 'pantry',
     label: 'Pantry',
     hint: 'Snacks to drag onto Rocky, and soaps to scrub him with.',
     tabs: [
-      { id: 'food', label: 'Food' },
-      { id: 'soap', label: 'Soaps' },
-      { id: 'treats', label: 'Treat bags' },
+      { id: 'food', label: '🍎 Food' },
+      { id: 'soap', label: '🧼 Soaps' },
+      { id: 'treats', label: '🎁 Treat bags' },
     ],
   },
   {
@@ -160,10 +168,10 @@ export function ShopPanel({
   // Items taken out of the shop by an admin stay visible only to agents who already have them.
   const visible = (i: ClosetItem) => (i.staff ? granted.includes(i.id) : i.enabled !== false || isUsable(i, facts, owned, granted))
   const closetFor = (t: Tab): ClosetItem[] => {
-    if (t === 'clothes')
-      return [...itemsFor('body', catalog, granted), ...itemsFor('neck', catalog, granted), ...itemsFor('back', catalog, granted), ...itemsFor('aura', catalog, granted)]
+    if (t === 'style') return [...itemsFor('body', catalog, granted), ...itemsFor('aura', catalog, granted)]
     if (t === 'spooky' || t === 'holiday') return catalog.filter((i) => i.season === t)
-    if (t === 'hat' || t === 'glasses' || t === 'scene' || t === 'decor' || t === 'fx') return itemsFor(t, catalog, granted)
+    if (t === 'hat' || t === 'glasses' || t === 'neck' || t === 'back' || t === 'scene' || t === 'decor' || t === 'fx' || t === 'bubble')
+      return itemsFor(t, catalog, granted)
     return []
   }
   const items = closetFor(tab).filter(visible)
@@ -396,6 +404,12 @@ function ItemPreview({ item }: { item: ClosetItem }) {
       <svg viewBox="0 0 100 75" aria-hidden="true">
         {FX_ART[item.id] ?? fxPreview(item.id)}
       </svg>
+    )
+  if (item.slot === 'bubble')
+    return (
+      <span className={`${styles.bubblePreview} chat-bubble-${item.id}`} aria-hidden="true">
+        Hi team! 👋
+      </span>
     )
   if (item.slot === 'aura')
     return (

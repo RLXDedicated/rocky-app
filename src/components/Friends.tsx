@@ -11,7 +11,7 @@ import type { Guest } from './world/GuestRocky'
 import { usePresence, type Presence } from '../services/liveClient'
 import { useLiveRoom } from './live/useLiveRoom'
 import { LivePanel } from './chat/LivePanel'
-import { VipBadge } from './VipBadge'
+import { NameBadges } from './TitleBadge'
 import { getAgentRole } from '../services/identityService'
 import styles from './Friends.module.css'
 
@@ -44,7 +44,11 @@ function presenceLine(p: Presence | null): string | null {
   return 'Online now'
 }
 
-export function Friends({ onChat }: { onChat?: (friendId: string) => void } = {}) {
+export function Friends({
+  onChat,
+  openVisit,
+  onVisitOpened,
+}: { onChat?: (friendId: string) => void; openVisit?: string | null; onVisitOpened?: () => void } = {}) {
   const [friends, setFriends] = useState<FriendSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -63,6 +67,13 @@ export function Friends({ onChat }: { onChat?: (friendId: string) => void } = {}
   useEffect(() => {
     if (isRemoteModeEnabled()) void load()
   }, [])
+
+  // Opened from elsewhere (My team → Visit).
+  useEffect(() => {
+    if (!openVisit) return
+    void visit(openVisit)
+    onVisitOpened?.()
+  }, [openVisit]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function visit(id: string) {
     try {
@@ -137,7 +148,7 @@ export function Friends({ onChat }: { onChat?: (friendId: string) => void } = {}
               <div className={styles.info}>
                 <strong>{f.rockyName}</strong>
                 <span>
-                  {f.name} {f.staff && <VipBadge size="sm" />}
+                  {f.name} <NameBadges staff={f.staff} title={f.title} />
                 </span>
                 <small>
                   Level {f.level} · {f.stage} · 🔥 {f.streak}
@@ -256,7 +267,7 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
               </button>
               <div className={styles.visitTag}>
                 <strong>
-                  {friend.rockyName} {friend.staff && <VipBadge size="sm" />}
+                  {friend.rockyName} <NameBadges staff={friend.staff} title={friend.title} />
                 </strong>
                 <span>
                   {friend.name} · Level {friend.level} {friend.stage} · 🔥 {friend.streak} · 🏅 {friend.badges}

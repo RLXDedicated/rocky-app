@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle } from './AccountStore'
 
 interface LedgerDbRow {
   entry_id: number
@@ -229,6 +229,40 @@ export class SqliteAccountStore implements AccountStore {
   listSessions(agentId: string): SessionRecord[] {
     const rows = this.db.prepare('SELECT * FROM sessions WHERE agent_id = ? ORDER BY created_at DESC').all(agentId) as unknown as SessionDbRow[]
     return rows.map(toSession)
+  }
+
+  getTitles(): Record<string, AgentTitle> {
+    const rows = this.db.prepare('SELECT agent_id, title FROM agent_titles').all() as { agent_id: string; title: AgentTitle }[]
+    return Object.fromEntries(rows.map((r) => [r.agent_id, r.title]))
+  }
+
+  setTitle(agentId: string, title: AgentTitle | null, by: string, at: string): void {
+    if (!title) {
+      this.db.prepare('DELETE FROM agent_titles WHERE agent_id = ?').run(agentId)
+      return
+    }
+    this.db
+      .prepare(
+        'INSERT INTO agent_titles (agent_id, title, updated_at, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT(agent_id) DO UPDATE SET title = excluded.title, updated_at = excluded.updated_at, updated_by = excluded.updated_by',
+      )
+      .run(agentId, title, at, by)
+  }
+
+  getTeams(): Record<string, string> {
+    const rows = this.db.prepare('SELECT member_id, leader_id FROM team_members').all() as { member_id: string; leader_id: string }[]
+    return Object.fromEntries(rows.map((r) => [r.member_id, r.leader_id]))
+  }
+
+  setLeader(memberId: string, leaderId: string | null, by: string, at: string): void {
+    if (!leaderId) {
+      this.db.prepare('DELETE FROM team_members WHERE member_id = ?').run(memberId)
+      return
+    }
+    this.db
+      .prepare(
+        'INSERT INTO team_members (member_id, leader_id, added_at, added_by) VALUES (?, ?, ?, ?) ON CONFLICT(member_id) DO UPDATE SET leader_id = excluded.leader_id, added_at = excluded.added_at, added_by = excluded.added_by',
+      )
+      .run(memberId, leaderId, at, by)
   }
 
   deleteAgentData(agentId: string): void {

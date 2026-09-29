@@ -83,3 +83,9 @@ const REACTION_ASSETS: Record<RockyReactionKey, string> = {
 export function getReactionAsset(reaction: RockyReactionKey): string {
   return REACTION_ASSETS[reaction]
 }
+
+/** Every Rocky illustration, for preloading (so a network blip never leaves Rocky invisible). */
+export const ALL_ROCKY_ASSETS: string[] = [
+  ...Object.values(ROCKY_ASSETS).flatMap((moods) => Object.values(moods)),
+  ...Object.values(REACTION_ASSETS),
+]

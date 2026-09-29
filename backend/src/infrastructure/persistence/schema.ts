@@ -241,3 +241,28 @@ export const MIGRATION_005_CHAT = `
     reason   TEXT
   );
 `
+
+// People: titles (a QA analyst badge, team leaders) and which leader each
+// agent reports to. A title grants no permissions — ADMIN still comes only
+// from ROCKY_ADMIN_EMAILS. Seeded with the pilot's current people.
+export const MIGRATION_006_PEOPLE = `
+  CREATE TABLE agent_titles (
+    agent_id   TEXT PRIMARY KEY,
+    title      TEXT NOT NULL CHECK (title IN ('qa', 'leader')),
+    updated_at TEXT NOT NULL,
+    updated_by TEXT NOT NULL
+  );
+
+  CREATE TABLE team_members (
+    member_id  TEXT PRIMARY KEY,
+    leader_id  TEXT NOT NULL,
+    added_at   TEXT NOT NULL,
+    added_by   TEXT NOT NULL
+  );
+  CREATE INDEX idx_team_members_leader ON team_members(leader_id);
+
+  INSERT INTO agent_titles (agent_id, title, updated_at, updated_by) VALUES
+    ('mcantillo@rlx.us', 'leader', '2026-09-29T12:00:00.000Z', 'seed'),
+    ('madiaz@rlx.us', 'qa', '2026-09-29T12:00:00.000Z', 'seed'),
+    ('kcolina@rlx.us', 'qa', '2026-09-29T12:00:00.000Z', 'seed');
+`

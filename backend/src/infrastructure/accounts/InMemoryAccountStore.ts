@@ -1,5 +1,5 @@
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle } from './AccountStore'
 
 const clone = <T>(v: T): T => (v === undefined || v === null ? v : (JSON.parse(JSON.stringify(v)) as T))
 const newest = <T extends { id: number }>(rows: T[], limit: number) => [...rows].sort((a, b) => b.id - a.id).slice(0, limit)
@@ -111,6 +111,28 @@ export class InMemoryAccountStore implements AccountStore {
 
   listSessions(agentId: string) {
     return [...this.sessions.values()].filter((s) => s.agentId === agentId).map((s) => ({ ...s }))
+  }
+
+  private titles = new Map<string, AgentTitle>([
+    ['mcantillo@rlx.us', 'leader'],
+    ['madiaz@rlx.us', 'qa'],
+    ['kcolina@rlx.us', 'qa'],
+  ])
+  private teams = new Map<string, string>()
+
+  getTitles() {
+    return Object.fromEntries(this.titles)
+  }
+  setTitle(agentId: string, title: AgentTitle | null) {
+    if (title) this.titles.set(agentId, title)
+    else this.titles.delete(agentId)
+  }
+  getTeams() {
+    return Object.fromEntries(this.teams)
+  }
+  setLeader(memberId: string, leaderId: string | null) {
+    if (leaderId) this.teams.set(memberId, leaderId)
+    else this.teams.delete(memberId)
   }
 
   deleteAgentData(agentId: string) {

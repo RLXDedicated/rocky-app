@@ -8,7 +8,9 @@ import { NavIcon, type NavIconName } from "./components/NavIcon";
 import { Friends } from "./components/Friends";
 import { Arcade } from "./components/Arcade";
 import { Chat } from "./components/chat/Chat";
-import { VipBadge } from "./components/VipBadge";
+import { NameBadges } from "./components/TitleBadge";
+import { MyTeam } from "./components/MyTeam";
+import { refreshMyRole, useMyRole } from "./services/myRole";
 import { getAgentRole } from "./services/identityService";
 import { startChatBadge, useChatUnread } from "./components/chat/chatState";
 import { live, useLiveEvent } from "./services/liveClient";
@@ -43,6 +45,7 @@ type View =
   | "notes"
   | "arcade"
   | "chat"
+  | "my-team"
   | "friends"
   | "qa-simulator"
   | "admin"
@@ -83,6 +86,16 @@ function App() {
   const [chatWith, setChatWith] = useState<string | null>(null);
   const [arrival, setArrival] = useState<string | null>(null);
   const unread = useChatUnread();
+  const myRole = useMyRole();
+  const [visitId, setVisitId] = useState<string | null>(null);
+
+  // My title (QA / leader) and, for leaders, the team's spirit.
+  useEffect(() => {
+    if (!isRemoteModeEnabled() || needsLogin) return;
+    void refreshMyRole();
+    const t = window.setInterval(() => void refreshMyRole(), 5 * 60_000);
+    return () => window.clearInterval(t);
+  }, [needsLogin]);
 
   // The live channel (presence, live visits, chat) runs while signed in.
   useEffect(() => {
@@ -163,6 +176,9 @@ function App() {
     ...(isRemoteModeEnabled()
       ? [{ view: "chat" as View, label: "Chat", icon: "chat" as NavIconName }]
       : []),
+    ...(myRole?.title === "leader"
+      ? [{ view: "my-team" as View, label: "My team", icon: "team" as NavIconName }]
+      : []),
     { view: "progress", label: "Progress", icon: "chart" },
     { view: "friends", label: "Friends", icon: "friends" },
     { view: "achievements", label: "Badges", icon: "medal" },
@@ -241,7 +257,7 @@ function App() {
         </nav>
         {isBackendConfigured() && getAgentEmail() && (
           <div className={styles.account}>
-            {getAgentRole() === "ADMIN" && <VipBadge size="sm" />}
+            <NameBadges staff={getAgentRole() === "ADMIN"} title={myRole?.title} />
             <span className={styles.accountEmail} title={getAgentEmail() ?? ""}>
               {getAgentEmail()}
             </span>
@@ -258,6 +274,7 @@ function App() {
 
       {view === "home" && (
         <Home
+          onOpenTeam={() => setView("my-team")}
           onOpenProgress={() => setView("progress")}
           onOpenNotes={() => setView("notes")}
         />
@@ -265,9 +282,19 @@ function App() {
       {view === "progress" && <Progress />}
       {view === "friends" && (
         <Friends
+          openVisit={visitId}
+          onVisitOpened={() => setVisitId(null)}
           onChat={(id) => {
             setChatWith(id);
             setView("chat");
+          }}
+        />
+      )}
+      {view === "my-team" && (
+        <MyTeam
+          onVisit={(id) => {
+            setVisitId(id);
+            setView("friends");
           }}
         />
       )}

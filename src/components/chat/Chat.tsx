@@ -6,7 +6,8 @@ import { ChatThread } from './ChatThread'
 import { RulesGate } from './ChatRules'
 import { chatState } from './chatState'
 import styles from './Chat.module.css'
-import { VipBadge } from '../VipBadge'
+import { NameBadges } from '../TitleBadge'
+import { stickerOf } from './Stickers'
 
 function ago(at: string): string {
   const mins = Math.round((Date.now() - Date.parse(at)) / 60_000)
@@ -180,9 +181,9 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
                     </span>
                     <span className={styles.channelText}>
                       <strong>
-                        {c.kind === 'general' ? 'General — everyone' : c.title} {c.with?.staff && <VipBadge size="sm" />}
+                        {c.kind === 'general' ? 'General — everyone' : c.title} <NameBadges staff={c.with?.staff} title={c.with?.title} />
                       </strong>
-                      <small>{c.last ? `${c.last.mine ? 'You' : c.last.name}: ${c.last.body || 'message hidden'}` : 'No messages yet'}</small>
+                      <small>{c.last ? `${c.last.mine ? 'You' : c.last.name}: ${(stickerOf(c.last.body) ? `🐂 ${stickerOf(c.last.body)!.label}` : c.last.body) || 'message hidden'}` : 'No messages yet'}</small>
                     </span>
                     <span className={styles.channelMeta}>
                       {c.last && <small>{ago(c.last.at)}</small>}
@@ -203,7 +204,7 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
                   ←
                 </button>
                 <strong>
-                  {current.kind === 'general' ? 'General — everyone in the pilot' : current.title} {current.with?.staff && <VipBadge size="sm" />}
+                  {current.kind === 'general' ? 'General — everyone in the pilot' : current.title} <NameBadges staff={current.with?.staff} title={current.with?.title} />
                 </strong>
                 {current.with && <small>{presenceOf(current.with.id) ? '● Online now' : `${current.with.rockyName}’s human`}</small>}
               </header>

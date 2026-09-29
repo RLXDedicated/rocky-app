@@ -61,6 +61,9 @@ export interface SessionRecord {
   revokedAt: string | null
 }
 
+/** A title shown next to the name. Grants no permissions. */
+export type AgentTitle = 'qa' | 'leader'
+
 export interface AccountStore {
   getPetProfile(agentId: string): PetProfileRecord | null
   savePetProfile(agentId: string, state: unknown, updatedAt: string): PetProfileRecord
@@ -85,6 +88,13 @@ export interface AccountStore {
   revokeSession(tokenHash: string, at: string): void
   revokeAgentSessions(agentId: string, at: string): number
   listSessions(agentId: string): SessionRecord[]
+
+  /** Titles by agent (qa analysts, team leaders). */
+  getTitles(): Record<string, AgentTitle>
+  setTitle(agentId: string, title: AgentTitle | null, by: string, at: string): void
+  /** Which leader each agent reports to (member → leader). */
+  getTeams(): Record<string, string>
+  setLeader(memberId: string, leaderId: string | null, by: string, at: string): void
 
   /** Removes the agent's pet, ledger, credential and sessions (audit entries are kept). */
   deleteAgentData(agentId: string): void

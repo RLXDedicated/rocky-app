@@ -19,6 +19,7 @@ import { useLiveRoom } from './live/useLiveRoom'
 import { LivePanel } from './chat/LivePanel'
 import { isRemoteModeEnabled } from '../services/apiClient'
 import { getAgentRole } from '../services/identityService'
+import { useMyRole } from '../services/myRole'
 import { ShopPanel, type ShopTab } from './world/ShopPanel'
 import type { Outfit, ProgressFacts } from '../game/closet'
 import { canUse, coinBalance, refreshPetState, treatsAvailable, unreadInbox, type PetAction, type PetResult } from '../game/pet'
@@ -43,10 +44,12 @@ interface Props {
   onOpenProgress?: () => void
   /** Opens Note Check, the daily notes mini-game. */
   onOpenNotes?: () => void
+  /** Team leaders: opens My team. */
+  onOpenTeam?: () => void
 }
 
 /** The pet screen: Rocky's world is the whole page. Stats live in Progress, looks in the shop. */
-export function Home({ onOpenProgress, onOpenNotes }: Props) {
+export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
   const [agent, setAgent] = useState<Agent | null>(null)
   // Live: friends visiting my Rocky right now appear in my world.
   const [liveHome] = useState(() => (isRemoteModeEnabled() ? 'me' : null))
@@ -183,7 +186,11 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
   // Mood is derived, not just cached: it also depends on time elapsed since
   // the last alert (Recovery window), so it's recomputed rather than trusted
   // from the last-saved state.mood snapshot.
-  const mood = useMemo(() => (gameState ? calculateMood(gameState) : 'Motivated'), [gameState])
+  const myRole = useMyRole()
+  // A team leader's Rocky mirrors how her team is doing.
+  const team = myRole?.title === 'leader' ? myRole.team : null
+  const ownMood = useMemo(() => (gameState ? calculateMood(gameState) : 'Motivated'), [gameState])
+  const mood = team?.mood ?? ownMood
   // Picked once per mood so the line doesn't reshuffle on every re-render.
   const moodLine = useMemo(() => moodMessage(mood), [mood])
   // Rocky's core message: every so often his line becomes a note tip.
@@ -192,7 +199,14 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
     const t = window.setInterval(() => setTipIndex((i) => (i >= 0 ? -1 : Math.floor(Math.random() * NOTE_TIPS.length))), 20_000)
     return () => window.clearInterval(t)
   }, [])
-  const idleLine = tipIndex >= 0 ? NOTE_TIPS[tipIndex]! : moodLine
+  const teamLine = team
+    ? team.score >= 75
+      ? `My team is on fire: ${team.checkedIn}/${team.total} checked in today! 🔥`
+      : team.score >= 55
+        ? `Team spirit ${team.score}% — ${team.total - team.checkedIn} still to check in today.`
+        : `Our team needs a boost: ${team.checkedIn}/${team.total} checked in today.`
+    : null
+  const idleLine = tipIndex >= 0 ? NOTE_TIPS[tipIndex]! : (teamLine ?? moodLine)
   const closeShop = useCallback(() => setShopOpen(false), [])
   const startArrange = useCallback(() => {
     setShopOpen(false)
@@ -315,6 +329,7 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
     sizes: outfit.sizes ?? {},
     fx: usable(outfit.fx) ? outfit.fx : null,
     aura: usable(outfit.aura ?? null) ? (outfit.aura ?? null) : null,
+    bubble: usable(outfit.bubble ?? null) ? (outfit.bubble ?? null) : null,
   }
 
   function handleBuy(id: string): boolean {
@@ -369,7 +384,13 @@ export function Home({ onOpenProgress, onOpenNotes }: Props) {
           hud={
             <>
               <div className={styles.hudLeft}>
-                <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} vip={vip} />
+                <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} vip={vip} title={myRole?.title} />
+                {team && (
+                  <button type="button" className={styles.notesChip} onClick={onOpenTeam} title="Your Rocky's mood follows your team">
+                    <span aria-hidden="true">🤝</span> Team spirit
+                    <b>{team.score}%</b>
+                  </button>
+                )}
                 {onOpenNotes && !(pet.state.quiz.date === todayKey() && pet.state.quiz.rewarded) && (
                   <button type="button" className={styles.notesChip} onClick={onOpenNotes}>
                     <span aria-hidden="true">📝</span> Today’s Note Check

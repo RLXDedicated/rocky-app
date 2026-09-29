@@ -182,6 +182,7 @@ export const AUDIT_ACTION_ES: Record<string, string> = {
   "pet.litter": "Recogió basura",
   "pet.arcade": "Jugó en el Arcade",
   "chat.rules.accepted": "Aceptó las reglas del chat",
+  "admin.people": "Cambió título o equipo",
   "chat.report": "Reportó un mensaje del chat",
   "chat.message.flagged": "Envió un mensaje con posible dato de cliente",
   "chat.admin.read": "Leyó una conversación (QA)",

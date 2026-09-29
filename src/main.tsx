@@ -1,5 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { preloadRockyArt } from './components/assetRecovery'
+import './components/chat/bubbles.css'
 import './index.css'
 import App from './App.tsx'
 import { initializeIdentityAndSync } from './services/remoteSync'
@@ -9,6 +11,7 @@ import { initializeIdentityAndSync } from './services/remoteSync'
 // real backend progress arrives. A no-op network-wise (resolves immediately)
 // whenever this build has no VITE_API_URL configured — see apiClient.ts.
 initializeIdentityAndSync().finally(() => {
+  preloadRockyArt()
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <App />

@@ -1,0 +1,198 @@
+.page {
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px 60px;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 1080px;
+}
+
+.title {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1.6rem;
+}
+
+.lede,
+.empty {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--alert);
+}
+
+.spirit {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 20px 24px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  box-shadow: 0 8px 22px rgba(15, 35, 65, 0.06);
+  --c: #1fbf68;
+}
+
+.spirit[data-tone='ok'] {
+  --c: #0d9488;
+}
+
+.spirit[data-tone='warn'] {
+  --c: #f5a524;
+}
+
+.spirit[data-tone='bad'] {
+  --c: #e2445c;
+}
+
+.gauge {
+  display: grid;
+  flex: none;
+  place-content: center;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--card-bg) 58%, transparent 59%),
+    conic-gradient(var(--c) var(--p), var(--track-bg) 0);
+  text-align: center;
+}
+
+.gauge b {
+  color: var(--navy);
+  font-size: 1.8rem;
+}
+
+.gauge small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.spiritText strong {
+  color: var(--c);
+  font-size: 1.3rem;
+}
+
+.spiritText ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-strong);
+}
+
+.spiritText small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+}
+
+.card[data-risk] {
+  box-shadow: inset 3px 0 0 #f5a524;
+}
+
+.avatar {
+  position: relative;
+  flex: none;
+}
+
+.avatar img {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #e6f2fb, #eefaf2);
+  object-fit: contain;
+}
+
+.dot {
+  position: absolute;
+  right: 2px;
+  bottom: 4px;
+  width: 13px;
+  height: 13px;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: var(--green-bright);
+}
+
+.info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.info strong {
+  color: var(--navy);
+  font-size: 1rem;
+}
+
+.ok {
+  color: var(--rlx-green);
+  font-weight: 700;
+}
+
+.warn {
+  color: #b7791f;
+  font-weight: 700;
+}
+
+.stats {
+  color: var(--text-strong);
+}
+
+.risk {
+  color: var(--alert);
+  font-size: 0.78rem;
+}
+
+.visit {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--rlx-green);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .spirit {
+    flex-direction: column;
+    text-align: center;
+  }
+  .spiritText ul {
+    justify-content: center;
+  }
+}

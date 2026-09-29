@@ -3,7 +3,8 @@ import { chatApi, type ChatMessage } from '../../services/apiClient'
 import { live, useLiveEvent } from '../../services/liveClient'
 import { chatState } from './chatState'
 import styles from './Chat.module.css'
-import { VipBadge } from '../VipBadge'
+import { NameBadges } from '../TitleBadge'
+import { EmojiPicker, Sticker, StickerPicker, stickerOf, stickerText } from './Stickers'
 
 const MAX = 1000
 
@@ -38,6 +39,7 @@ export function ChatThread({
   const [warning, setWarning] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [picker, setPicker] = useState<'emoji' | 'sticker' | null>(null)
   const [typing, setTyping] = useState<{ name: string; until: number } | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const lastTyping = useRef(0)
@@ -107,8 +109,8 @@ export function ChatThread({
     })
   }
 
-  async function send(confirm = false) {
-    const body = text.trim()
+  async function send(confirm = false, sticker?: string) {
+    const body = (sticker ?? text).trim()
     if (!body || sending) return
     setSending(true)
     setError(null)
@@ -116,7 +118,7 @@ export function ChatThread({
       const m = await chatApi.send(channelId, body, confirm)
       stick.current = true
       setMessages((list) => (list && !list.some((x) => x.id === m.id) ? [...list, m] : list))
-      setText('')
+      if (!sticker) setText('')
       setWarning(null)
     } catch (e) {
       const err = e as Error & { code?: string }
@@ -169,13 +171,19 @@ export function ChatThread({
           const grouped = prev && prev.from === m.from && Date.parse(m.at) - Date.parse(prev.at) < 5 * 60_000
           return (
             <div key={m.id} className={`${styles.msg} ${m.mine ? styles.mine : ''} ${grouped ? styles.grouped : ''} ${m.staff && !m.hidden ? styles.vip : ''}`}>
-              {!grouped && (!m.mine || m.staff) && (
+              {!grouped && (!m.mine || m.staff || m.title) && (
                 <span className={styles.author}>
-                  {m.mine ? 'You' : m.name} {m.staff && <VipBadge size="sm" />}
+                  {m.mine ? 'You' : m.name} <NameBadges staff={m.staff} title={m.title} />
                 </span>
               )}
               <div className={styles.bubbleRow}>
-                <p className={`${styles.bubble} ${m.hidden ? styles.hidden : ''}`}>{m.hidden ? 'Message hidden by the QA team' : m.body}</p>
+                {!m.hidden && stickerOf(m.body) ? (
+                  <Sticker id={stickerOf(m.body)!.id} />
+                ) : (
+                  <p className={`${styles.bubble} ${m.hidden ? styles.hidden : ''} ${m.style && !m.hidden ? `chat-bubble-${m.style}` : ''}`}>
+                    {m.hidden ? 'Message hidden by the QA team' : m.body}
+                  </p>
+                )}
                 {!m.mine && !m.hidden && (
                   <button type="button" className={styles.report} onClick={() => void report(m)} aria-label={`Report message from ${m.name}`} title="Report">
                     ⚑
@@ -207,6 +215,40 @@ export function ChatThread({
         <p className={styles.muted}>Your chat is paused until {new Date(mutedUntil!).toLocaleString()}. Contact the QA team if you think this is a mistake.</p>
       ) : (
         <div className={styles.composer}>
+          {picker === 'emoji' && (
+            <EmojiPicker
+              onPick={(e) => {
+                setText((t) => (t + e).slice(0, MAX))
+                setPicker(null)
+              }}
+            />
+          )}
+          {picker === 'sticker' && (
+            <StickerPicker
+              onPick={(id) => {
+                setPicker(null)
+                void send(false, stickerText(id))
+              }}
+            />
+          )}
+          <button
+            type="button"
+            className={styles.tool}
+            aria-label="Emojis"
+            aria-expanded={picker === 'emoji'}
+            onClick={() => setPicker((p) => (p === 'emoji' ? null : 'emoji'))}
+          >
+            😊
+          </button>
+          <button
+            type="button"
+            className={styles.tool}
+            aria-label="Rocky stickers"
+            aria-expanded={picker === 'sticker'}
+            onClick={() => setPicker((p) => (p === 'sticker' ? null : 'sticker'))}
+          >
+            🐂
+          </button>
           <textarea
             value={text}
             maxLength={MAX}

@@ -59,7 +59,7 @@ function shiftDay(key: string, days: number): string {
   return todayKey(d)
 }
 
-function metricsFor(agentId: string, state: GameState, events: GameEvent[], achievementCount: number, today: string): AdminAgentMetrics {
+export function metricsFor(agentId: string, state: GameState, events: GameEvent[], achievementCount: number, today: string): AdminAgentMetrics {
   const daysSinceCheckIn = state.lastCheckInDate ? daysBetweenKeys(state.lastCheckInDate, today) : null
   // Operational signals only. Mood is deliberately NOT one: it already
   // derives from these same signals (low energy, unanswered alerts).

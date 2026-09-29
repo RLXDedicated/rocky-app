@@ -16,6 +16,7 @@ export type ItemSlot =
   | "back"
   | "body"
   | "aura"
+  | "bubble"
   | "scene"
   | "decor"
   | "fx";
@@ -888,6 +889,30 @@ export const CLOSET: ClosetItem[] = [
     price: 160,
   },
 
+  // Chat bubbles: how your messages look to everyone in Rocky chat.
+  ...(
+    [
+      ["bubble-rlx", "RLX green bubble", "Log 2 check-ins", (p: ProgressFacts) => p.checkIns >= 2, 40],
+      ["bubble-sky", "Sky bubble", "Log your first check-in", (p: ProgressFacts) => p.checkIns >= 1, 40],
+      ["bubble-mint", "Mint bubble", "Reach level 2", (p: ProgressFacts) => p.level >= 2, 50],
+      ["bubble-sunset", "Sunset bubble", "Reach level 3", (p: ProgressFacts) => p.level >= 3, 80],
+      ["bubble-night", "Night mode bubble", "Hit a 3-day streak", (p: ProgressFacts) => p.bestStreak >= 3, 80],
+      ["bubble-comic", "Comic pop bubble", "Log 5 check-ins", (p: ProgressFacts) => p.checkIns >= 5, 100],
+      ["bubble-hearts", "Sweet hearts bubble", "Collect 2 badges", (p: ProgressFacts) => p.badgeIds.length >= 2, 120],
+      ["bubble-neon", "Neon bubble", "Reach level 5", (p: ProgressFacts) => p.level >= 5, 160],
+      ["bubble-galaxy", "Galaxy bubble", "Reach level 7", (p: ProgressFacts) => p.level >= 7, 220],
+    ] as const
+  ).map(
+    ([id, name, requirement, isUnlocked, price]): ClosetItem => ({
+      id,
+      slot: "bubble",
+      name,
+      requirement,
+      isUnlocked,
+      price,
+    }),
+  ),
+
   // Rocky admins only (ROCKY_ADMIN_EMAILS): granted by the server, never sold.
   ...(
     [
@@ -895,6 +920,7 @@ export const CLOSET: ClosetItem[] = [
       ["hat-vip-crown", "hat", "Royal crown"],
       ["fx-royal-aura", "fx", "Royal aura"],
       ["aura-golden", "aura", "Golden aura"],
+      ["bubble-royal", "bubble", "Royal chat bubble"],
     ] as const
   ).map(
     ([id, slot, name]): ClosetItem => ({
@@ -941,6 +967,7 @@ export const CLOSET: ClosetItem[] = [
     ["decor-scarecrow", "decor", "Scarecrow", 110],
     ["fx-spooky-leaves", "fx", "Spooky wind", 110],
     ["fx-pumpkins", "fx", "Pumpkin fall", 120],
+    ["bubble-spooky", "bubble", "Spooky chat bubble", 60],
   ]),
   ...seasonal("holiday", [
     ["hat-elf", "hat", "Elf hat", 90],
@@ -976,6 +1003,7 @@ export const CLOSET: ClosetItem[] = [
     ["decor-fireplace", "decor", "Cosy fireplace", 220],
     ["fx-gift-rain", "fx", "Gift shower", 120],
     ["fx-new-year", "fx", "New Year sparkle", 150],
+    ["bubble-candy", "bubble", "Candy-cane chat bubble", 60],
   ]),
 ];
 
@@ -1012,6 +1040,8 @@ export interface Outfit {
   fx: string | null;
   /** A glow around Rocky himself (admin-only for now). */
   aura?: string | null;
+  /** The style of the agent's chat bubbles (everyone sees it). */
+  bubble?: string | null;
 }
 
 export const DEFAULT_OUTFIT: Outfit = {
@@ -1026,6 +1056,7 @@ export const DEFAULT_OUTFIT: Outfit = {
   sizes: {},
   fx: null,
   aura: null,
+  bubble: null,
 };
 
 /** Slots holding at most one item (decor holds up to MAX_DECOR; scene always has one). */
@@ -1037,6 +1068,7 @@ export const SINGLE_SLOTS = [
   "body",
   "fx",
   "aura",
+  "bubble",
 ] as const;
 export const MAX_DECOR = 12;
 /** Sizes a placed item can take (a multiple of its normal size). Fixed steps, never smaller than the first. */
@@ -1053,6 +1085,7 @@ export const STAFF_ITEMS: readonly string[] = [
   "hat-vip-crown",
   "fx-royal-aura",
   "aura-golden",
+  "bubble-royal",
 ];
 
 /**
@@ -1079,6 +1112,7 @@ export function withStaffPerks<
       back: o.back && has(o.back) ? null : o.back,
       fx: o.fx && has(o.fx) ? null : o.fx,
       aura: null,
+      bubble: o.bubble && has(o.bubble) ? null : (o.bubble ?? null),
     },
   };
 }
@@ -1199,6 +1233,7 @@ export function sanitizeOutfit(
     sizes: sanitizeSizes(o.sizes, decor),
     fx: ok(o.fx, "fx") ? (o.fx as string) : null,
     aura: ok(o.aura, "aura") ? (o.aura as string) : null,
+    bubble: ok(o.bubble, "bubble") ? (o.bubble as string) : null,
   };
 }
 

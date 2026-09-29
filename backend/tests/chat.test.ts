@@ -257,3 +257,19 @@ describe('admin perks', () => {
     expect(fromAna.body.staff).toBe(false)
   })
 })
+
+describe('chat bubbles', () => {
+  it('messages carry the style of the bubble the author wears', async () => {
+    const { app } = build()
+    await enroll(app, ANA, ADMIN)
+    const pet = await request(app).get('/api/pet').set(as(ADMIN))
+    await request(app).post('/api/pet/actions').set(as(ADMIN)).send({ type: 'equip', outfit: { ...pet.body.state.outfit, bubble: 'bubble-royal' } })
+    const sent = await request(app).post('/api/chat/channels/general/messages').set(as(ADMIN)).send({ text: 'Hola' })
+    expect(sent.body.style).toBe('bubble-royal')
+    // Wearing a bubble you don't own does nothing.
+    const anaPet = await request(app).get('/api/pet').set(as(ANA))
+    await request(app).post('/api/pet/actions').set(as(ANA)).send({ type: 'equip', outfit: { ...anaPet.body.state.outfit, bubble: 'bubble-galaxy' } })
+    const fromAna = await request(app).post('/api/chat/channels/general/messages').set(as(ANA)).send({ text: 'hey' })
+    expect(fromAna.body.style).toBeNull()
+  })
+})

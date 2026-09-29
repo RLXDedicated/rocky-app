@@ -29,6 +29,8 @@ import { createChatRouter } from './api/chatRoutes'
 import { createChatApplicationService, type ChatApplicationService } from './application/chatApplicationService'
 import { createChatJobs, type ChatJobs } from './application/chatJobs'
 import { createLiveBus, type LiveBus } from './application/liveBus'
+import { createPeopleApplicationService, type PeopleApplicationService } from './application/peopleApplicationService'
+import { createPeopleRouter } from './api/peopleRoutes'
 import { backupTargetFromEnv, type BackupTarget } from './infrastructure/chat/chatBackup'
 import type { PetApplicationService } from './application/petApplicationService'
 import type { AuthApplicationService } from './application/authApplicationService'
@@ -99,12 +101,17 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const bus = createLiveBus()
   const admins = new Set(config.adminEmails)
   const isStaff = (agentId: string) => admins.has(agentId.toLowerCase())
-  const pet = createPetApplicationService({ persistence, clock: options.clock, isStaff })
-  const chat = createChatApplicationService({ persistence, bus, clock: options.clock, isStaff })
+  const titleOf = (agentId: string) => persistence.accounts.getTitles()[agentId] ?? null
+  // Late-bound: people needs pet (profiles) and pet needs people (a leader's team mood).
+  let people: PeopleApplicationService | null = null
+  const pet = createPetApplicationService({ persistence, clock: options.clock, isStaff, titleOf, teamMood: (id) => people?.teamMood(id) ?? null })
+  const chat = createChatApplicationService({ persistence, bus, clock: options.clock, isStaff, titleOf, bubbleOf: (id) => pet.bubbleOf(id) })
+  people = createPeopleApplicationService({ persistence, pet, isStaff, isOnline: (id) => bus.isOnline(id), clock: options.clock })
   const jobs = createChatJobs(chat, options.backupTarget ?? backupTargetFromEnv(process.env, config.persistenceDriver === 'sqlite' ? config.dbPath : null), options.clock)
   const live: LiveContext = { auth, pet, chat, bus, jobs, persistence }
   app.locals.live = live
   api.use(createChatRouter(chat, jobs))
+  api.use(createPeopleRouter(people))
   api.use(
     createApiRouter({
       game: createGameApplicationService({ persistence, clock: options.clock }),

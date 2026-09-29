@@ -6,8 +6,9 @@ import { ROCKY_RIG } from '../rockyRig'
 import { HAT_ART, hatPlacement } from './art'
 import { backPlacement, BACK_ART, GLASSES_ART, glassesPlacement, NECK_ART, neckPlacement, WEAR_VIEWBOX } from './wearables'
 import styles from './World.module.css'
-import { VipBadge } from '../VipBadge'
+import { NameBadges } from '../TitleBadge'
 import { VipAura } from './VipAura'
+import { RetryImg } from '../assetRecovery'
 
 export interface Guest {
   id: string
@@ -20,6 +21,7 @@ export interface Guest {
   host?: boolean
   /** A Rocky admin: golden aura and VIP badge. */
   staff?: boolean
+  title?: 'qa' | 'leader' | null
   /** A reaction or line shown over this Rocky for a moment. */
   bubble?: string | null
   /** Bumps to replay the little hop when they act. */
@@ -62,7 +64,7 @@ export function GuestRocky({ guest, size, floor }: { guest: Guest; size: number;
             {back}
           </svg>
         )}
-        <img src={getRockyAsset(stage, mood)} alt={`${guest.rockyName}, ${guest.name}’s Rocky`} className={styles.art} />
+        <RetryImg src={getRockyAsset(stage, mood)} alt={`${guest.rockyName}, ${guest.name}’s Rocky`} className={styles.art} />
         {neck && (
           <svg className={`${styles.wear} rocky-live`} viewBox={WEAR_VIEWBOX.neck} style={neckPlacement(rig, anchor, size)} aria-hidden="true">
             {neck}
@@ -82,7 +84,7 @@ export function GuestRocky({ guest, size, floor }: { guest: Guest; size: number;
       <span className={styles.guestTag}>
         {guest.host ? '🏠 ' : ''}
         {guest.name}
-        {guest.staff && <VipBadge size="sm" />}
+        <NameBadges staff={guest.staff} title={guest.title} />
         <i aria-label="live" />
       </span>
     </div>

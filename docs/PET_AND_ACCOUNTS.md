@@ -428,3 +428,29 @@ dots).
    and full outfits that follow the body, with a proper skeletal rig
    (Spine/Rive, or the current mesh renderer per layer).
 6. **Entra ID sign-in** to replace the PIN.
+
+## Roles, teams and chat extras (2026-09-29)
+
+- **Titles** (a badge, no permissions): `qa` — a blue glowing "QA" pill —
+  and `leader` — a teal "LEAD" pill. Stored in `agent_titles` (migration
+  006, seeded with mcantillo@rlx.us as leader and madiaz@rlx.us /
+  kcolina@rlx.us as QA). Rocky admins keep the crown. Managed in Admin →
+  **Roles y equipos**.
+- **Teams**: `team_members` maps each agent to one leader (admin-managed).
+  A leader gets **My team**: a team-spirit gauge and every member's check-in,
+  streak, QA passes/alerts and at-risk reasons (never chats). Spirit =
+  40% today's check-ins + 35% QA pass rate + 25% members not at risk; the
+  leader's Rocky mood follows it (≥75 Happy, ≥55 Motivated, ≥35 Worried,
+  else Recovery) — at home and wherever others see her Rocky.
+- **Chat**: emoji picker; animated Rocky stickers (sent as
+  `[[sticker:<id>]]`, drawn from Rocky's own art — no outside GIF service
+  to moderate); the admin's own bubble is now a calm gold edge.
+- **Chat bubbles** are shop items (new `bubble` slot, section Chat): each
+  message carries its author's style, so everyone sees it.
+- **Shop** is organised by kind: Rocky (Hats, Glasses, Neck, Wings & backs,
+  Style), Home (Backgrounds, Items, Effects), Chat (Chat bubbles), Pantry,
+  Seasonal.
+- **Resilience**: every Rocky illustration is preloaded; images that fail
+  retry and reload when the connection is back; API calls retry network
+  blips and 502/503/504 (a backend restart) before showing
+  "Connection problem".

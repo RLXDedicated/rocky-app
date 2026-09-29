@@ -1,3 +1,4 @@
+import { RetryImg } from "./assetRecovery";
 import {
   useCallback,
   useEffect,
@@ -110,7 +111,7 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
 
         {result && !playing && (
           <div className={styles.result} role="status">
-            <img src={rocky} alt="" />
+            <RetryImg src={rocky} alt="" />
             <div>
               <strong>
                 {GAMES.find((g) => g.id === result.game)!.name}:{" "}
@@ -367,7 +368,7 @@ function TreatCatch({
           {p.text}
         </span>
       ))}
-      <img
+      <RetryImg
         src={rocky}
         alt=""
         className={styles.catcher}

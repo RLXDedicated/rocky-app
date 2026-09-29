@@ -65,6 +65,7 @@ export function attachLiveHub(server: Server, live: LiveContext, opts: LiveHubOp
   const inRoom = (hostId: string) => [...conns].filter((c) => c.agentId && c.room === hostId)
   const online = () => [...new Set([...conns].map((c) => c.agentId).filter((a): a is string => !!a))]
 
+  live.bus.setOnlineLookup((agentId) => ofAgent(agentId).length > 0)
   live.bus.setRoomLookup((agentId, hostId) => ofAgent(agentId).some((c) => c.room === hostId))
   const unsubscribe = live.bus.subscribe((agentIds, event) => {
     for (const id of agentIds) for (const c of ofAgent(id)) send(c, event)
@@ -91,7 +92,7 @@ export function attachLiveHub(server: Server, live: LiveContext, opts: LiveHubOp
   }
   function member(c: Conn) {
     const p = live.pet.publicProfile(c.agentId!)
-    return { id: p.id, name: p.name, rockyName: p.rockyName, staff: p.staff, stage: p.stage, mood: p.mood, outfit: p.outfit, x: c.x, host: c.room === c.agentId }
+    return { id: p.id, name: p.name, rockyName: p.rockyName, staff: p.staff, title: p.title, stage: p.stage, mood: p.mood, outfit: p.outfit, x: c.x, host: c.room === c.agentId }
   }
   /** One entry per agent inside a home (an agent may have two tabs open). */
   function members(hostId: string) {

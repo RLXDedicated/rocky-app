@@ -382,6 +382,7 @@ export function normalizePetState(
       ),
       fx: typeof o.fx === "string" ? o.fx : null,
       aura: typeof o.aura === "string" ? o.aura : null,
+      bubble: typeof o.bubble === "string" ? o.bubble : null,
     },
     owned: ids(r.owned).filter((id) => !(id in RETIRED_ITEMS)),
     granted: ids(r.granted),
