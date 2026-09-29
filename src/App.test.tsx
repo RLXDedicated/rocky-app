@@ -30,9 +30,11 @@ describe('App — Agent Mode vs QA Mode navigation (Phase 8 §23-24)', () => {
     completeOnboarding()
     render(<App />)
 
-    const nav = within(screen.getByRole('navigation', { name: 'Main' }))
-    expect(nav.queryByRole('button', { name: 'QA sim' })).not.toBeInTheDocument()
+    // Internal tools live in their own pinned "Admin tools" menu, never in the agents' main menu.
+    expect(screen.queryByRole('button', { name: 'QA sim' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('QA Tools'))
-    expect(nav.getByRole('button', { name: 'QA sim' })).toBeInTheDocument()
+    const tools = within(screen.getByRole('navigation', { name: 'Admin tools' }))
+    expect(tools.getByRole('button', { name: 'QA sim' })).toBeInTheDocument()
+    expect(within(screen.getByRole('navigation', { name: 'Main' })).queryByRole('button', { name: 'QA sim' })).not.toBeInTheDocument()
   })
 })

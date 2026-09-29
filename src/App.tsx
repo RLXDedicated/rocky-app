@@ -262,7 +262,7 @@ function App() {
         </nav>
         {/* Admin tools stay pinned in view: the main menu may scroll on a laptop screen, these never hide. */}
         {navItems.some((item) => item.internal) && (
-          <div className={styles.navPinned}>
+          <nav className={styles.navPinned} aria-label="Admin tools">
             {navItems
               .filter((item) => item.internal)
               .map((item) => (
@@ -276,7 +276,7 @@ function App() {
                   <span>{item.label}</span>
                 </button>
               ))}
-          </div>
+          </nav>
         )}
         {isBackendConfigured() && getAgentEmail() && (
           <div className={styles.account}>
