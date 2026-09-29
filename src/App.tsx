@@ -247,7 +247,7 @@ function App() {
           <span className={styles.brandBy}>by RLX</span>
         </div>
         <nav className={styles.nav} aria-label="Main">
-          {navItems.map((item) => (
+          {navItems.filter((item) => !item.internal).map((item) => (
             <button
               key={item.view}
               className={`${styles.navButton} ${item.internal ? styles.navButtonQa : ""} ${view === item.view ? styles.navButtonActive : ""}`}
@@ -260,15 +260,36 @@ function App() {
             </button>
           ))}
         </nav>
+        {/* Admin tools stay pinned in view: the main menu may scroll on a laptop screen, these never hide. */}
+        {navItems.some((item) => item.internal) && (
+          <div className={styles.navPinned}>
+            {navItems
+              .filter((item) => item.internal)
+              .map((item) => (
+                <button
+                  key={item.view}
+                  className={`${styles.navButton} ${styles.navButtonQa} ${view === item.view ? styles.navButtonActive : ""}`}
+                  aria-current={view === item.view ? "page" : undefined}
+                  onClick={() => setView(item.view)}
+                >
+                  <NavIcon name={item.icon} />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+          </div>
+        )}
         {isBackendConfigured() && getAgentEmail() && (
           <div className={styles.account}>
-            <NameBadges staff={getAgentRole() === "ADMIN"} title={myRole?.title} tester={myRole?.tester} />
+            <span className={styles.accountBadges}>
+              <NameBadges staff={getAgentRole() === "ADMIN"} title={myRole?.title} tester={myRole?.tester} />
+            </span>
             <span className={styles.accountEmail} title={getAgentEmail() ?? ""}>
               {getAgentEmail()}
             </span>
             <button
               type="button"
               className={styles.signOut}
+              title={`Signed in as ${getAgentEmail() ?? ""}`}
               onClick={() => void signOut()}
             >
               Sign out

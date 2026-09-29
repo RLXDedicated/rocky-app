@@ -451,39 +451,80 @@ const flap = (half: ReactElement, values: string, dur: string, begin = "0s") => 
   </g>
 );
 
-/** Testers' wings: holographic prism glass with circuit veins that pulse like a test run going green. */
+/** One prism feather pointing left from the wing root (length 44). */
+const FEATHER = "M0 0 C-8 -9 -28 -12 -46 -2 C-32 9 -12 8 0 0 Z";
+const TESTER_BACK_TIER = [84, 68, 52, 36, 20, 4, -12];
+const featherAt = (angle: number, i: number) => `translate(48 46) rotate(${angle}) scale(${1.2 - i * 0.06} ${1.35 - i * 0.04})`;
+
+/**
+ * Testers' wings: fanned prism-glass feathers in two tiers, a holographic
+ * sheen, circuit traces that pulse like a test run, a scanner line sweeping
+ * the wing and little green checks drifting up — "all tests passing".
+ */
 const testerHalf = (
   <>
+    {/* Back tier: long feathers */}
+    {TESTER_BACK_TIER.map((a, i) => (
+      <path
+        key={`b${a}`}
+        d={FEATHER}
+        transform={featherAt(a, i)}
+        fill="url(#tw-glass)"
+        stroke="#0e7490"
+        strokeWidth="1"
+      />
+    ))}
+    {/* Front tier: short bright feathers */}
+    {[74, 56, 38, 20, 2].map((a) => (
+      <path key={`f${a}`} d={FEATHER} transform={`translate(48 46) rotate(${a}) scale(0.74 1.1)`} fill="url(#tw-bright)" stroke="#ecfeff" strokeWidth="0.9" />
+    ))}
+    {/* Holographic sheen and the scanner line, kept inside the wing */}
+    <g clipPath="url(#tw-clip)">
+      <rect x="-20" y="-40" width="80" height="140" fill="url(#tw-holo)" opacity="0.7" />
+      <rect x="-20" y="0" width="80" height="3" fill="#ecfeff" opacity="0.9">
+        <animate attributeName="y" values="-6;92;-6" dur="3.4s" repeatCount="indefinite" />
+      </rect>
+    </g>
+    {/* Circuit traces */}
     <path
-      d="M48 36 C38 12 18 0 2 6 C8 12 6 20 2 26 C10 28 12 34 6 40 C14 42 16 48 10 54 C20 54 24 60 20 68 C30 64 40 60 48 52 Z"
-      fill="url(#tw-glass)"
-      stroke="#5eead4"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <path d="M48 36 C38 12 18 0 2 6 C14 30 26 50 48 52 Z" fill="url(#tw-holo)" opacity="0.55" />
-    <path
-      d="M46 38 L30 30 L30 18 L16 10 M46 44 L24 40 L14 30 M46 48 L32 52 L20 62"
+      d="M46 40 L40 26 L40 12 L32 2 M46 44 L30 32 L22 14 L14 10 M46 48 L24 42 L10 36 M46 50 L22 50 L8 52"
       stroke="#99f6e4"
-      strokeWidth="1.3"
+      strokeWidth="1.2"
       fill="none"
-      strokeDasharray="4 6"
+      strokeLinejoin="round"
+      strokeDasharray="4 5"
     >
-      <animate attributeName="stroke-dashoffset" values="20;0" dur="1.2s" repeatCount="indefinite" />
+      <animate attributeName="stroke-dashoffset" values="27;0" dur="1.1s" repeatCount="indefinite" />
     </path>
     {[
-      [30, 18],
-      [16, 10],
-      [14, 30],
-      [20, 62],
+      [32, 2],
+      [14, 10],
+      [10, 36],
+      [8, 52],
+      [40, 12],
     ].map(([x, y], i) => (
-      <circle key={i} cx={x} cy={y} r="2" fill="#ccfbf1">
-        <animate attributeName="opacity" values="0.3;1;0.3" dur="1.4s" begin={`${i * 0.35}s`} repeatCount="indefinite" />
-      </circle>
+      <rect key={i} x={x! - 2.2} y={y! - 2.2} width="4.4" height="4.4" rx="1" fill="#ccfbf1" transform={`rotate(45 ${x} ${y})`}>
+        <animate attributeName="opacity" values="0.25;1;0.25" dur="1.4s" begin={`${i * 0.28}s`} repeatCount="indefinite" />
+      </rect>
     ))}
-    {/* A tiny green check at the root: tests passing. */}
-    <circle cx="44" cy="44" r="4.2" fill="#10b981" stroke="#d1fae5" strokeWidth="1.2" />
-    <path d="M42 44 L43.6 45.8 L46.4 42.4" stroke={WHITE} strokeWidth="1.3" fill="none" strokeLinecap="round" />
+    {/* Checks drifting up off the wing */}
+    {[
+      [14, 2.6],
+      [28, 3.4],
+      [4, 4.1],
+    ].map(([x, dur], i) => (
+      <g key={`c${i}`} opacity="0">
+        <animateTransform attributeName="transform" type="translate" values={`${x} 70;${x! - 6} 0`} dur={`${dur}s`} begin={`${i * 0.9}s`} repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;0" dur={`${dur}s`} begin={`${i * 0.9}s`} repeatCount="indefinite" />
+        <circle r="3.2" fill="#10b981" />
+        <path d="M-1.6 0 L-0.4 1.3 L1.8 -1.3" stroke="#ffffff" strokeWidth="1" fill="none" strokeLinecap="round" />
+      </g>
+    ))}
+    {/* Root badge: a green check — tests passing */}
+    <circle cx="45" cy="46" r="4.8" fill="#10b981" stroke="#d1fae5" strokeWidth="1.3">
+      <animate attributeName="r" values="4.4;5.2;4.4" dur="1.8s" repeatCount="indefinite" />
+    </circle>
+    <path d="M42.8 46 L44.4 47.8 L47.4 44.2" stroke="#ffffff" strokeWidth="1.4" fill="none" strokeLinecap="round" />
   </>
 );
 
@@ -529,24 +570,44 @@ export const THIRD_BACK: Record<string, ReactElement> = {
   "back-tester-wings": (
     <>
       <defs>
-        <linearGradient id="tw-glass" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#a7f3d0" stopOpacity="0.85" />
-          <stop offset="0.5" stopColor="#38bdf8" stopOpacity="0.7" />
-          <stop offset="1" stopColor="#6366f1" stopOpacity="0.85" />
+        <linearGradient id="tw-glass" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#5eead4" />
+          <stop offset="0.5" stopColor="#0ea5e9" />
+          <stop offset="1" stopColor="#4f46e5" />
         </linearGradient>
-        <linearGradient id="tw-holo" x1="0" y1="0" x2="1" y2="0">
+        <linearGradient id="tw-bright" x1="1" y1="0" x2="0" y2="0">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#99f6e4" />
+        </linearGradient>
+        <linearGradient id="tw-holo" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#f0abfc" stopOpacity="0" />
-          <stop offset="0.5" stopColor="#f0abfc" stopOpacity="0.9">
-            <animate attributeName="offset" values="0;1;0" dur="3.2s" repeatCount="indefinite" />
+          <stop offset="0.5" stopColor="#f0abfc" stopOpacity="0.85">
+            <animate attributeName="offset" values="0.1;0.9;0.1" dur="3.6s" repeatCount="indefinite" />
           </stop>
           <stop offset="1" stopColor="#5eead4" stopOpacity="0" />
         </linearGradient>
+        <radialGradient id="tw-glow" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#5eead4" stopOpacity="0.5" />
+          <stop offset="1" stopColor="#5eead4" stopOpacity="0" />
+        </radialGradient>
+        {/* The feathers themselves: the sheen and the scanner line only ever touch the wing. */}
+        <clipPath id="tw-clip">
+          {TESTER_BACK_TIER.map((a, i) => (
+            <path key={a} d={FEATHER} transform={featherAt(a, i)} />
+          ))}
+        </clipPath>
       </defs>
-      <g transform="translate(0 -4) scale(1 1.3)">
-        {pair(flap(testerHalf, "4 48 46;-9 48 46;4 48 46", "1.8s"))}
+      {/* Soft teal glow behind the wings */}
+      <ellipse cx="50" cy="34" rx="50" ry="46" fill="url(#tw-glow)">
+        <animate attributeName="opacity" values="0.6;1;0.6" dur="2.4s" repeatCount="indefinite" />
+      </ellipse>
+      {/* The back box is wide and short, so the wings are stretched up to stand tall behind Rocky. */}
+      <g transform="translate(0 -62) scale(1 2.2)">
+        {pair(flap(testerHalf, "6 48 46;-10 48 46;6 48 46", "1.9s"))}
       </g>
-      {spark(8, 10, 4, "#ccfbf1", "t1")}
-      {spark(92, 30, 3.4, "#ccfbf1", "t2", 1.1)}
+      {spark(6, 6, 4, "#ccfbf1", "t1")}
+      {spark(96, 22, 3.6, "#ccfbf1", "t2", 1.1)}
+      {spark(90, 84, 3, "#a7f3d0", "t3", 0.5)}
     </>
   ),
   "back-nova-wings": (

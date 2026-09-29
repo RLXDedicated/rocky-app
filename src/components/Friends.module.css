@@ -93,7 +93,11 @@
   font-size: 1.02rem;
 }
 
-.info span {
+.info > span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
   color: var(--text);
   font-weight: 600;
   font-size: 0.88rem;
@@ -263,8 +267,7 @@
   background: var(--mint);
 }
 
-.info span {
-  display: inline-flex;
+.info > span {
   align-items: center;
   gap: 4px;
 }

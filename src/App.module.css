@@ -71,6 +71,12 @@
   display: none;
 }
 
+.navPinned {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
 .account {
   display: flex;
   flex: none;
@@ -106,9 +112,29 @@
   color: var(--rlx-green);
 }
 
-@media (max-width: 1100px) {
+/* Laptop screens: the email is already in the account menu's tooltip, and the menu tightens up. */
+@media (max-width: 1500px) {
   .accountEmail {
     display: none;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1420px) {
+  /* The badges are on Rocky's name tag too; on a laptop the menu needs the room. */
+  .accountBadges {
+    display: none;
+  }
+
+  .topBar {
+    gap: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .nav .navButton,
+  .navPinned .navButton {
+    gap: 6px;
+    padding: 8px 10px;
   }
 }
 

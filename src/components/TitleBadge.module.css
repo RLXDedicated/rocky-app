@@ -10,6 +10,7 @@
   letter-spacing: 0.08em;
   line-height: 1;
   vertical-align: middle;
+  white-space: nowrap;
   color: #ffffff;
   animation: titleGlow 2.6s ease-in-out infinite;
 }
@@ -109,6 +110,7 @@
 
 .group {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
   align-items: center;
   vertical-align: middle;
