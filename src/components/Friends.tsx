@@ -13,6 +13,7 @@ import { useLiveRoom } from './live/useLiveRoom'
 import { LivePanel } from './chat/LivePanel'
 import { NameBadges } from './TitleBadge'
 import { getAgentRole } from '../services/identityService'
+import { KudosDialog, KudosPanel, useKudos } from './extras/Kudos'
 import styles from './Friends.module.css'
 
 const FEELING: Record<FriendSummary['feeling'], string> = {
@@ -48,7 +49,10 @@ export function Friends({
   onChat,
   openVisit,
   onVisitOpened,
-}: { onChat?: (friendId: string) => void; openVisit?: string | null; onVisitOpened?: () => void } = {}) {
+  focusKudos,
+}: { onChat?: (friendId: string) => void; openVisit?: string | null; onVisitOpened?: () => void; focusKudos?: boolean } = {}) {
+  const kudos = useKudos()
+  const [kudosFor, setKudosFor] = useState<FriendSummary | null>(null)
   const [friends, setFriends] = useState<FriendSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -136,6 +140,19 @@ export function Friends({
           />
         </header>
         {error && <p className={styles.error}>{error}</p>}
+        {isRemoteModeEnabled() && <KudosPanel mine={kudos.mine} wall={kudos.wall} focus={focusKudos} />}
+        {kudosFor && kudos.mine && (
+          <KudosDialog
+            to={kudosFor.id}
+            name={kudosFor.name}
+            tags={kudos.mine.tags}
+            onClose={() => setKudosFor(null)}
+            onSent={() => {
+              setKudosFor(null)
+              kudos.reload()
+            }}
+          />
+        )}
         {!friends && !error && <p className={styles.lede}>Loading friends…</p>}
         {friends && friends.length === 0 && <p className={styles.lede}>No other Rockys yet — invite your teammates to sign in!</p>}
         <ul className={styles.grid}>
@@ -164,6 +181,18 @@ export function Friends({
                 {onChat && (
                   <button type="button" className={styles.chatBtn} onClick={() => onChat(f.id)} aria-label={`Chat with ${f.name}`}>
                     💬
+                  </button>
+                )}
+                {kudos.mine && (
+                  <button
+                    type="button"
+                    className={styles.chatBtn}
+                    onClick={() => setKudosFor(f)}
+                    disabled={kudos.mine.left === 0 || kudos.mine.givenTodayTo.includes(f.id)}
+                    title={kudos.mine.givenTodayTo.includes(f.id) ? 'Kudos sent today ✓' : kudos.mine.left === 0 ? 'No kudos left today' : `Send ${f.name} kudos`}
+                    aria-label={`Send ${f.name} kudos`}
+                  >
+                    {kudos.mine.givenTodayTo.includes(f.id) ? '✓' : '🙌'}
                   </button>
                 )}
               </div>

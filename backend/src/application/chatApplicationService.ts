@@ -63,6 +63,30 @@ export const GIF_ID = /^[A-Za-z0-9]{5,40}$/
 export const imageText = (id: string) => `[[img:${id}]]`
 export const gifText = (id: string) => `[[gif:${id}]]`
 
+/** A poll is a message whose body carries the question and options; votes are stored as "poll:<n>" reactions. */
+export interface PollDef {
+  q: string
+  o: string[]
+}
+const POLL_RE = /^\[\[poll:([A-Za-z0-9_-]+)\]\]$/
+export const pollText = (p: PollDef) => `[[poll:${Buffer.from(JSON.stringify(p)).toString('base64url')}]]`
+export function pollOf(body: string): PollDef | null {
+  const m = POLL_RE.exec(body)
+  if (!m) return null
+  try {
+    const p = JSON.parse(Buffer.from(m[1]!, 'base64url').toString()) as PollDef
+    return typeof p.q === 'string' && Array.isArray(p.o) ? p : null
+  } catch {
+    return null
+  }
+}
+/** How a message reads in a list preview or the pinned bar. */
+export const previewText = (body: string) => {
+  const p = pollOf(body)
+  return p ? `📊 Poll: ${p.q}` : body
+}
+const POLL_VOTE = /^poll:(\d)$/
+
 export interface ChatActor {
   id: string
   via?: string
@@ -190,7 +214,21 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
     return [...byEmoji.values()]
   }
 
+  /** A poll's results as one viewer sees them. */
+  function pollView(def: PollDef, rows: ReactionRecord[], viewerId: string) {
+    const votes = rows.filter((r) => POLL_VOTE.test(r.emoji))
+    return {
+      question: def.q,
+      options: def.o.map((text, i) => {
+        const mine = votes.filter((v) => v.emoji === `poll:${i}`)
+        return { text, count: mine.length, mine: mine.some((v) => v.agentId === viewerId), names: mine.slice(0, 8).map((v) => (v.agentId === viewerId ? 'You' : nameOf(v.agentId))) }
+      }),
+      total: new Set(votes.map((v) => v.agentId)).size,
+    }
+  }
+
   function toClient(m: MessageRecord, viewerId: string, reactions: ReactionRecord[] = []) {
+    const poll = m.hiddenAt ? null : pollOf(m.body)
     return {
       id: m.id,
       channel: m.channelId,
@@ -207,7 +245,8 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       deleted: !!m.hiddenAt && m.hiddenBy === m.authorId,
       edited: !m.hiddenAt && !!m.editedAt,
       at: m.createdAt,
-      reactions: m.hiddenAt ? [] : reactionsFor(reactions, viewerId),
+      reactions: m.hiddenAt ? [] : reactionsFor(reactions.filter((r) => !POLL_VOTE.test(r.emoji)), viewerId),
+      ...(poll ? { poll: pollView(poll, reactions, viewerId) } : {}),
       mentionsMe: !m.hiddenAt && m.authorId !== viewerId && mentions(m.body, viewerId),
       // Rocky admins moderate straight from the conversation (hide, pause), which needs the author's email.
       ...(isStaff(viewerId) ? { email: m.authorId } : {}),
@@ -232,7 +271,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
     const pin = store.getPin(channelId)
     const m = pin ? store.getMessage(pin.messageId) : null
     if (!pin || !m || m.hiddenAt) return null
-    return { id: m.id, name: nameOf(m.authorId), body: m.body, at: m.createdAt, pinnedBy: nameOf(pin.pinnedBy), pinnedAt: pin.pinnedAt }
+    return { id: m.id, name: nameOf(m.authorId), body: previewText(m.body), at: m.createdAt, pinnedBy: nameOf(pin.pinnedBy), pinnedAt: pin.pinnedAt }
   }
   /** Everyone who should get a live copy of a message in this channel. */
   function audience(channel: ChannelRecord): string[] {
@@ -280,7 +319,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
           }
         : {}),
       unread: store.countUnread(channel.id, agentId, lastReadId),
-      last: last ? { name: nameOf(last.authorId), body: last.hiddenAt ? '' : last.body, at: last.createdAt, mine: last.authorId === agentId } : null,
+      last: last ? { name: nameOf(last.authorId), body: last.hiddenAt ? '' : previewText(last.body), at: last.createdAt, mine: last.authorId === agentId } : null,
     }
   }
 
@@ -515,12 +554,12 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
     editMessage(agentId: string, messageId: number, text: unknown, confirm: boolean, actor: ChatActor) {
       const m = store.getMessage(messageId)
       if (!m || m.hiddenAt || m.authorId !== agentId) throw ApiError.notFound('You can only edit your own messages.')
-      if (/^\[\[(img|gif|sticker):/.test(m.body)) throw ApiError.validation('Pictures, GIFs and stickers can’t be edited — delete it instead.')
+      if (/^\[\[(img|gif|sticker|poll):/.test(m.body)) throw ApiError.validation('Pictures, GIFs, stickers and polls can’t be edited — delete it instead.')
       if (clock.now().getTime() - new Date(m.createdAt).getTime() > EDIT_WINDOW_MS) throw ApiError.validation('Messages can be edited for 24 hours.')
       if (typeof text !== 'string' || !text.trim()) throw ApiError.validation('Write something, or delete the message.')
       const body = text.trim().replace(/\r\n/g, '\n')
       if (body.length > MAX_MESSAGE_LENGTH) throw ApiError.validation(`Messages can be up to ${MAX_MESSAGE_LENGTH} characters.`)
-      if (/\[\[(img|gif|sticker):/.test(body)) throw ApiError.validation('That can’t go in a text message.')
+      if (/\[\[(img|gif|sticker|poll):/.test(body)) throw ApiError.validation('That can’t go in a text message.')
       const channel = requireChannel(m.channelId, agentId)
       const kinds = sensitiveKinds(body)
       if (kinds.length && !confirm)
@@ -562,6 +601,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       if (body.length > MAX_MESSAGE_LENGTH) throw ApiError.validation(`Messages can be up to ${MAX_MESSAGE_LENGTH} characters.`)
       // Pictures only arrive through postImage (so they are always checked and stored first).
       if (/\[\[img:/.test(body)) throw ApiError.validation('Attach pictures with the 📎 button.')
+      if (/\[\[poll:/.test(body)) throw ApiError.validation('Create polls with the 📊 button.')
       const gif = /^\[\[gif:([^\]]*)\]\]$/.exec(body)
       if (gif && !GIF_ID.test(gif[1]!)) throw ApiError.validation('That GIF could not be sent.')
       const { channel, now, recent } = gate(agentId, channelId)
@@ -601,6 +641,42 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       const channel = a ? store.getChannel(a.channelId) : null
       if (!a || !channel || (!admin && !canRead(channel, agentId))) throw ApiError.notFound('That picture could not be found.')
       return { mime: a.mime, data: a.data }
+    },
+
+    /** A quick poll: a question and 2–6 options; everyone in the conversation can vote (one choice, changeable). */
+    createPoll(agentId: string, channelId: string, input: { question: unknown; options: unknown }, actor: ChatActor) {
+      const q = typeof input.question === 'string' ? input.question.trim().replace(/\s+/g, ' ') : ''
+      if (!q || q.length > 140) throw ApiError.validation('Write a question (up to 140 characters).')
+      const o = (Array.isArray(input.options) ? input.options : [])
+        .filter((x): x is string => typeof x === 'string')
+        .map((x) => x.trim().replace(/\s+/g, ' ').slice(0, 60))
+        .filter(Boolean)
+      if (new Set(o.map((x) => x.toLowerCase())).size !== o.length) throw ApiError.validation('Each option must be different.')
+      if (o.length < 2 || o.length > 6) throw ApiError.validation('A poll needs 2 to 6 options.')
+      const kinds = sensitiveKinds([q, ...o].join('\n'))
+      if (kinds.length) throw ApiError.validation(`This looks like customer information (${kinds.join(', ')}). Never share customer data in Rocky chat.`)
+      const { channel, now, recent } = gate(agentId, channelId)
+      recent.push(now.getTime())
+      sent.set(agentId, recent)
+      const saved = post(channel, agentId, pollText({ q, o }), false, now)
+      audit(actor, agentId, 'chat.poll', { channel: channel.id, message: saved.id, options: o.length })
+      return toClient(saved, agentId)
+    },
+
+    /** Votes for one option (again on the same option takes the vote back; another option moves it). */
+    vote(agentId: string, messageId: number, option: unknown) {
+      const m = store.getMessage(messageId)
+      const def = m && !m.hiddenAt ? pollOf(m.body) : null
+      if (!m || !def) throw ApiError.notFound('That poll could not be found.')
+      if (typeof option !== 'number' || !Number.isInteger(option) || option < 0 || option >= def.o.length) throw ApiError.validation('Pick one of the options.')
+      const channel = requireChannel(m.channelId, agentId)
+      if (store.getConsent(agentId)?.version !== RULES_VERSION) throw new ApiError(403, 'RULES_NOT_ACCEPTED', 'Please read and accept the chat rules first.')
+      const at = clock.now().toISOString()
+      for (const r of store.listReactions([m.id])) if (r.agentId === agentId && POLL_VOTE.test(r.emoji) && r.emoji !== `poll:${option}`) store.toggleReaction(m.id, agentId, r.emoji, at)
+      store.toggleReaction(m.id, agentId, `poll:${option}`, at)
+      const rows = store.listReactions([m.id])
+      for (const id of audience(channel)) if (id !== agentId) bus.publish([id], { t: 'chat.poll', channel: channel.id, id: m.id, poll: pollView(def, rows, id) })
+      return { id: m.id, poll: pollView(def, rows, agentId) }
     },
 
     /** Adds or removes the agent's emoji on a message; everyone in the conversation sees it live. */

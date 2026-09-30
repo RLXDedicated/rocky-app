@@ -33,6 +33,8 @@ import { createPeopleApplicationService, type PeopleApplicationService } from '.
 import { createPeopleRouter } from './api/peopleRoutes'
 import { createExtrasRouter } from './api/extrasRoutes'
 import { createChallengeApplicationService, type ChallengeApplicationService } from './application/challengeApplicationService'
+import { createKudosApplicationService } from './application/kudosApplicationService'
+import { createKudosRouter } from './api/kudosRoutes'
 import { createTeamsApplicationService, type TeamsApplicationService, type TeamsConfig } from './application/teamsApplicationService'
 import { createTeamsAdminRouter, createTeamsLinkRouter } from './api/teamsRoutes'
 import { createQaDeskService } from './application/qaDeskService'
@@ -149,12 +151,14 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const backups = createGameBackupJobs(persistence, backupTarget, options.clock)
   const challenges = createChallengeApplicationService({ persistence, pet, clock: options.clock })
   const { fetchFn, ...teamsOverrides } = options.teams ?? {}
-  teams = createTeamsApplicationService({ persistence, pet, config: { ...teamsConfigFromEnv(process.env), ...teamsOverrides }, clock: options.clock, fetchFn })
+  const kudos = createKudosApplicationService({ persistence, pet, bus, clock: options.clock })
+  teams = createTeamsApplicationService({ persistence, pet, challenges, config: { ...teamsConfigFromEnv(process.env), ...teamsOverrides }, clock: options.clock, fetchFn })
   const scheduleOf = teams.scheduleOf
   const live: LiveContext = { auth, pet, chat, bus, jobs, persistence, challenges, teams, backups }
   app.locals.live = live
   api.use(createChatRouter(chat, jobs))
   api.use(createPeopleRouter(people))
+  api.use(createKudosRouter(kudos))
   api.use(createExtrasRouter({ challenges, pet, persistence, clock: options.clock }))
   api.use(createTeamsAdminRouter(teams))
   // Whole-game backups (Admin → Registros → Sistema).

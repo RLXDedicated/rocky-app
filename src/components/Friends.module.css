@@ -248,9 +248,15 @@
 }
 
 .cardActions {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-content: center;
+  justify-items: center;
   gap: 6px;
+}
+
+.cardActions > :first-child {
+  grid-column: 1 / -1;
 }
 
 .chatBtn {
@@ -265,6 +271,12 @@
 
 .chatBtn:hover {
   background: var(--mint);
+}
+
+.chatBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  background: var(--track-bg);
 }
 
 .info > span {

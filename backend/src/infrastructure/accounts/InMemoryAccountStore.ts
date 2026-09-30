@@ -1,5 +1,5 @@
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord, KudosRecord } from './AccountStore'
 
 const clone = <T>(v: T): T => (v === undefined || v === null ? v : (JSON.parse(JSON.stringify(v)) as T))
 const newest = <T extends { id: number }>(rows: T[], limit: number) => [...rows].sort((a, b) => b.id - a.id).slice(0, limit)
@@ -180,6 +180,23 @@ export class InMemoryAccountStore implements AccountStore {
       .sort((a, b) => b.sentAt.localeCompare(a.sentAt))
       .slice(0, opts.limit ?? 500)
       .map((d) => ({ ...d }))
+  }
+
+  private kudos: KudosRecord[] = []
+  addKudos(k: Omit<KudosRecord, 'id' | 'deliveredAt'>) {
+    const row = { ...k, id: this.kudos.length + 1, deliveredAt: null }
+    this.kudos.push(row)
+    return { ...row }
+  }
+  listKudos(q: { toId?: string; fromId?: string; since?: string; undelivered?: boolean; limit?: number }) {
+    return this.kudos
+      .filter((k) => (!q.toId || k.toId === q.toId) && (!q.fromId || k.fromId === q.fromId) && (!q.since || k.createdAt >= q.since) && (!q.undelivered || !k.deliveredAt))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id - a.id)
+      .slice(0, q.limit ?? 200)
+      .map((k) => ({ ...k }))
+  }
+  markKudosDelivered(ids: number[], at: string) {
+    for (const k of this.kudos) if (ids.includes(k.id) && !k.deliveredAt) k.deliveredAt = at
   }
 
   private challenges: ChallengeRecord[] = []

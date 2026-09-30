@@ -51,11 +51,18 @@ export function createTeamsAdminRouter(teams: TeamsApplicationService): Router {
   router.put('/admin/teams/roast', admin, (req: Request, res: Response) => {
     res.json(teams.setRoast(parseJsonBody(req.body).on === true, me(req)))
   })
+  router.put('/admin/teams/leader-summary', admin, (req: Request, res: Response) => {
+    res.json(teams.setLeaderSummary(parseJsonBody(req.body).on === true, me(req)))
+  })
+  router.post('/admin/teams/leaders/send', admin, (_req: Request, res: Response, next) => {
+    teams.sendLeaderSummaries().then((r) => res.json(r), next)
+  })
   router.post('/admin/teams/dispatch', admin, (_req: Request, res: Response, next) => {
     teams.dispatch().then((r) => res.json(r), next)
   })
   router.get('/admin/teams/preview/:email', admin, (req: Request, res: Response) => {
-    res.json({ card: teams.preview(String(req.params.email).toLowerCase()) })
+    const kind = typeof req.query.kind === 'string' ? req.query.kind : 'reminder'
+    res.json({ card: teams.preview(String(req.params.email).toLowerCase(), kind) })
   })
   router.put('/admin/schedules/:email', admin, (req: Request, res: Response) => {
     const b = parseJsonBody(req.body)

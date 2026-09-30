@@ -285,6 +285,22 @@ export const MIGRATION_016_CHAT_GROUPS = `
   ALTER TABLE teams_deliveries ADD COLUMN voice TEXT;
 `
 
+/** Kudos between agents; the note lesson each Teams card carried (so it doesn't repeat soon). */
+export const MIGRATION_017_KUDOS = `
+  CREATE TABLE kudos (
+    kudos_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_id      TEXT NOT NULL,
+    to_id        TEXT NOT NULL,
+    tag          TEXT NOT NULL,
+    message      TEXT,
+    created_at   TEXT NOT NULL,
+    delivered_at TEXT
+  );
+  CREATE INDEX idx_kudos_to ON kudos(to_id, created_at);
+  CREATE INDEX idx_kudos_from ON kudos(from_id, created_at);
+  ALTER TABLE teams_deliveries ADD COLUMN lesson TEXT;
+`
+
 /** Teams cards replaced after the agent answers (or the card goes stale). */
 export const MIGRATION_015_CARD_UPDATES = `
   ALTER TABLE teams_deliveries ADD COLUMN card_updated_at TEXT;

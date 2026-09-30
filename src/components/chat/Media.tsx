@@ -22,6 +22,7 @@ export function mediaOf(body: string): Media | null {
 
 /** How a picture/GIF reads in a conversation list preview. */
 export function mediaPreview(body: string): string | null {
+  if (body.startsWith('[[poll:')) return '📊 Poll'
   const m = mediaOf(body)
   return m ? (m.kind === 'img' ? '📷 Picture' : '🎞️ GIF') : null
 }

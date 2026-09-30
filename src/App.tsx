@@ -58,8 +58,27 @@ type View =
 
 // Staff tools (Admin, QA desk) live in their own pinned menu, never in the
 // agents' main nav. Developer Controls are dev-build only.
+/** A Teams card can land on a screen: "Practice notes", a kudos card or a team lead's summary. */
+function landingView(): View {
+  const go = new URLSearchParams(window.location.search).get("go");
+  if (go === "notes") return gameEnabled(loadPetCache().overrides, "notes") ? "notes" : "home";
+  if (go === "kudos") return "friends";
+  if (go === "team") return "my-team";
+  return "home";
+}
+
 function App() {
-  const [view, setView] = useState<View>("home");
+  const [view, setView] = useState<View>(landingView);
+  const [focusKudos, setFocusKudos] = useState(() => new URLSearchParams(window.location.search).get("go") === "kudos");
+  useEffect(() => {
+    if (!focusKudos) return;
+    const t = window.setTimeout(() => setFocusKudos(false), 12_000);
+    return () => window.clearTimeout(t);
+  }, [focusKudos]);
+  const openKudos = useCallback(() => {
+    setFocusKudos(true);
+    setView("friends");
+  }, []);
   const openChat = useCallback(() => setView("chat"), []);
   const openHome = useCallback(() => setView("home"), []);
   // With a backend, every agent signs in (email + PIN) so their Rocky loads
@@ -90,6 +109,7 @@ function App() {
     const url = new URL(window.location.href);
     url.searchParams.delete("from");
     url.searchParams.delete("teams");
+    url.searchParams.delete("go");
     window.history.replaceState(null, "", url.toString());
     const t = window.setTimeout(() => setTeamsNote(null), 8000);
     return () => window.clearTimeout(t);
@@ -308,6 +328,7 @@ function App() {
       {view === "progress" && <Progress />}
       {view === "friends" && (
         <Friends
+          focusKudos={focusKudos}
           openVisit={visitId}
           onVisitOpened={() => setVisitId(null)}
           onChat={(id) => {
@@ -337,7 +358,7 @@ function App() {
       {view === "dev-controls" && import.meta.env.DEV && <DevControls />}
 
       <ReminderHost />
-      {isRemoteModeEnabled() && <NotificationHost onOpenChat={openChat} onOpenHome={openHome} />}
+      {isRemoteModeEnabled() && <NotificationHost onOpenChat={openChat} onOpenHome={openHome} onOpenKudos={openKudos} />}
 
       {teamsNote && (
         <div className={styles.arrival} role="status">

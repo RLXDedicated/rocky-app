@@ -6,6 +6,7 @@ import { chatState } from './chatState'
 import styles from './Chat.module.css'
 import { NameBadges } from '../TitleBadge'
 import { EmojiPicker, Sticker, StickerPicker, stickerOf, stickerText } from './Stickers'
+import { PollCard, PollComposer } from './Poll'
 import { ChatMedia, GifPicker, mediaOf, prepareImage, ReactionBar, ReactPicker } from './Media'
 
 const MAX = 1000
@@ -61,7 +62,7 @@ export function ChatThread({
   const [warning, setWarning] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [picker, setPicker] = useState<'emoji' | 'sticker' | 'gif' | null>(null)
+  const [picker, setPicker] = useState<'emoji' | 'sticker' | 'gif' | 'poll' | null>(null)
   const [reacting, setReacting] = useState<number | null>(null)
   const [pinned, setPinned] = useState<ChatPinned | null>(null)
   const [editing, setEditing] = useState<{ id: number; text: string } | null>(null)
@@ -165,6 +166,9 @@ export function ChatThread({
       } else if (e.t === 'chat.reaction') {
         const reactions = e.reactions as ChatMessage['reactions']
         setMessages((list) => list?.map((m) => (m.id === e.id ? { ...m, reactions } : m)) ?? list)
+      } else if (e.t === 'chat.poll') {
+        const poll = e.poll as ChatMessage['poll']
+        setMessages((list) => list?.map((m) => (m.id === e.id ? { ...m, poll } : m)) ?? list)
       } else if (e.t === 'chat.typing') {
         setTyping({ name: e.name as string, until: Date.now() + 4000 })
       }
@@ -225,6 +229,15 @@ export function ChatThread({
       else setError(err.message || 'The message was not sent — try again.')
     } finally {
       setSending(false)
+    }
+  }
+
+  async function vote(m: ChatMessage, option: number) {
+    try {
+      const r = await chatApi.vote(m.id, option)
+      setMessages((list) => list?.map((x) => (x.id === r.id ? { ...x, poll: r.poll } : x)) ?? list)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
     }
   }
 
@@ -419,7 +432,9 @@ export function ChatThread({
                 </span>
               )}
               <div className={styles.bubbleRow}>
-                {!m.hidden && mediaOf(m.body) ? (
+                {!m.hidden && m.poll ? (
+                  <PollCard poll={m.poll} onVote={(i) => void vote(m, i)} />
+                ) : !m.hidden && mediaOf(m.body) ? (
                   <ChatMedia media={mediaOf(m.body)!} />
                 ) : !m.hidden && stickerOf(m.body) ? (
                   <Sticker id={stickerOf(m.body)!.id} />
@@ -455,7 +470,7 @@ export function ChatThread({
                 )}
                 {m.mine && !m.hidden && editing?.id !== m.id && (
                   <>
-                    {!mediaOf(m.body) && !stickerOf(m.body) && Date.now() - Date.parse(m.at) < 24 * 3_600_000 && (
+                    {!m.poll && !mediaOf(m.body) && !stickerOf(m.body) && Date.now() - Date.parse(m.at) < 24 * 3_600_000 && (
                       <button type="button" className={styles.report} onClick={() => setEditing({ id: m.id, text: m.body })} title="Edit" aria-label="Edit message">
                         ✏️
                       </button>
@@ -558,6 +573,17 @@ export function ChatThread({
               onUpload={() => fileRef.current?.click()}
             />
           )}
+          {picker === 'poll' && (
+            <PollComposer
+              onCancel={() => setPicker(null)}
+              onCreate={async (q, o) => {
+                const m = await chatApi.createPoll(channelId, q, o)
+                setPicker(null)
+                stick.current = true
+                setMessages((list) => (list && !list.some((x) => x.id === m.id) ? [...list, m] : list))
+              }}
+            />
+          )}
           {picker === 'sticker' && (
             <StickerPicker
               onPick={(id) => {
@@ -593,6 +619,11 @@ export function ChatThread({
           >
             <span className={styles.gifIcon}>GIF</span>
           </button>
+ {!compact && (
+            <button type="button" className={styles.tool} aria-label="Poll" title="Poll" aria-expanded={picker === 'poll'} onClick={() => setPicker((p) => (p === 'poll' ? null : 'poll'))}>
+              📊
+            </button>
+          )}
           <button type="button" className={styles.tool} aria-label="Attach a picture or GIF" disabled={uploading} onClick={() => fileRef.current?.click()}>
             {uploading ? '⏳' : '📎'}
           </button>

@@ -131,6 +131,20 @@ export interface DeliveryRecord {
   cardUpdatedAt?: string | null
   /** What Rocky said on the card (so the same line isn't sent again soon). */
   voice?: string | null
+  /** The note lesson the card taught (src/engine/noteCoaching.ts). */
+  lesson?: string | null
+}
+
+/** A thank-you from one agent to another. */
+export interface KudosRecord {
+  id: number
+  fromId: string
+  toId: string
+  tag: string
+  message: string | null
+  createdAt: string
+  /** When it went out in a Teams card (null: not yet). */
+  deliveredAt: string | null
 }
 
 export interface PhotoRecord {
@@ -183,6 +197,11 @@ export interface AccountStore {
   updateDelivery(id: string, patch: Partial<Pick<DeliveryRecord, 'openedAt' | 'actedAt' | 'ignoredAt' | 'cardUpdatedAt'>>): void
   /** Newest first. */
   listDeliveries(opts: { agentId?: string; since?: string; limit?: number }): DeliveryRecord[]
+
+  addKudos(k: Omit<KudosRecord, 'id' | 'deliveredAt'>): KudosRecord
+  /** Newest first. */
+  listKudos(q: { toId?: string; fromId?: string; since?: string; undelivered?: boolean; limit?: number }): KudosRecord[]
+  markKudosDelivered(ids: number[], at: string): void
 
   listChallenges(): ChallengeRecord[]
   addChallenge(c: Omit<ChallengeRecord, 'id' | 'settledAt' | 'result' | 'finalScore'>): ChallengeRecord

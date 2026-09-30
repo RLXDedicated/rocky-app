@@ -115,6 +115,14 @@ export function createChatRouter(chat: ChatApplicationService, jobs: ChatJobs): 
   router.delete('/chat/messages/:id', (req: Request, res: Response) => {
     res.json(chat.deleteMessage(me(req), optionalId(req.params.id, 'id') ?? -1, actorOf(req)))
   })
+  router.post('/chat/channels/:id/polls', (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    res.json(chat.createPoll(me(req), String(req.params.id), { question: body.question, options: body.options }, actorOf(req)))
+  })
+  router.put('/chat/messages/:id/vote', (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body)
+    res.json(chat.vote(me(req), optionalId(req.params.id, 'id') ?? -1, body.option))
+  })
   router.post('/chat/messages/:id/react', (req: Request, res: Response) => {
     const body = parseJsonBody(req.body)
     res.json(chat.react(me(req), optionalId(req.params.id, 'id') ?? -1, body.emoji))

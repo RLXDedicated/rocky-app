@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord, KudosRecord } from './AccountStore'
 
 interface LedgerDbRow {
   entry_id: number
@@ -95,6 +95,19 @@ function toDelivery(r: Record<string, unknown>): DeliveryRecord {
     ignoredAt: (r.ignored_at as string | null) ?? null,
     cardUpdatedAt: (r.card_updated_at as string | null) ?? null,
     voice: (r.voice as string | null) ?? null,
+    lesson: (r.lesson as string | null) ?? null,
+  }
+}
+
+function toKudos(r: Record<string, unknown>): KudosRecord {
+  return {
+    id: Number(r.kudos_id),
+    fromId: r.from_id as string,
+    toId: r.to_id as string,
+    tag: r.tag as string,
+    message: (r.message as string | null) ?? null,
+    createdAt: r.created_at as string,
+    deliveredAt: (r.delivered_at as string | null) ?? null,
   }
 }
 
@@ -329,8 +342,8 @@ export class SqliteAccountStore implements AccountStore {
 
   addDelivery(d: DeliveryRecord): void {
     this.db
-      .prepare('INSERT INTO teams_deliveries (delivery_id, agent_id, reminder_id, kind, category, sent_at, ok, error, opened_at, acted_at, ignored_at, voice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(d.id, d.agentId, d.reminderId, d.kind, d.category, d.sentAt, d.ok ? 1 : 0, d.error, d.openedAt, d.actedAt, d.ignoredAt, d.voice ?? null)
+      .prepare('INSERT INTO teams_deliveries (delivery_id, agent_id, reminder_id, kind, category, sent_at, ok, error, opened_at, acted_at, ignored_at, voice, lesson) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(d.id, d.agentId, d.reminderId, d.kind, d.category, d.sentAt, d.ok ? 1 : 0, d.error, d.openedAt, d.actedAt, d.ignoredAt, d.voice ?? null, d.lesson ?? null)
   }
   getDelivery(id: string): DeliveryRecord | null {
     const r = this.db.prepare('SELECT * FROM teams_deliveries WHERE delivery_id = ?').get(id) as Record<string, unknown> | undefined
@@ -357,6 +370,29 @@ export class SqliteAccountStore implements AccountStore {
       .prepare(`SELECT * FROM teams_deliveries ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY sent_at DESC LIMIT ?`)
       .all(...args, opts.limit ?? 500) as Record<string, unknown>[]
     return rows.map(toDelivery)
+  }
+
+  addKudos(k: Omit<KudosRecord, 'id' | 'deliveredAt'>): KudosRecord {
+    const r = this.db
+      .prepare('INSERT INTO kudos (from_id, to_id, tag, message, created_at) VALUES (?, ?, ?, ?, ?)')
+      .run(k.fromId, k.toId, k.tag, k.message, k.createdAt)
+    return { ...k, id: Number(r.lastInsertRowid), deliveredAt: null }
+  }
+  listKudos(q: { toId?: string; fromId?: string; since?: string; undelivered?: boolean; limit?: number }): KudosRecord[] {
+    const where: string[] = []
+    const args: (string | number)[] = []
+    if (q.toId) (where.push('to_id = ?'), args.push(q.toId))
+    if (q.fromId) (where.push('from_id = ?'), args.push(q.fromId))
+    if (q.since) (where.push('created_at >= ?'), args.push(q.since))
+    if (q.undelivered) where.push('delivered_at IS NULL')
+    const rows = this.db
+      .prepare(`SELECT * FROM kudos ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY created_at DESC, kudos_id DESC LIMIT ?`)
+      .all(...args, q.limit ?? 200) as Record<string, unknown>[]
+    return rows.map(toKudos)
+  }
+  markKudosDelivered(ids: number[], at: string): void {
+    const stmt = this.db.prepare('UPDATE kudos SET delivered_at = ? WHERE kudos_id = ? AND delivered_at IS NULL')
+    for (const id of ids) stmt.run(at, id)
   }
 
   listChallenges(): ChallengeRecord[] {

@@ -3,6 +3,18 @@ import { chatApi, type AdminChatChannel, type AdminChatMessage, type AdminChatRe
 import { ChatMedia, mediaOf } from '../chat/Media'
 import styles from './AdminConsole.module.css'
 
+/** A poll's question and options, readable (polls are stored encoded). */
+function pollText(body: string): string | null {
+  const m = /^\[\[poll:([A-Za-z0-9_-]+)\]\]$/.exec(body)
+  if (!m) return null
+  try {
+    const p = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(m[1]!.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)))) as { q: string; o: string[] }
+    return `📊 Encuesta: ${p.q}\n${p.o.map((o) => `• ${o}`).join('\n')}`
+  } catch {
+    return null
+  }
+}
+
 const KIND: Record<AdminChatChannel['kind'], string> = { general: 'General', dm: '1 a 1', visit: 'Visita', group: 'Grupo / sala' }
 const fmt = (at: string) => new Date(at).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
 const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -185,7 +197,7 @@ function Conversations({ onChanged, onError }: { onChanged: (m: string) => void;
                   <strong>{m.name}</strong> <span className={styles.muted}>{m.email} · {fmt(m.at)}</span>
                   {m.flagged && <span className={styles.chip} title="El agente confirmó el envío aunque parecía dato de cliente"> ⚠️ posible dato de cliente</span>}
                   {m.hidden && <span className={styles.chip}>{m.hiddenBy === m.email ? ' borrado por su autor' : ` oculto por ${m.hiddenBy}`}</span>}
-                  {mediaOf(m.body) ? <ChatMedia media={mediaOf(m.body)!} /> : <div style={{ whiteSpace: 'pre-wrap' }}>{m.body}</div>}
+                  {mediaOf(m.body) ? <ChatMedia media={mediaOf(m.body)!} /> : <div style={{ whiteSpace: 'pre-wrap' }}>{pollText(m.body) ?? m.body}</div>}
                   {m.edits && m.edits.length > 0 && (
                     <details>
                       <summary className={styles.muted}>editado {m.edits.length} vez/veces — ver versiones anteriores</summary>

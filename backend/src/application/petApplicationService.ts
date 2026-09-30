@@ -446,6 +446,11 @@ export function createPetApplicationService({
       return adminChange(agentId, { id: "rocky-teams", via: "teams" }, `teams.${kind}`, { note }, (state) => teamsNudge(state, fx, note));
     },
 
+    /** A teammate's kudos: a small lift for Rocky and a few coins. */
+    kudosEffect(agentId: string, fromId: string, note: string): PetView {
+      return adminChange(agentId, { id: fromId, via: "kudos" }, "kudos.received", { note }, (state) => teamsNudge(state, { happiness: 4, coins: 3 }, note));
+    },
+
     /** A QA audit lands on Rocky's mood too: a clean audit cheers him up, a failed one stings. */
     qaEffect(agentId: string, result: "pass" | "fail", note: string, actor: Actor): PetView {
       const fx = result === "pass" ? { happiness: 5, coins: 3 } : { happiness: -10, coins: 0 };

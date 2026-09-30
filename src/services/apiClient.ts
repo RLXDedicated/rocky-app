@@ -432,6 +432,13 @@ export interface ChatMessage {
   mentionsMe?: boolean
   /** The author's email — only sent to Rocky admins (for moderating from the conversation). */
   email?: string
+  /** A poll's question, options and live counts. */
+  poll?: ChatPoll
+}
+export interface ChatPoll {
+  question: string
+  options: { text: string; count: number; mine: boolean; names: string[] }[]
+  total: number
 }
 export interface ChatPinned {
   id: number
@@ -598,8 +605,11 @@ export interface TeamsStatus {
   roster: number
   teamsOn: number
   roast: boolean
+  /** Team leads' weekly summary on/off, and how many leads have a team. */
+  leaderSummary?: boolean
+  leaders?: number
   lastDispatch: { at: string; due: number; sent: number; error: string | null } | null
-  last24h: { sent: number; failed: number; opened: number; done: number; ignored: number }
+  last24h: { sent: number; failed: number; opened: number; done: number; ignored: number; byKind?: Record<string, number> }
   recent: TeamsDelivery[]
   schedules: TeamsSchedule[]
 }
@@ -611,7 +621,9 @@ export const teamsApi = {
   setTeamsFor: (emails: string[] | 'all', on: boolean) =>
     request<{ changed: number }>('/api/admin/teams/enabled', { method: 'PUT', body: JSON.stringify(emails === 'all' ? { all: true, on } : { emails, on }) }),
   setRoast: (on: boolean) => request<{ roast: boolean }>('/api/admin/teams/roast', { method: 'PUT', body: JSON.stringify({ on }) }),
-  preview: (email: string) => request<{ card: unknown }>(`/api/admin/teams/preview/${encodeURIComponent(email)}`),
+  preview: (email: string, kind = 'reminder') => request<{ card: unknown }>(`/api/admin/teams/preview/${encodeURIComponent(email)}?kind=${encodeURIComponent(kind)}`),
+  setLeaderSummary: (on: boolean) => request<{ leaderSummary: boolean }>('/api/admin/teams/leader-summary', { method: 'PUT', body: JSON.stringify({ on }) }),
+  sendLeaderSummaries: () => request<{ ok: boolean; sent: number; error: string | null }>('/api/admin/teams/leaders/send', post()),
   setSchedule: (email: string, s: { days: number[]; start: string; end: string; name?: string | null; timeZone?: string | null; teams?: boolean }) =>
     request<{ ok: boolean }>(`/api/admin/schedules/${encodeURIComponent(email)}`, put(s)),
   removeSchedule: (email: string) => request<{ ok: boolean }>(`/api/admin/schedules/${encodeURIComponent(email)}`, { method: 'DELETE' }),
@@ -649,6 +661,30 @@ export const extrasApi = {
   },
 }
 
+// ---- Kudos between agents (mirrors backend kudosApplicationService) ----
+export interface Kudos {
+  id: number
+  from: string
+  fromKey: string
+  to: string
+  toKey: string
+  tag: string
+  emoji: string
+  label: string
+  message: string | null
+  at: string
+}
+export interface KudosTag {
+  id: string
+  emoji: string
+  label: string
+}
+export const kudosApi = {
+  mine: () => request<{ received: Kudos[]; given: Kudos[]; left: number; givenTodayTo: string[]; tags: KudosTag[] }>('/api/kudos'),
+  wall: () => request<{ kudos: Kudos[] }>('/api/kudos/wall'),
+  give: (to: string, tag: string, message?: string) => request<Kudos>('/api/kudos', post({ to, tag, message })),
+}
+
 export const chatApi = {
   rules: () => request<ChatRules>('/api/chat/rules'),
   acceptRules: (version: string) => request<ChatRules>('/api/chat/rules', post({ version })),
@@ -679,6 +715,9 @@ export const chatApi = {
   send: (id: string, text: string, confirm = false) => request<ChatMessage>(`${chatPath(id)}/messages`, post({ text, confirm })),
   markRead: (id: string, messageId: number) => request<{ ok: boolean }>(`${chatPath(id)}/read`, post({ id: messageId })),
   report: (messageId: number, reason: string) => request<{ ok: boolean }>(`/api/chat/messages/${messageId}/report`, post({ reason })),
+  createPoll: (id: string, question: string, options: string[]) => request<ChatMessage>(`${chatPath(id)}/polls`, post({ question, options })),
+  vote: (messageId: number, option: number) =>
+    request<{ id: number; poll: ChatPoll }>(`/api/chat/messages/${messageId}/vote`, { method: 'PUT', body: JSON.stringify({ option }) }),
   react: (messageId: number, emoji: string) => request<{ id: number; reactions: ChatReaction[] }>(`/api/chat/messages/${messageId}/react`, post({ emoji })),
   /** Uploads a picture or GIF (already shrunk by the browser if it's a photo) and posts it. */
   sendImage: (id: string, file: Blob) =>

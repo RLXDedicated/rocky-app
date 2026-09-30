@@ -16,6 +16,37 @@ registration, no Graph. Rules live in Rocky; the flow only delivers
 | Card buttons | `GET /api/teams/go?t=…` (public) | HMAC-signed, 7-day links. Records opened / "notes done", marks the reminder, and redirects to the web app (`?agente=…&from=teams&teams=done|open`). Tampered/expired → friendly 403 page. |
 | Rocky in Teams | `public/teams/rocky-teams-app.zip` (built by `tools/teams-app/build.py`) | Personal static tab opening the web app with `?agente={loginHint}`. Fallback: a Website tab in a channel. |
 
+## Cards (all note coaching first)
+
+Every card carries a rotating **note lesson** (`src/engine/noteCoaching.ts`):
+why notes matter, how a note is built (who · what · outcome · next step),
+the process (right away, updates, transfers, voicemails, escalations),
+before/after examples, what never goes in, and how QA reads a note. An
+agent never gets one of their last 20 lessons again; each week has a focus
+theme, so a month walks the whole process. The lesson stays on the card
+after it's answered. "📘 Practice notes" opens the Note Check game.
+
+| Kind | When | Counts in the 3/day? |
+| --- | --- | --- |
+| `greeting` | First 45 min of the shift: hello, today's focus lesson, the 5-point checklist, team challenge | No (extra) |
+| `weekly` | The greeting of the first shift day of the week, plus last week's summary (check-ins, cards answered, notes confirmed, kudos, QA passes) | No (extra) |
+| `reminder` | The reminder engine (cooldowns, priorities). Evolutions / streak milestones get a big celebration layout | Yes |
+| `streakrisk` | 30–120 min before the shift ends, streak ≥ 2 and no check-in today | Yes (saved in the reminder history) |
+| `kudos` | Teammates' thank-yous, batched into one card | No (extra) |
+| `leader` | Monday from 9:00: each team lead's week (per-agent check-ins, cards, kudos, mood; who could use a hand; a lesson for the huddle). Admin: toggle and "send now" | — |
+
+No reminder goes out within 45 min of a greeting or kudos card. Admin →
+Teams y horarios → "Ver las tarjetas" previews every kind.
+
+## Kudos and polls
+
+- `POST /api/kudos {to, tag, message}`: 3 a day, one per teammate; the
+  teammate's Rocky gets +4 happiness and 3 coins. Friends page: 🙌 on each
+  teammate, the team wall and "for me". Stored in `kudos` (migration 017).
+- Chat polls: `POST /api/chat/channels/:id/polls {question, options}`,
+  `PUT /api/chat/messages/:id/vote {option}` (one vote, changeable). The poll
+  lives in the message body, votes are `poll:<n>` reactions.
+
 ## Effects on Rocky
 
 | Event | Effect |
@@ -39,7 +70,7 @@ All effects go through `pet.teamsEffect` (ledger + audit, actor `rocky-teams`).
 ## Admin API
 
 `GET /api/admin/teams/status` · `POST /api/admin/teams/test` · `POST /api/admin/teams/dispatch` ·
-`GET /api/admin/teams/preview/:email` · `PUT|DELETE /api/admin/schedules/:email` ·
+`GET /api/admin/teams/preview/:email?kind=` · `PUT /api/admin/teams/leader-summary` · `POST /api/admin/teams/leaders/send` · `PUT|DELETE /api/admin/schedules/:email` ·
 `POST /api/admin/roster/import {text|rows, removeMissing, defaultSchedule}`
 
 ## Card updates (optional flow branch)

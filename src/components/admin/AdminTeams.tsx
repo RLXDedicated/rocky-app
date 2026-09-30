@@ -3,6 +3,17 @@ import { DAY_SHORT_ES, SHIFT_TIME_ZONES, describeSchedule, parseRoster } from '.
 import { teamsApi, type TeamsSchedule, type TeamsStatus } from '../../services/apiClient'
 import { getAgentEmail } from '../../services/identityService'
 import styles from './AdminConsole.module.css'
+import { CardPreview } from './CardPreview'
+
+const KIND_LABEL: Record<string, string> = {
+  reminder: '📝 Recordatorio',
+  greeting: '☀️ Saludo',
+  weekly: '📅 Lunes (resumen)',
+  streakrisk: '🔥 Racha en riesgo',
+  milestone: '✨ Hito',
+  kudos: '🙌 Kudos',
+  leader: '📊 Líder',
+}
 
 const zoneLabel = (tz: string | null) => (tz ? (SHIFT_TIME_ZONES.find(([z]) => z === tz)?.[1] ?? tz) : 'Hora de Colombia')
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' }) : '—')
@@ -21,7 +32,15 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
   const [fallback, setFallback] = useState({ days: [1, 2, 3, 4, 5], start: '08:00', end: '17:00' })
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState<TeamsSchedule | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [preview, setPreview] = useState<unknown | null>(null)
+  const [previewKind, setPreviewKind] = useState('reminder')
+  const showPreview = (kind: string) => {
+    setPreviewKind(kind)
+    teamsApi
+      .preview(me, kind)
+      .then((r) => setPreview(r.card))
+      .catch(fail)
+  }
   const parsed = useMemo(() => (text.trim() ? parseRoster(text) : null), [text])
   const fail = (e: unknown) => onError(e instanceof Error ? e.message : String(e))
 
@@ -88,17 +107,8 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
           <button className={styles.btnGhost} disabled={busy || !status?.configured} onClick={() => void run(() => teamsApi.dispatch(), (r) => `Revisión hecha: ${r.sent} de ${r.due} tarjetas enviadas${r.error ? ` (${r.error})` : ''}.`)}>
             ⚡ Revisar turnos ahora
           </button>
-          <button
-            className={styles.btnGhost}
-            disabled={busy}
-            onClick={() =>
-              void teamsApi
-                .preview(me)
-                .then((r) => setPreview(JSON.stringify(r.card, null, 2)))
-                .catch(fail)
-            }
-          >
-            👀 Ver JSON de la tarjeta
+          <button className={styles.btnGhost} disabled={busy} onClick={() => (preview ? setPreview(null) : showPreview(previewKind))}>
+            👀 {preview ? 'Ocultar vista previa' : 'Ver las tarjetas'}
           </button>
         </div>
         {status && (
@@ -111,6 +121,23 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
               />{' '}
               😏 Tono con humor (roast estilo Duolingo)
             </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={status.leaderSummary !== false}
+                onChange={(e) =>
+                  void run(() => teamsApi.setLeaderSummary(e.target.checked), (r) => (r.leaderSummary ? 'Los líderes recibirán su resumen cada lunes.' : 'Resumen de líderes pausado.'))
+                }
+              />{' '}
+              📊 Resumen semanal a líderes (lunes 9 a. m.{status.leaders !== undefined ? ` · ${status.leaders} líderes con equipo` : ''})
+            </label>
+            <button
+              className={styles.btnGhost}
+              disabled={busy || !status.configured}
+              onClick={() => void run(() => teamsApi.sendLeaderSummaries(), (r) => (r.ok ? `Resumen enviado a ${r.sent} líderes.` : `No se envió: ${r.error}`))}
+            >
+              📤 Enviar resumen a líderes ahora
+            </button>
             <button className={styles.btnGhost} disabled={busy} onClick={() => void run(() => teamsApi.setTeamsFor('all', true), (r) => `Teams activado para ${r.changed} agentes.`)}>
               ✅ Activar Teams a todos
             </button>
@@ -122,14 +149,35 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
             </a>
           </div>
         )}
+        {status?.last24h.byKind && Object.keys(status.last24h.byKind).length > 0 && (
+          <p className={styles.muted}>
+            Últimas 24 h por tipo:{' '}
+            {Object.entries(status.last24h.byKind)
+              .map(([k, n]) => `${KIND_LABEL[k] ?? k} ${n}`)
+              .join(' · ')}
+          </p>
+        )}
+        <p className={styles.muted}>
+          Tarjetas: ☀️ saludo al inicio del turno (extra, lunes con resumen semanal) · 📝 hasta 3 recordatorios con una lección de notas · 🔥 racha en riesgo al final del turno (cuenta como recordatorio) · 🙌 kudos · 📊 líderes cada lunes.
+        </p>
         <p className={styles.muted}>
           Efectos: responder tarjeta +6 felicidad y +2 coins · check-in a tiempo +5 y +5 · tarjeta ignorada 3 h −6 (máx. 2/día) · días libres no rompen la racha.
         </p>
-        {preview && (
-          <details open>
-            <summary>Adaptive Card (pégala en adaptivecards.io/designer para verla)</summary>
-            <textarea className={styles.field} readOnly value={preview} rows={10} style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }} />
-          </details>
+        {preview !== null && (
+          <div className={styles.stack}>
+            <div className={styles.actionRow}>
+              {Object.entries(KIND_LABEL).map(([k, label]) => (
+                <button key={k} className={k === previewKind ? styles.btnPrimary : styles.btnGhost} onClick={() => showPreview(k)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <CardPreview card={preview} />
+            <details>
+              <summary>JSON (adaptivecards.io/designer)</summary>
+              <textarea className={styles.field} readOnly value={JSON.stringify(preview, null, 2)} rows={10} style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }} />
+            </details>
+          </div>
         )}
       </section>
 

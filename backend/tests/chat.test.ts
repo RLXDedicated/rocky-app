@@ -378,6 +378,30 @@ describe('groups, rooms, edits and archive', () => {
     expect((await request(app).get('/api/chat/rooms').set(as(ANA))).body.rooms).toEqual([])
   })
 
+  it('polls: one vote per person (changeable), live counts, not editable or forgeable', async () => {
+    const { app } = build()
+    await enroll(app, ANA, LUIS, BEA)
+    const bad = await request(app).post('/api/chat/channels/general/polls').set(as(ANA)).send({ question: 'Lunch?', options: ['Tacos'] })
+    expect(bad.status).toBe(422)
+    const poll = await request(app).post('/api/chat/channels/general/polls').set(as(ANA)).send({ question: 'Huddle time?', options: ['9:00', '9:30', '10:00'] })
+    expect(poll.status).toBe(200)
+    expect(poll.body.poll).toMatchObject({ question: 'Huddle time?', total: 0 })
+    const id = poll.body.id as number
+    await request(app).put(`/api/chat/messages/${id}/vote`).set(as(LUIS)).send({ option: 1 }).expect(200)
+    const moved = await request(app).put(`/api/chat/messages/${id}/vote`).set(as(LUIS)).send({ option: 2 })
+    expect(moved.body.poll.options.map((o: { count: number }) => o.count)).toEqual([0, 0, 1])
+    await request(app).put(`/api/chat/messages/${id}/vote`).set(as(BEA)).send({ option: 2 }).expect(200)
+    const list = await request(app).get('/api/chat/channels/general/messages').set(as(ANA))
+    const m = list.body.messages.find((x: { id: number }) => x.id === id)
+    expect(m.poll).toMatchObject({ total: 2 })
+    expect(m.reactions).toEqual([])
+    expect((await request(app).put(`/api/chat/messages/${id}/vote`).set(as(BEA)).send({ option: 7 })).status).toBe(422)
+    expect((await request(app).put(`/api/chat/messages/${id}`).set(as(ANA)).send({ text: 'x' })).status).toBe(422)
+    expect((await request(app).post('/api/chat/channels/general/messages').set(as(ANA)).send({ text: '[[poll:abc]]' })).status).toBe(422)
+    const channels = await request(app).get('/api/chat/channels').set(as(LUIS))
+    expect(channels.body.channels[0].last.body).toBe('📊 Poll: Huddle time?')
+  })
+
   it('edit and delete your own messages; the admin copy keeps the original', async () => {
     const { app } = build()
     await enroll(app, ANA, LUIS)

@@ -4,6 +4,7 @@ import { createApp, type LiveContext } from '../src/app'
 import { loadConfig } from '../src/config/env'
 import type { Clock } from '../../src/engine/clock'
 import { buildMemoryPersistence } from './testApp'
+import { friendKey } from '../src/application/petApplicationService'
 
 // Shifts in US Eastern are converted to the server's zone (Colombia in production).
 process.env.TZ = 'America/Bogota'
@@ -91,7 +92,7 @@ describe('Teams integration', () => {
     await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
     expect((await live.teams.dispatch()).due).toBe(0)
     expect(posted).toHaveLength(0)
-    t.set('2026-09-07T10:00:00') // Monday: Ana is working, Luis starts at 14:00
+    t.set('2026-09-08T10:00:00') // Tuesday: Ana is working, Luis starts at 14:00
     const r = await live.teams.dispatch()
     expect(r).toMatchObject({ due: 1, sent: 1, error: null })
     expect(posted).toHaveLength(1)
@@ -139,12 +140,12 @@ describe('Teams integration', () => {
   })
 
   it('an unanswered card makes Rocky a little sad, at most twice a day', async () => {
-    const t = movableClock('2026-09-07T08:30:00')
+    const t = movableClock('2026-09-08T08:50:00')
     const { app, live } = build(t.clock)
     await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
     await live.teams.dispatch()
     const before = (await request(app).get('/api/pet').set(as(ANA))).body.state.needs.happiness
-    t.set('2026-09-07T11:45:00')
+    t.set('2026-09-08T12:05:00')
     await live.teams.dispatch()
     const status = await request(app).get('/api/admin/teams/status').set(as(ADMIN))
     expect(status.body.last24h.ignored).toBe(1)
@@ -177,7 +178,7 @@ describe('Teams integration', () => {
   })
 
   it('replaces an answered card with its "done" version, and expired ones on the next round', async () => {
-    const t = movableClock('2026-09-07T08:30:00')
+    const t = movableClock('2026-09-08T08:50:00')
     const { app, live, posted } = build(t.clock)
     await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
     await live.teams.dispatch()
@@ -192,7 +193,7 @@ describe('Teams integration', () => {
     expect(update.updates![0]!.card.actions.map((a) => a.title)).toEqual(['🐂 Open Rocky'])
     // Sent once: the next round doesn't resend it.
     const before = posted.length
-    t.set('2026-09-07T09:00:00')
+    t.set('2026-09-08T09:20:00')
     await live.teams.dispatch()
     expect(posted.slice(before).some((p) => p.updates?.some((u) => u.deliveryId === card.deliveryId))).toBe(false)
   })
@@ -206,7 +207,7 @@ describe('Teams integration', () => {
   })
 
   it('reports webhook failures without losing track', async () => {
-    const t = movableClock('2026-09-07T10:00:00')
+    const t = movableClock('2026-09-08T10:00:00')
     const { app, live } = build(t.clock, 500)
     await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
     expect(await live.teams.dispatch()).toMatchObject({ due: 1, sent: 0, error: 'Teams answered 500' })
@@ -241,5 +242,112 @@ describe('Teams integration', () => {
     // 06:30 in Colombia (07:30 in New York) is before the shift.
     t.set('2026-10-01T06:30:00')
     expect((await live.teams.dispatch()).due).toBe(0)
+  })
+
+  it('greets each agent at the start of the shift with the day’s note lesson (an extra card, weekly summary on the first shift day)', async () => {
+    const t = movableClock('2026-09-07T08:05:00') // Monday, Ana starts at 08:00
+    const { app, live, posted } = build(t.clock)
+    await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
+    await live.teams.dispatch()
+    const weekly = posted[0]!.cards.find((c) => c.email === ANA)!
+    expect(weekly.kind).toBe('weekly')
+    const text = JSON.stringify(weekly.card)
+    expect(text).toContain('Your last week with Rocky')
+    expect(text).toContain('Today’s focus')
+    expect(text).toContain('Every note, every time')
+    // Not twice, and no reminder right on its heels.
+    t.set('2026-09-07T08:30:00')
+    await live.teams.dispatch()
+    expect(posted.slice(1).flatMap((p) => p.cards).filter((c) => c.email === ANA)).toEqual([])
+    // Tuesday: the plain greeting.
+    t.set('2026-09-08T08:03:00')
+    await live.teams.dispatch()
+    const tue = posted.at(-1)!.cards.find((c) => c.email === ANA)!
+    expect(tue.kind).toBe('greeting')
+    expect(JSON.stringify(tue.card)).not.toContain('Your last week')
+    // The greeting doesn't use up the 3 reminders.
+    const status = await request(app).get('/api/admin/teams/status').set(as(ADMIN))
+    expect(status.body.last24h.byKind.greeting).toBe(1)
+  })
+
+  it('every reminder carries a note lesson, never the same one twice in a row, and "Practice notes" opens the Note Check', async () => {
+    const t = movableClock('2026-09-08T09:00:00')
+    const { app, live, posted } = build(t.clock)
+    await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
+    await live.teams.dispatch()
+    const card = posted[0]!.cards[0]!
+    expect(JSON.stringify(card.card)).toContain('Note habit')
+    const learn = card.card.actions.find((a) => a.title.includes('Practice'))!
+    const go = await request(app).get(`/api/teams/go?t=${token(learn.url)}`).expect(302)
+    expect(go.headers.location).toContain('go=notes')
+    const lessons: string[] = []
+    for (const at of ['2026-09-08T12:00:00', '2026-09-08T15:00:00']) {
+      t.set(at)
+      await live.teams.dispatch()
+    }
+    for (const p of posted) for (const c of p.cards) if (c.email === ANA) lessons.push(/"text":"([^"]+)","weight":"Bolder","wrap":true,"spacing":"Small"/.exec(JSON.stringify(c.card))?.[1] ?? '')
+    expect(new Set(lessons).size).toBe(lessons.length)
+  })
+
+  it('warns near the end of the shift when a streak would break (counts as a reminder)', async () => {
+    const t = movableClock('2026-09-07T09:00:00')
+    const { app, live, posted } = build(t.clock)
+    await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
+    await request(app).post('/api/events/check-in').set(as(ANA)).send({}).expect(200)
+    t.set('2026-09-08T09:00:00')
+    await request(app).post('/api/events/check-in').set(as(ANA)).send({}).expect(200)
+    t.set('2026-09-09T15:30:00') // Wednesday, 90 minutes before Ana logs off, no check-in yet
+    await live.teams.dispatch()
+    const card = posted.flatMap((p) => p.cards).find((c) => c.email === ANA)!
+    expect(card.kind).toBe('streakrisk')
+    expect(JSON.stringify(card.card)).toContain('2-day streak ends with this shift')
+    expect(card.card.actions.map((a) => a.title)).toContain('✅ My notes are done')
+    t.set('2026-09-09T15:45:00')
+    await live.teams.dispatch()
+    expect(posted.flatMap((p) => p.cards).filter((c) => c.kind === 'streakrisk')).toHaveLength(1)
+  })
+
+  it('kudos: a teammate’s thank-you lifts Rocky, reaches Teams once, and is limited', async () => {
+    const t = movableClock('2026-09-08T10:00:00')
+    const { app, live, posted } = build(t.clock)
+    await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
+    const before = (await request(app).get('/api/pet').set(as(ANA))).body.state.gameCoins
+    await request(app).get('/api/pet').set(as(LUIS)).expect(200)
+    const give = await request(app).post('/api/kudos').set(as(LUIS)).send({ to: friendKey(ANA), tag: 'great-note', message: 'Loved your claim note!' })
+    expect(give.status).toBe(200)
+    expect((await request(app).get('/api/pet').set(as(ANA))).body.state.gameCoins).toBe(before + 3)
+    expect((await request(app).post('/api/kudos').set(as(LUIS)).send({ to: friendKey(ANA), tag: 'helped' })).status).toBeGreaterThanOrEqual(400)
+    expect((await request(app).post('/api/kudos').set(as(LUIS)).send({ to: friendKey(LUIS), tag: 'helped' })).status).toBeGreaterThanOrEqual(400)
+    const mine = await request(app).get('/api/kudos').set(as(ANA))
+    expect(mine.body.received[0]).toMatchObject({ label: 'Great note', message: 'Loved your claim note!' })
+    await live.teams.dispatch()
+    const card = posted.flatMap((p) => p.cards).find((c) => c.email === ANA)!
+    expect(card.kind).toBe('kudos')
+    expect(JSON.stringify(card.card)).toContain('Loved your claim note!')
+    t.set('2026-09-08T11:00:00')
+    await live.teams.dispatch()
+    expect(posted.flatMap((p) => p.cards).filter((c) => c.kind === 'kudos')).toHaveLength(1)
+  })
+
+  it('team leads get a weekly summary of their team on Monday (and on demand from Admin)', async () => {
+    const t = movableClock('2026-09-07T10:00:00') // Monday
+    const { app, live, posted } = build(t.clock)
+    await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
+    await live.teams.dispatch()
+    const card = posted.flatMap((p) => p.cards).find((c) => c.email === LEADER)!
+    expect(card.kind).toBe('leader')
+    const text = JSON.stringify(card.card)
+    expect(text).toContain('Ana Pérez')
+    expect(text).toContain('Luis Gómez')
+    expect(text).toContain('For your huddle')
+    t.set('2026-09-07T14:00:00')
+    await live.teams.dispatch()
+    expect(posted.flatMap((p) => p.cards).filter((c) => c.kind === 'leader')).toHaveLength(1)
+    const now = await request(app).post('/api/admin/teams/leaders/send').set(as(ADMIN)).expect(200)
+    expect(now.body).toMatchObject({ ok: true, sent: 1 })
+    await request(app).put('/api/admin/teams/leader-summary').set(as(ADMIN)).send({ on: false }).expect(200)
+    expect((await request(app).get('/api/admin/teams/status').set(as(ADMIN))).body.leaderSummary).toBe(false)
+    for (const kind of ['greeting', 'weekly', 'streakrisk', 'milestone', 'kudos', 'leader', 'reminder'])
+      expect((await request(app).get(`/api/admin/teams/preview/${ANA}?kind=${kind}`).set(as(ADMIN))).body.card.type).toBe('AdaptiveCard')
   })
 })
