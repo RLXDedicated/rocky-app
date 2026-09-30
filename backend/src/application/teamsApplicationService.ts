@@ -42,7 +42,7 @@ import { checkForReminder, markReminderActed, markReminderOpened, systemClock, t
 import { emailFitsName, matchByName, minutesIntoShift, toLocalSchedule, validSchedule, validTimeZone, type AgentSchedule, type RosterRow } from '../../../src/game/schedule'
 import { publicName } from './leaderboardApplicationService'
 import { stickerImage, voiceFor, type VoiceLine } from '../../../src/engine/rockyVoice'
-import { checklistBlock, findLesson, lessonBlock, NOTE_REMINDERS, NOTE_SHIFT_STARTS, pickLesson, THEME_ICON, THEME_LABEL, weekTheme, type NoteLesson } from '../../../src/engine/noteCoaching'
+import { checklistBlock, findLesson, lessonBlock, notesFooter, notesHeader, NOTE_REMINDERS, NOTE_SHIFT_STARTS, pickLesson, THEME_ICON, THEME_LABEL, weekTheme, type NoteLesson } from '../../../src/engine/noteCoaching'
 import { NOTE_TIPS } from '../../../src/game/notesQuiz'
 import { MAX_DAILY_REMINDERS } from '../../../src/engine/reminderEngine'
 import { WORKING_DAYS } from '../../../src/engine/dateUtils'
@@ -253,9 +253,10 @@ export function createTeamsApplicationService({
   function notesReminderCard(agentId: string, deliveryId: string, text: string, lesson: NoteLesson) {
     return adaptive(
       [
-        { type: 'TextBlock', text: '📝 Notes check', weight: 'Bolder', size: 'Medium', wrap: true },
-        { type: 'TextBlock', text, wrap: true, spacing: 'Small' },
+        notesHeader('📝', 'Notes check', 'RLX Quality · note reminder'),
+        { type: 'TextBlock', text, wrap: true, spacing: 'Medium' },
         lessonBlock(lesson, `Note tip · ${THEME_LABEL[lesson.theme]}`),
+        notesFooter(),
       ],
       [doneAction(deliveryId, agentId)],
     )
@@ -266,10 +267,10 @@ export function createTeamsApplicationService({
     const theme = weekTheme(clock.now())
     return adaptive(
       [
-        { type: 'TextBlock', text: weekly ? '📅 New week — notes focus' : '☀️ Shift start — notes focus', weight: 'Bolder', size: 'Medium', wrap: true },
-        { type: 'TextBlock', text, wrap: true, spacing: 'Small' },
+        notesHeader(weekly ? '📅' : '☀️', weekly ? 'New week — notes focus' : 'Shift start — notes focus', 'RLX Quality · today’s tip'),
+        { type: 'TextBlock', text, wrap: true, spacing: 'Medium' },
         ...(weekly
-          ? [{ type: 'TextBlock', text: `This week’s focus: ${THEME_ICON[theme]} **${THEME_LABEL[theme]}** — one tip a day in these messages.`, wrap: true, spacing: 'Small' }]
+          ? [{ type: 'TextBlock', text: `This week’s focus: ${THEME_ICON[theme]} ${THEME_LABEL[theme]} — one tip a day in these messages.`, wrap: true, spacing: 'Small' }]
           : []),
         lessonBlock(lesson, `Today’s focus · ${THEME_LABEL[lesson.theme]}`),
         checklistBlock(),
@@ -505,7 +506,7 @@ export function createTeamsApplicationService({
         ? [`✅ Notes confirmed — thanks, ${first}!`, 'Complete notes on every interaction. Keep it up.']
         : ['⌛ This reminder expired', 'No problem — keep every note complete: who, what, outcome, next step.']
       return adaptive(
-        [{ type: 'TextBlock', text: title, weight: 'Bolder', wrap: true }, { type: 'TextBlock', text, wrap: true, isSubtle: true, spacing: 'Small' }, ...(lesson ? [lessonBlock(lesson)] : [])],
+        [{ type: 'TextBlock', text: title, weight: 'Bolder', size: 'Medium', wrap: true }, { type: 'TextBlock', text, wrap: true, isSubtle: true, spacing: 'Small' }, ...(lesson ? [lessonBlock(lesson, `Note tip · ${THEME_LABEL[lesson.theme]}`)] : [])],
         [],
       )
     }

@@ -74,7 +74,7 @@ export const NOTE_LESSONS: NoteLesson[] = [
   { id: 'qa-three-checks', theme: 'qa', title: 'QA’s three questions', text: 'Is it complete? Is it accurate? Is the next step clear? QA reads your note like the next agent would.' },
   { id: 'qa-length', theme: 'qa', title: 'Longer isn’t better', text: 'QA doesn’t score length. A short note with who, what, outcome and next step beats a long story every time.' },
   { id: 'qa-match', theme: 'qa', title: 'The note matches the call', text: 'What’s in the note must be what happened on the call — the same dates, numbers and promises. Accuracy is part of the score.' },
-  { id: 'qa-learn', theme: 'qa', title: 'Audits are coaching', text: 'Every audit points at one thing to keep and one thing to try. Pick one, use it on your next note, and Rocky will notice.' },
+  { id: 'qa-learn', theme: 'qa', title: 'Audits are coaching', text: 'Every audit points at one thing to keep and one thing to try. Pick one and use it on your very next note — that’s how notes get better, one habit at a time.' },
 ]
 
 const THEMES: LessonTheme[] = ['why', 'structure', 'process', 'examples', 'safety', 'qa']
@@ -115,11 +115,30 @@ export { NOTE_CHECKLIST }
 export function lessonBlock(lesson: NoteLesson, heading?: string) {
   const items: Record<string, unknown>[] = [
     { type: 'TextBlock', text: `${THEME_ICON[lesson.theme]} ${heading ?? `Note habit · ${THEME_LABEL[lesson.theme]}`}`, size: 'Small', weight: 'Bolder', color: 'Accent', wrap: true },
-    { type: 'TextBlock', text: lesson.title, weight: 'Bolder', wrap: true, spacing: 'Small' },
+    { type: 'TextBlock', text: lesson.title, size: 'Medium', weight: 'Bolder', wrap: true, spacing: 'Small' },
     { type: 'TextBlock', text: lesson.text, wrap: true, spacing: 'Small' },
   ]
-  if (lesson.bad) items.push({ type: 'TextBlock', text: `❌ ${lesson.bad}`, wrap: true, spacing: 'Small', isSubtle: true, fontType: 'Monospace', size: 'Small' })
-  if (lesson.good) items.push({ type: 'TextBlock', text: `✅ ${lesson.good}`, wrap: true, spacing: 'Small', color: 'Good', fontType: 'Monospace', size: 'Small' })
+  // Before/after as two tinted boxes (red "Avoid", green "Better"), easy to scan in Teams.
+  if (lesson.bad)
+    items.push({
+      type: 'Container',
+      style: 'attention',
+      spacing: 'Medium',
+      items: [
+        { type: 'TextBlock', text: '❌ Avoid', size: 'Small', weight: 'Bolder', color: 'Attention', wrap: true },
+        { type: 'TextBlock', text: lesson.bad, wrap: true, spacing: 'Small' },
+      ],
+    })
+  if (lesson.good)
+    items.push({
+      type: 'Container',
+      style: 'good',
+      spacing: 'Small',
+      items: [
+        { type: 'TextBlock', text: '✅ Better', size: 'Small', weight: 'Bolder', color: 'Good', wrap: true },
+        { type: 'TextBlock', text: lesson.good, wrap: true, spacing: 'Small' },
+      ],
+    })
   return { type: 'Container', style: 'emphasis', bleed: false, spacing: 'Medium', items }
 }
 
@@ -129,11 +148,41 @@ export function checklistBlock() {
     type: 'Container',
     spacing: 'Medium',
     items: [
-      { type: 'TextBlock', text: '📋 Every note, every time', weight: 'Bolder', size: 'Small', wrap: true },
-      { type: 'TextBlock', text: NOTE_CHECKLIST.map((c) => `- ${c}`).join('\n'), wrap: true, spacing: 'Small', size: 'Small' },
+      { type: 'TextBlock', text: '📋 Every note, every time', weight: 'Bolder', wrap: true },
+      ...NOTE_CHECKLIST.map((c, i) => ({ type: 'TextBlock', text: `✔️ ${c}`, wrap: true, size: 'Small', spacing: i === 0 ? 'Small' : 'None' })),
     ],
   }
 }
+
+/** A card header without Rocky: a big icon, the title and a small subtitle. */
+export function notesHeader(icon: string, title: string, subtitle: string) {
+  return {
+    type: 'ColumnSet',
+    columns: [
+      { type: 'Column', width: 'auto', verticalContentAlignment: 'Center', items: [{ type: 'TextBlock', text: icon, size: 'ExtraLarge' }] },
+      {
+        type: 'Column',
+        width: 'stretch',
+        verticalContentAlignment: 'Center',
+        items: [
+          { type: 'TextBlock', text: title, weight: 'Bolder', size: 'Large', wrap: true },
+          { type: 'TextBlock', text: subtitle, isSubtle: true, size: 'Small', wrap: true, spacing: 'None' },
+        ],
+      },
+    ],
+  }
+}
+
+/** The golden rule, as a quiet footer. */
+export const notesFooter = () => ({
+  type: 'TextBlock',
+  text: 'Who · What · Outcome · Next step — on every interaction.',
+  isSubtle: true,
+  size: 'Small',
+  wrap: true,
+  separator: true,
+  spacing: 'Medium',
+})
 
 // ---------------------------------------------------------------------------
 // Notes-only Teams cards (no Rocky, no pet data): plain documentation

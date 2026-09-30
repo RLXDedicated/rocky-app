@@ -288,7 +288,7 @@ describe('Teams integration', () => {
       t.set(at)
       await live.teams.dispatch()
     }
-    for (const p of posted) for (const c of p.cards) if (c.email === ANA) lessons.push(/"text":"([^"]+)","weight":"Bolder","wrap":true,"spacing":"Small"/.exec(JSON.stringify(c.card))?.[1] ?? '')
+    for (const p of posted) for (const c of p.cards) if (c.email === ANA) lessons.push(/"text":"([^"]+)","size":"Medium","weight":"Bolder","wrap":true,"spacing":"Small"/.exec(JSON.stringify(c.card))?.[1] ?? '')
     expect(new Set(lessons).size).toBe(lessons.length)
   })
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findLesson, lessonBlock, NOTE_LESSONS, pickLesson, weekTheme } from './noteCoaching'
+import { findLesson, lessonBlock, NOTE_CHECKLIST, NOTE_LESSONS, NOTE_REMINDERS, NOTE_SHIFT_STARTS, pickLesson, weekTheme } from './noteCoaching'
 
 describe('note coaching', () => {
   it('covers the whole process: why, structure, process, examples, safety and QA', () => {
@@ -25,7 +25,13 @@ describe('note coaching', () => {
 
   it('renders a before/after example in the card block', () => {
     const block = JSON.stringify(lessonBlock(findLesson('ex-reschedule')!))
-    expect(block).toContain('❌ Called cx. Rescheduled.')
-    expect(block).toContain('✅ Spoke with Maria')
+    expect(block).toContain('❌ Avoid')
+    expect(block).toContain('Called cx. Rescheduled.')
+    expect(block).toContain('Spoke with Maria')
+  })
+
+  it('lessons and note reminders never mention Rocky (they go out in notes-only cards)', () => {
+    const text = JSON.stringify([NOTE_LESSONS, NOTE_REMINDERS, NOTE_SHIFT_STARTS, NOTE_CHECKLIST])
+    expect(text).not.toMatch(/Rocky|bull|pet/i)
   })
 })

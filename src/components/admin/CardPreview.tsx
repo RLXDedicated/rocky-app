@@ -4,7 +4,8 @@ import type { CSSProperties, ReactNode } from 'react'
 
 type El = Record<string, unknown> & { type?: string }
 
-const SIZE: Record<string, string> = { Small: '0.82rem', Medium: '1.02rem', Large: '1.3rem' }
+const SIZE: Record<string, string> = { Small: '0.82rem', Medium: '1.02rem', Large: '1.3rem', ExtraLarge: '1.8rem' }
+const STYLE_BG: Record<string, string> = { emphasis: '#f2f4f7', attention: '#fdecec', good: '#e7f6ec', accent: '#e8f0fe', warning: '#fff4e0' }
 const COLOR: Record<string, string> = { Accent: '#2563eb', Good: '#0f7a3d', Attention: '#b42318' }
 
 /** **bold** and "- " bullet lines, as Teams renders them. */
@@ -35,6 +36,8 @@ function render(el: El, key: number): ReactNode {
             fontWeight: el.weight === 'Bolder' ? 700 : 400,
             color: COLOR[el.color as string] ?? (el.isSubtle ? '#667085' : '#1d2939'),
             textAlign: (el.horizontalAlignment as string)?.toLowerCase() as CSSProperties['textAlign'],
+            borderTop: el.separator ? '1px solid #e4e7ec' : undefined,
+            paddingTop: el.separator ? 8 : undefined,
             fontFamily: el.fontType === 'Monospace' ? 'ui-monospace, monospace' : undefined,
           }}
         >
@@ -59,7 +62,7 @@ function render(el: El, key: number): ReactNode {
       )
     case 'Container':
       return (
-        <div key={key} style={{ ...spacing, padding: el.style === 'emphasis' ? '10px 12px' : 0, borderRadius: 8, background: el.style === 'emphasis' ? '#f2f4f7' : undefined }}>
+        <div key={key} style={{ ...spacing, padding: el.style ? '10px 12px' : 0, borderRadius: 8, background: el.style ? (STYLE_BG[el.style as string] ?? '#f2f4f7') : undefined, borderTop: el.separator ? '1px solid #e4e7ec' : undefined }}>
           {((el.items as El[]) ?? []).map(render)}
         </div>
       )
