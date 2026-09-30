@@ -26,6 +26,14 @@ export const MAX_MESSAGE_LENGTH = 1000
 const RATE_LIMIT = 20
 const RATE_WINDOW_MS = 60_000
 const PAGE = 50
+const MAX_GROUP_MEMBERS = 60
+const EDIT_WINDOW_MS = 24 * 3_600_000
+/** A group's picture: one emoji (a picture upload is stored separately as "img:<id>"). */
+function validAvatar(v: unknown): string | null {
+  return typeof v === 'string' && v.length <= 16 && isEmoji(v) ? v : null
+}
+/** Someone else's home chat stays in your list this long after it was last used. */
+const VISIT_LIST_DAYS = 3
 
 export const GENERAL_CHANNEL = 'general'
 
@@ -195,6 +203,9 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       mine: m.authorId === viewerId,
       body: m.hiddenAt ? '' : m.body,
       hidden: !!m.hiddenAt,
+      // "Deleted by its author" reads differently from "hidden by a moderator".
+      deleted: !!m.hiddenAt && m.hiddenBy === m.authorId,
+      edited: !m.hiddenAt && !!m.editedAt,
       at: m.createdAt,
       reactions: m.hiddenAt ? [] : reactionsFor(reactions, viewerId),
       mentionsMe: !m.hiddenAt && m.authorId !== viewerId && mentions(m.body, viewerId),
@@ -254,11 +265,20 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       const host = hostOfVisit(channel)
       title = host === agentId ? 'Visitors at my home' : host ? `At ${nameOf(host)}’s home` : 'Visit'
     }
+    const members = channel.kind === 'group' ? store.listMembers(channel.id) : []
     return {
       id: channel.id,
       kind: channel.kind,
       title,
       with: withWho,
+      ...(channel.kind === 'group'
+        ? {
+            avatar: channel.avatar ?? null,
+            open: !!channel.open,
+            memberCount: members.length,
+            canManage: channel.ownerId === agentId || isStaff(agentId),
+          }
+        : {}),
       unread: store.countUnread(channel.id, agentId, lastReadId),
       last: last ? { name: nameOf(last.authorId), body: last.hiddenAt ? '' : last.body, at: last.createdAt, mine: last.authorId === agentId } : null,
     }
@@ -281,6 +301,8 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
   /** Stores a message and sends everyone in the conversation a live copy. */
   function post(channel: ChannelRecord, agentId: string, body: string, flagged: boolean, now: Date) {
     store.addMember(channel.id, agentId, now.toISOString())
+    // A new message brings an archived 1-to-1 or group back into everyone's list.
+    if (channel.kind === 'dm' || channel.kind === 'group') for (const id of store.listMembers(channel.id)) store.setArchived(channel.id, id, null)
     const saved = store.addMessage({ channelId: channel.id, authorId: agentId, body, flagged, createdAt: now.toISOString(), hiddenAt: null, hiddenBy: null })
     store.setLastRead(channel.id, agentId, saved.id)
     for (const id of audience(channel)) {
@@ -289,6 +311,14 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       if (message.mentionsMe) bus.publish([id], { t: 'chat.mention', channel: channel.id, kind: channel.kind, message })
     }
     return saved
+  }
+
+  /** A group the agent belongs to (and, for changes, may manage: its creator or a Rocky admin). */
+  function requireGroup(channelId: string, agentId: string, manage = false): ChannelRecord {
+    const c = store.getChannel(channelId)
+    if (!c || c.kind !== 'group' || (!store.isMember(c.id, agentId) && !isStaff(agentId))) throw ApiError.notFound('That group could not be found.')
+    if (manage && c.ownerId !== agentId && !isStaff(agentId)) throw ApiError.forbidden('Only the group’s creator can change that.')
+    return c
   }
 
   return {
@@ -311,13 +341,18 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
 
     listChannels(agentId: string) {
       ensureGeneral(agentId)
-      const channels = store
+      const recent = new Date(clock.now().getTime() - VISIT_LIST_DAYS * 86_400_000).toISOString()
+      const all = store
         .listMemberships(agentId)
         .map((m) => ({ m, c: store.getChannel(m.channelId) }))
         .filter((x): x is { m: typeof x.m; c: ChannelRecord } => !!x.c)
-        .map(({ m, c }) => channelSummary(c, agentId, m.lastReadId))
+        .map(({ m, c }) => ({ archived: !!m.archivedAt && c.kind !== 'general', s: channelSummary(c, agentId, m.lastReadId) }))
         // A 1-to-1 shows up for the other person once there is something to read.
-        .filter((c) => c.kind !== 'dm' || c.last)
+        .filter(({ s }) => s.kind !== 'dm' || s.last)
+        // Someone else's home chat only while it's in use (a live visit, or talked in lately).
+        .filter(({ s }) => s.kind !== 'visit' || s.id === visitId(agentId) || (s.last && s.last.at >= recent) || s.unread > 0)
+      const channels = all.filter((x) => !x.archived).map((x) => x.s)
+      const archived = all.filter((x) => x.archived).map((x) => x.s)
       // The agent's own home chat shows up once someone has written there.
       const home = store.getChannel(visitId(agentId))
       if (home && !channels.some((c) => c.id === home.id)) {
@@ -327,6 +362,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       const mute = store.getMute(agentId)
       return {
         channels: channels.sort((a, b) => (a.kind === 'general' ? -1 : b.kind === 'general' ? 1 : (b.last?.at ?? '').localeCompare(a.last?.at ?? ''))),
+        archived,
         mutedUntil: mute && mute.until > clock.now().toISOString() ? mute.until : null,
       }
     },
@@ -351,6 +387,161 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       if (host === agentId || bus.inRoom(agentId, host)) store.addMember(channel.id, agentId, now)
       else throw ApiError.forbidden('You can chat here while you are visiting.')
       return channelSummary(channel, agentId, 0)
+    },
+
+    // ------------------------------------------------------------ groups & rooms
+    /** A private group (anyone) or an open room everyone can join (admins). */
+    createGroup(agentId: string, input: { title: unknown; members: unknown; avatar: unknown; open: unknown }, actor: ChatActor) {
+      const title = typeof input.title === 'string' ? input.title.trim().slice(0, 40) : ''
+      if (!title) throw ApiError.validation('Give the group a name.')
+      const open = input.open === true
+      if (open && !isStaff(agentId)) throw ApiError.forbidden('Only Rocky admins can open rooms for everyone.')
+      const dir = directory()
+      const members = [...new Set((Array.isArray(input.members) ? input.members : []).filter((k): k is string => typeof k === 'string').map((k) => dir.get(k)).filter((x): x is string => !!x))]
+      if (!open && members.filter((m) => m !== agentId).length === 0) throw ApiError.validation('Add at least one teammate.')
+      if (members.length + 1 > MAX_GROUP_MEMBERS) throw ApiError.validation(`Groups can have up to ${MAX_GROUP_MEMBERS} people.`)
+      const now = clock.now().toISOString()
+      const channel = store.ensureChannel({
+        id: `group-${randomBytes(8).toString('hex')}`,
+        kind: 'group',
+        title,
+        createdAt: now,
+        avatar: validAvatar(input.avatar) ?? (open ? '🏠' : '💬'),
+        ownerId: agentId,
+        open,
+      })
+      for (const id of [agentId, ...members]) store.addMember(channel.id, id, now)
+      audit(actor, agentId, 'chat.group.create', { channel: channel.id, title, open, members: members.length })
+      for (const id of members) if (id !== agentId) bus.publish([id], { t: 'chat.channels' })
+      return channelSummary(channel, agentId, 0)
+    },
+
+    /** Members of a group, for its settings panel. */
+    groupInfo(agentId: string, channelId: string) {
+      const channel = requireGroup(channelId, agentId)
+      return {
+        ...channelSummary(channel, agentId, 0),
+        owner: channel.ownerId ? friendKey(channel.ownerId) : null,
+        members: store.listMembers(channel.id).map((id) => ({ ...profileOf(id), owner: id === channel.ownerId })),
+      }
+    },
+
+    updateGroup(agentId: string, channelId: string, patch: { title?: unknown; avatar?: unknown }, actor: ChatActor) {
+      const channel = requireGroup(channelId, agentId, true)
+      const change: { title?: string; avatar?: string } = {}
+      if (patch.title !== undefined) {
+        const t = typeof patch.title === 'string' ? patch.title.trim().slice(0, 40) : ''
+        if (!t) throw ApiError.validation('Give the group a name.')
+        change.title = t
+      }
+      if (patch.avatar !== undefined) {
+        const a = validAvatar(patch.avatar)
+        if (!a) throw ApiError.validation('Pick an emoji for the group.')
+        change.avatar = a
+      }
+      store.updateChannel(channel.id, change)
+      audit(actor, agentId, 'chat.group.update', { channel: channel.id, ...change })
+      bus.publish(audience(channel), { t: 'chat.channels' })
+      return this.groupInfo(agentId, channel.id)
+    },
+
+    /** A picture for the group (same checks as chat pictures). */
+    setGroupPicture(agentId: string, channelId: string, bytes: Uint8Array, actor: ChatActor) {
+      const channel = requireGroup(channelId, agentId, true)
+      const mime = sniffImage(bytes)
+      if (!mime) throw ApiError.validation('Only PNG, JPEG, WebP and GIF pictures can be used.')
+      if (bytes.length > MAX_IMAGE_BYTES) throw ApiError.validation('That picture is too big (2.5 MB max).')
+      const id = randomBytes(12).toString('hex')
+      store.addAttachment({ id, channelId: channel.id, uploaderId: agentId, mime, size: bytes.length, data: bytes, createdAt: clock.now().toISOString() })
+      store.updateChannel(channel.id, { avatar: `img:${id}` })
+      audit(actor, agentId, 'chat.group.picture', { channel: channel.id, attachment: id })
+      bus.publish(audience(channel), { t: 'chat.channels' })
+      return this.groupInfo(agentId, channel.id)
+    },
+
+    addToGroup(agentId: string, channelId: string, keys: unknown, actor: ChatActor) {
+      const channel = requireGroup(channelId, agentId, true)
+      const dir = directory()
+      const ids = (Array.isArray(keys) ? keys : []).filter((k): k is string => typeof k === 'string').map((k) => dir.get(k)).filter((x): x is string => !!x)
+      if (store.listMembers(channel.id).length + ids.length > MAX_GROUP_MEMBERS) throw ApiError.validation(`Groups can have up to ${MAX_GROUP_MEMBERS} people.`)
+      const now = clock.now().toISOString()
+      for (const id of ids) store.addMember(channel.id, id, now)
+      audit(actor, agentId, 'chat.group.add', { channel: channel.id, members: ids })
+      bus.publish(audience(channel), { t: 'chat.channels' })
+      return this.groupInfo(agentId, channel.id)
+    },
+
+    /** Removes someone (the group's creator or an admin), or leaves (anyone, themselves). */
+    removeFromGroup(agentId: string, channelId: string, key: string, actor: ChatActor) {
+      const target = key === 'me' ? agentId : directory().get(key)
+      if (!target) throw ApiError.notFound('That teammate could not be found.')
+      const channel = requireGroup(channelId, agentId, target !== agentId)
+      store.removeMember(channel.id, target)
+      if (channel.ownerId === target) {
+        // The group lives on: the longest-standing member takes over.
+        const next = store.listMembers(channel.id)[0] ?? null
+        store.updateChannel(channel.id, { ownerId: next })
+      }
+      audit(actor, agentId, target === agentId ? 'chat.group.leave' : 'chat.group.remove', { channel: channel.id, member: target })
+      bus.publish([...audience(channel), target], { t: 'chat.channels' })
+      return { ok: true }
+    },
+
+    /** Open rooms the agent hasn't joined yet. */
+    rooms(agentId: string) {
+      return store
+        .listChannels()
+        .filter((c) => c.kind === 'group' && c.open && !store.isMember(c.id, agentId))
+        .map((c) => ({ id: c.id, title: c.title ?? 'Room', avatar: c.avatar ?? '🏠', memberCount: store.listMembers(c.id).length }))
+    },
+
+    joinRoom(agentId: string, channelId: string) {
+      const c = store.getChannel(channelId)
+      if (!c || c.kind !== 'group' || !c.open) throw ApiError.notFound('That room could not be found.')
+      store.addMember(c.id, agentId, clock.now().toISOString())
+      return channelSummary(c, agentId, 0)
+    },
+
+    /** Tuck a conversation away (it comes back with the next message), or bring it back. */
+    archive(agentId: string, channelId: string, on: boolean) {
+      const channel = requireChannel(channelId, agentId)
+      if (channel.kind === 'general') throw ApiError.validation('General can’t be archived.')
+      store.addMember(channel.id, agentId, clock.now().toISOString())
+      store.setArchived(channel.id, agentId, on ? clock.now().toISOString() : null)
+      return { ok: true }
+    },
+
+    /** Fixes a typo in your own text message (the admins' copy keeps the original). */
+    editMessage(agentId: string, messageId: number, text: unknown, confirm: boolean, actor: ChatActor) {
+      const m = store.getMessage(messageId)
+      if (!m || m.hiddenAt || m.authorId !== agentId) throw ApiError.notFound('You can only edit your own messages.')
+      if (/^\[\[(img|gif|sticker):/.test(m.body)) throw ApiError.validation('Pictures, GIFs and stickers can’t be edited — delete it instead.')
+      if (clock.now().getTime() - new Date(m.createdAt).getTime() > EDIT_WINDOW_MS) throw ApiError.validation('Messages can be edited for 24 hours.')
+      if (typeof text !== 'string' || !text.trim()) throw ApiError.validation('Write something, or delete the message.')
+      const body = text.trim().replace(/\r\n/g, '\n')
+      if (body.length > MAX_MESSAGE_LENGTH) throw ApiError.validation(`Messages can be up to ${MAX_MESSAGE_LENGTH} characters.`)
+      if (/\[\[(img|gif|sticker):/.test(body)) throw ApiError.validation('That can’t go in a text message.')
+      const channel = requireChannel(m.channelId, agentId)
+      const kinds = sensitiveKinds(body)
+      if (kinds.length && !confirm)
+        throw new ApiError(422, 'SENSITIVE_DATA', `This looks like customer information (${kinds.join(', ')}). Never share customer data in Rocky chat — use the approved work systems.`)
+      store.editMessage(m.id, body, agentId, clock.now().toISOString())
+      audit(actor, agentId, 'chat.message.edit', { channel: channel.id, message: m.id, ...(kinds.length ? { flagged: kinds } : {}) })
+      const saved = store.getMessage(m.id)!
+      const reactions = store.listReactions([m.id])
+      for (const id of audience(channel)) bus.publish([id], { t: 'chat.edited', channel: channel.id, message: toClient(saved, id, reactions) })
+      return toClient(saved, agentId, reactions)
+    },
+
+    /** Unsends your own message ("message deleted"); the admins' copy keeps it. */
+    deleteMessage(agentId: string, messageId: number, actor: ChatActor) {
+      const m = store.getMessage(messageId)
+      if (!m || m.hiddenAt || m.authorId !== agentId) throw ApiError.notFound('You can only delete your own messages.')
+      store.hideMessage(m.id, agentId, clock.now().toISOString())
+      audit(actor, agentId, 'chat.message.delete', { channel: m.channelId, message: m.id })
+      const channel = store.getChannel(m.channelId)
+      if (channel) bus.publish(audience(channel), { t: 'chat.hidden', channel: channel.id, id: m.id, deleted: true })
+      return { ok: true }
     },
 
     messages(agentId: string, channelId: string, opts: { before?: number; after?: number }) {
@@ -501,7 +692,14 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
         return {
           id: c.id,
           kind: c.kind,
-          title: c.kind === 'general' ? 'General' : c.kind === 'visit' && host ? `Home of ${nameOf(host)}` : [...members].map(nameOf).join(' & '),
+          title:
+            c.kind === 'general'
+              ? 'General'
+              : c.kind === 'group'
+                ? `${c.open ? 'Room' : 'Group'}: ${c.title ?? ''}`
+                : c.kind === 'visit' && host
+                  ? `Home of ${nameOf(host)}`
+                  : [...members].map(nameOf).join(' & '),
           members: c.kind === 'general' ? [] : [...members].map((id) => ({ email: id, name: nameOf(id) })),
           lastAt: last?.createdAt ?? null,
         }
@@ -531,6 +729,8 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
           hidden: !!m.hiddenAt,
           hiddenBy: m.hiddenBy,
           at: m.createdAt,
+          // Earlier versions of an edited message (the admins' copy never loses what was said).
+          edits: m.editedAt ? store.listEdits(m.id) : [],
         })),
         more: rows.length === 100,
       }

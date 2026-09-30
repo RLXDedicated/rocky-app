@@ -268,6 +268,23 @@ export const MIGRATION_006_PEOPLE = `
 `
 
 /** The Teams/SharePoint roster's shifts, and every card Rocky sent to Teams. */
+/** Chat groups and rooms, archiving, message edits; the Teams card's wording (so it doesn't repeat). */
+export const MIGRATION_016_CHAT_GROUPS = `
+  ALTER TABLE chat_channels ADD COLUMN avatar TEXT;
+  ALTER TABLE chat_channels ADD COLUMN owner_id TEXT;
+  ALTER TABLE chat_channels ADD COLUMN open INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE chat_members ADD COLUMN archived_at TEXT;
+  ALTER TABLE chat_messages ADD COLUMN edited_at TEXT;
+  CREATE TABLE chat_message_edits (
+    message_id INTEGER NOT NULL,
+    body       TEXT NOT NULL,
+    edited_at  TEXT NOT NULL,
+    edited_by  TEXT NOT NULL
+  );
+  CREATE INDEX idx_chat_message_edits ON chat_message_edits(message_id);
+  ALTER TABLE teams_deliveries ADD COLUMN voice TEXT;
+`
+
 /** Teams cards replaced after the agent answers (or the card goes stale). */
 export const MIGRATION_015_CARD_UPDATES = `
   ALTER TABLE teams_deliveries ADD COLUMN card_updated_at TEXT;

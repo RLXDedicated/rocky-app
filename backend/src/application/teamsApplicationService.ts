@@ -108,6 +108,22 @@ export function createTeamsApplicationService({
   const ROAST_KEY = 'setting:teams-roast'
   const roastOn = () => accounts.getCatalogOverrides()[ROAST_KEY]?.enabled !== false
 
+  /** What Rocky says on a card: never a line this agent got in their last 20 cards. */
+  function voiceOf(agentId: string, reminder: Pick<ReminderRecord, 'category' | 'message'>, name: string): VoiceLine {
+    const game = repo.forAgent(agentId).getGameState()
+    const firstName = name.split(' ')[0] || name
+    const avoid = accounts
+      .listDeliveries({ agentId, limit: 20 })
+      .map((d) => d.voice)
+      .filter((v): v is string => !!v)
+    return voiceFor(
+      reminder.category,
+      reminder.message,
+      { firstName, streak: game.currentStreak, energy: game.energy, level: game.level, checkedInToday: game.lastCheckInDate === todayKey(clock.now()) },
+      { roast: roastOn(), avoid },
+    )
+  }
+
   function card(
     agentId: string,
     deliveryId: string,
@@ -117,9 +133,7 @@ export function createTeamsApplicationService({
   ) {
     const game = repo.forAgent(agentId).getGameState()
     const firstName = name.split(' ')[0] || name
-    const voice =
-      fixed ??
-      voiceFor(reminder.category, reminder.message, { firstName, streak: game.currentStreak, energy: game.energy, level: game.level, checkedInToday: game.lastCheckInDate === todayKey(clock.now()) }, { roast: roastOn() })
+    const voice = fixed ?? voiceOf(agentId, reminder, name)
     const img = `${config.webUrl}${stickerImage(voice.sticker, game.evolutionStage)}`
     const title =
       reminder.category === 'Celebration'
@@ -307,7 +321,9 @@ export function createTeamsApplicationService({
         const d = newDelivery(agentId, 'reminder', reminder)
         const name = nameOf(agentId, s)
         deliveries.push(d)
-        const c = card(agentId, d.id, reminder, name)
+        const voice = voiceOf(agentId, reminder, name)
+        d.voice = voice.text
+        const c = card(agentId, d.id, reminder, name, voice)
         items.push({ email: agentId, name, deliveryId: d.id, kind: 'reminder', category: reminder.category, message: reminder.message, card: c })
       }
       const updates = pendingUpdates(now)

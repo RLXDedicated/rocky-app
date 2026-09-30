@@ -389,11 +389,26 @@ export interface ChatPerson {
 }
 export interface ChatChannel {
   id: string
-  kind: 'general' | 'dm' | 'visit'
+  kind: 'general' | 'dm' | 'visit' | 'group'
   title: string
   with: ChatPerson | null
   unread: number
   last: { name: string; body: string; at: string; mine: boolean } | null
+  /** Groups: an emoji or "img:<attachment id>". */
+  avatar?: string | null
+  open?: boolean
+  memberCount?: number
+  canManage?: boolean
+}
+export interface ChatGroupInfo extends ChatChannel {
+  owner: string | null
+  members: (ChatPerson & { owner: boolean })[]
+}
+export interface ChatRoom {
+  id: string
+  title: string
+  avatar: string
+  memberCount: number
 }
 export interface ChatMessage {
   id: number
@@ -408,6 +423,9 @@ export interface ChatMessage {
   mine: boolean
   body: string
   hidden: boolean
+  /** Unsent by its author (vs hidden by a moderator). */
+  deleted?: boolean
+  edited?: boolean
   at: string
   reactions?: ChatReaction[]
   /** Someone wrote "@<my name>" in it. */
@@ -466,7 +484,7 @@ export interface ChatRules {
 }
 export interface AdminChatChannel {
   id: string
-  kind: 'general' | 'dm' | 'visit'
+  kind: 'general' | 'dm' | 'visit' | 'group'
   title: string
   members: { email: string; name: string }[]
   lastAt: string | null
@@ -480,6 +498,8 @@ export interface AdminChatMessage {
   hidden: boolean
   hiddenBy: string | null
   at: string
+  /** Earlier versions, when the author edited it. */
+  edits?: { body: string; editedAt: string; editedBy: string }[]
 }
 export interface AdminChatReport {
   id: number
@@ -632,7 +652,22 @@ export const extrasApi = {
 export const chatApi = {
   rules: () => request<ChatRules>('/api/chat/rules'),
   acceptRules: (version: string) => request<ChatRules>('/api/chat/rules', post({ version })),
-  channels: () => request<{ channels: ChatChannel[]; mutedUntil: string | null }>('/api/chat/channels'),
+  channels: () => request<{ channels: ChatChannel[]; archived?: ChatChannel[]; mutedUntil: string | null }>('/api/chat/channels'),
+  createGroup: (g: { title: string; members: string[]; avatar?: string; open?: boolean }) => request<ChatChannel>('/api/chat/groups', post(g)),
+  group: (id: string) => request<ChatGroupInfo>(`/api/chat/groups/${encodeURIComponent(id)}`),
+  updateGroup: (id: string, patch: { title?: string; avatar?: string }) =>
+    request<ChatGroupInfo>(`/api/chat/groups/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(patch) }),
+  groupPicture: (id: string, file: Blob) =>
+    request<ChatGroupInfo>(`/api/chat/groups/${encodeURIComponent(id)}/picture`, { method: 'POST', body: file, headers: { 'Content-Type': file.type || 'application/octet-stream' } }),
+  addToGroup: (id: string, members: string[]) => request<ChatGroupInfo>(`/api/chat/groups/${encodeURIComponent(id)}/members`, post({ members })),
+  removeFromGroup: (id: string, key: string) =>
+    request<{ ok: boolean }>(`/api/chat/groups/${encodeURIComponent(id)}/members/${encodeURIComponent(key)}`, { method: 'DELETE' }),
+  rooms: () => request<{ rooms: ChatRoom[] }>('/api/chat/rooms'),
+  joinRoom: (id: string) => request<ChatChannel>(`/api/chat/rooms/${encodeURIComponent(id)}/join`, post()),
+  archive: (id: string, on: boolean) => request<{ ok: boolean }>(`${chatPath(id)}/archive`, { method: 'PUT', body: JSON.stringify({ on }) }),
+  edit: (messageId: number, text: string, confirm = false) =>
+    request<ChatMessage>(`/api/chat/messages/${messageId}`, { method: 'PUT', body: JSON.stringify({ text, confirm }) }),
+  remove: (messageId: number) => request<{ ok: boolean }>(`/api/chat/messages/${messageId}`, { method: 'DELETE' }),
   openDirect: (friend: string) => request<ChatChannel>('/api/chat/direct', post({ friend })),
   openVisit: (host: string | null) => request<ChatChannel>('/api/chat/visit', post({ host })),
   messages: (id: string, opts: { before?: number; after?: number } = {}) => {

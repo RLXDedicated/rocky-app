@@ -94,6 +94,7 @@ function toDelivery(r: Record<string, unknown>): DeliveryRecord {
     actedAt: (r.acted_at as string | null) ?? null,
     ignoredAt: (r.ignored_at as string | null) ?? null,
     cardUpdatedAt: (r.card_updated_at as string | null) ?? null,
+    voice: (r.voice as string | null) ?? null,
   }
 }
 
@@ -328,8 +329,8 @@ export class SqliteAccountStore implements AccountStore {
 
   addDelivery(d: DeliveryRecord): void {
     this.db
-      .prepare('INSERT INTO teams_deliveries (delivery_id, agent_id, reminder_id, kind, category, sent_at, ok, error, opened_at, acted_at, ignored_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(d.id, d.agentId, d.reminderId, d.kind, d.category, d.sentAt, d.ok ? 1 : 0, d.error, d.openedAt, d.actedAt, d.ignoredAt)
+      .prepare('INSERT INTO teams_deliveries (delivery_id, agent_id, reminder_id, kind, category, sent_at, ok, error, opened_at, acted_at, ignored_at, voice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(d.id, d.agentId, d.reminderId, d.kind, d.category, d.sentAt, d.ok ? 1 : 0, d.error, d.openedAt, d.actedAt, d.ignoredAt, d.voice ?? null)
   }
   getDelivery(id: string): DeliveryRecord | null {
     const r = this.db.prepare('SELECT * FROM teams_deliveries WHERE delivery_id = ?').get(id) as Record<string, unknown> | undefined

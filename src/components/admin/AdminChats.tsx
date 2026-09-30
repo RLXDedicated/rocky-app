@@ -3,7 +3,7 @@ import { chatApi, type AdminChatChannel, type AdminChatMessage, type AdminChatRe
 import { ChatMedia, mediaOf } from '../chat/Media'
 import styles from './AdminConsole.module.css'
 
-const KIND: Record<AdminChatChannel['kind'], string> = { general: 'General', dm: '1 a 1', visit: 'Visita' }
+const KIND: Record<AdminChatChannel['kind'], string> = { general: 'General', dm: '1 a 1', visit: 'Visita', group: 'Grupo / sala' }
 const fmt = (at: string) => new Date(at).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
 const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
@@ -184,8 +184,18 @@ function Conversations({ onChanged, onError }: { onChanged: (m: string) => void;
                 <li key={m.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--divider)', opacity: m.hidden ? 0.55 : 1 }}>
                   <strong>{m.name}</strong> <span className={styles.muted}>{m.email} · {fmt(m.at)}</span>
                   {m.flagged && <span className={styles.chip} title="El agente confirmó el envío aunque parecía dato de cliente"> ⚠️ posible dato de cliente</span>}
-                  {m.hidden && <span className={styles.chip}> oculto por {m.hiddenBy}</span>}
+                  {m.hidden && <span className={styles.chip}>{m.hiddenBy === m.email ? ' borrado por su autor' : ` oculto por ${m.hiddenBy}`}</span>}
                   {mediaOf(m.body) ? <ChatMedia media={mediaOf(m.body)!} /> : <div style={{ whiteSpace: 'pre-wrap' }}>{m.body}</div>}
+                  {m.edits && m.edits.length > 0 && (
+                    <details>
+                      <summary className={styles.muted}>editado {m.edits.length} vez/veces — ver versiones anteriores</summary>
+                      {m.edits.map((e, i) => (
+                        <div key={i} className={styles.muted} style={{ whiteSpace: 'pre-wrap' }}>
+                          {fmt(e.editedAt)}: {e.body}
+                        </div>
+                      ))}
+                    </details>
+                  )}
                   {!m.hidden && (
                     <button className={styles.linkBtn} onClick={() => void hide(m)}>
                       ocultar

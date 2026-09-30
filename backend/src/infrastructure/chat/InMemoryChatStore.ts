@@ -27,6 +27,28 @@ export class InMemoryChatStore implements ChatStore {
     return [...this.channels.values()]
   }
 
+  updateChannel(id: string, patch: { title?: string | null; avatar?: string | null; ownerId?: string | null; open?: boolean }) {
+    const c = this.channels.get(id)
+    if (c) Object.assign(c, patch)
+  }
+  removeMember(channelId: string, agentId: string) {
+    this.members.delete(this.key(channelId, agentId))
+  }
+  setArchived(channelId: string, agentId: string, at: string | null) {
+    const m = this.members.get(this.key(channelId, agentId))
+    if (m) m.archivedAt = at
+  }
+  private edits: { messageId: number; body: string; editedAt: string; editedBy: string }[] = []
+  editMessage(id: number, body: string, by: string, at: string) {
+    const m = this.messages.find((x) => x.id === id)
+    if (!m) return
+    this.edits.push({ messageId: id, body: m.body, editedAt: at, editedBy: by })
+    m.body = body
+    m.editedAt = at
+  }
+  listEdits(messageId: number) {
+    return this.edits.filter((e) => e.messageId === messageId).map(({ body, editedAt, editedBy }) => ({ body, editedAt, editedBy }))
+  }
   addMember(channelId: string, agentId: string) {
     const k = this.key(channelId, agentId)
     if (!this.members.has(k)) this.members.set(k, { channelId, agentId, lastReadId: 0 })

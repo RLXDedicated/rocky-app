@@ -64,6 +64,35 @@ export function ChatThread({
   const [picker, setPicker] = useState<'emoji' | 'sticker' | 'gif' | null>(null)
   const [reacting, setReacting] = useState<number | null>(null)
   const [pinned, setPinned] = useState<ChatPinned | null>(null)
+  const [editing, setEditing] = useState<{ id: number; text: string } | null>(null)
+
+  /** Saves an edit to your own message (asks again if it looks like customer data). */
+  async function saveEdit(confirm = false) {
+    if (!editing) return
+    const text = editing.text.trim()
+    if (!text) return
+    try {
+      const saved = await chatApi.edit(editing.id, text, confirm)
+      setMessages((list) => list?.map((m) => (m.id === saved.id ? { ...m, body: saved.body, edited: true } : m)) ?? list)
+      setEditing(null)
+    } catch (e) {
+      const err = e as Error & { code?: string }
+      if (err.code === 'SENSITIVE_DATA') {
+        if (window.confirm(`${err.message}\n\nSave anyway? (Only if it's not customer data.)`)) void saveEdit(true)
+      } else setError(err.message)
+    }
+  }
+
+  /** Unsends your own message ("Message deleted" for everyone). */
+  async function removeMine(m: ChatMessage) {
+    if (!window.confirm('Delete this message for everyone?')) return
+    try {
+      await chatApi.remove(m.id)
+      setMessages((list) => list?.map((x) => (x.id === m.id ? { ...x, hidden: true, deleted: true, body: '' } : x)) ?? list)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }
   // Anyone can tuck an announcement away for themselves (a new pin shows again).
   const readHiddenPin = () => {
     try {
@@ -127,7 +156,10 @@ export function ChatThread({
         setTyping(null)
         if (!m.mine) void chatApi.markRead(channelId, m.id)
       } else if (e.t === 'chat.hidden') {
-        setMessages((list) => list?.map((m) => (m.id === e.id ? { ...m, hidden: true, body: '' } : m)) ?? list)
+        setMessages((list) => list?.map((m) => (m.id === e.id ? { ...m, hidden: true, body: '', deleted: e.deleted === true } : m)) ?? list)
+      } else if (e.t === 'chat.edited') {
+        const edited = e.message as ChatMessage
+        setMessages((list) => list?.map((m) => (m.id === edited.id ? { ...m, body: edited.body, edited: true } : m)) ?? list)
       } else if (e.t === 'chat.pinned') {
         setPinned((e.pinned as ChatPinned | null) ?? null)
       } else if (e.t === 'chat.reaction') {
@@ -392,9 +424,46 @@ export function ChatThread({
                 ) : !m.hidden && stickerOf(m.body) ? (
                   <Sticker id={stickerOf(m.body)!.id} />
                 ) : (
-                  <p className={`${styles.bubble} ${m.hidden ? styles.hidden : ''} ${m.style && !m.hidden ? `chat-bubble-${m.style}` : ''}`}>
-                    {m.hidden ? 'Message hidden by the QA team' : <MessageText body={m.body} />}
-                  </p>
+                  editing?.id === m.id ? (
+                    <form
+                      className={styles.editBox}
+                      onSubmit={(ev) => {
+                        ev.preventDefault()
+                        void saveEdit()
+                      }}
+                    >
+                      <input
+                        autoFocus
+                        value={editing.text}
+                        maxLength={1000}
+                        onChange={(ev) => setEditing({ id: m.id, text: ev.target.value })}
+                        onKeyDown={(ev) => ev.key === 'Escape' && setEditing(null)}
+                        aria-label="Edit message"
+                      />
+                      <button type="submit" className={styles.primary}>
+                        Save
+                      </button>
+                      <button type="button" className={styles.ghost} onClick={() => setEditing(null)}>
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
+                    <p className={`${styles.bubble} ${m.hidden ? styles.hidden : ''} ${m.style && !m.hidden ? `chat-bubble-${m.style}` : ''}`}>
+                      {m.hidden ? (m.deleted ? 'Message deleted' : 'Message hidden by the QA team') : <MessageText body={m.body} />}
+                    </p>
+                  )
+                )}
+                {m.mine && !m.hidden && editing?.id !== m.id && (
+                  <>
+                    {!mediaOf(m.body) && !stickerOf(m.body) && Date.now() - Date.parse(m.at) < 24 * 3_600_000 && (
+                      <button type="button" className={styles.report} onClick={() => setEditing({ id: m.id, text: m.body })} title="Edit" aria-label="Edit message">
+                        ✏️
+                      </button>
+                    )}
+                    <button type="button" className={styles.report} onClick={() => void removeMine(m)} title="Delete" aria-label="Delete message">
+                      🗑
+                    </button>
+                  </>
                 )}
                 {!m.hidden && (
                   <button
@@ -431,7 +500,12 @@ export function ChatThread({
                 {reacting === m.id && <ReactPicker align={m.mine ? 'right' : 'left'} onPick={(e) => void react(m, e)} onClose={() => setReacting(null)} />}
               </div>
               {!m.hidden && <ReactionBar reactions={m.reactions ?? []} canAdd onToggle={(e) => void react(m, e)} />}
-              {!grouped && <time className={styles.time}>{time(m.at)}</time>}
+              {(!grouped || m.edited) && (
+                <time className={styles.time}>
+                  {grouped ? '' : time(m.at)}
+                  {m.edited && !m.hidden ? `${grouped ? '' : ' · '}edited` : ''}
+                </time>
+              )}
             </div>
           )
         })}

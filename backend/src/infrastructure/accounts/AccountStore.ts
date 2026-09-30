@@ -129,6 +129,8 @@ export interface DeliveryRecord {
   ignoredAt: string | null
   /** When the card in Teams was replaced by its answered/expired version. */
   cardUpdatedAt?: string | null
+  /** What Rocky said on the card (so the same line isn't sent again soon). */
+  voice?: string | null
 }
 
 export interface PhotoRecord {

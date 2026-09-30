@@ -6,6 +6,9 @@ interface ChannelRow {
   kind: string
   title: string | null
   created_at: string
+  avatar?: string | null
+  owner_id?: string | null
+  open?: number
 }
 interface MessageRow {
   message_id: number
@@ -16,6 +19,7 @@ interface MessageRow {
   created_at: string
   hidden_at: string | null
   hidden_by: string | null
+  edited_at?: string | null
 }
 interface ReportRow {
   report_id: number
@@ -28,7 +32,15 @@ interface ReportRow {
   resolution: string | null
 }
 
-const channel = (r: ChannelRow): ChannelRecord => ({ id: r.channel_id, kind: r.kind as ChannelKind, title: r.title, createdAt: r.created_at })
+const channel = (r: ChannelRow): ChannelRecord => ({
+  id: r.channel_id,
+  kind: r.kind as ChannelKind,
+  title: r.title,
+  createdAt: r.created_at,
+  avatar: r.avatar ?? null,
+  ownerId: r.owner_id ?? null,
+  open: r.open === 1,
+})
 const message = (r: MessageRow): MessageRecord => ({
   id: r.message_id,
   channelId: r.channel_id,
@@ -38,6 +50,7 @@ const message = (r: MessageRow): MessageRecord => ({
   createdAt: r.created_at,
   hiddenAt: r.hidden_at,
   hiddenBy: r.hidden_by,
+  editedAt: r.edited_at ?? null,
 })
 const report = (r: ReportRow): ReportRecord => ({
   id: r.report_id,
@@ -74,8 +87,8 @@ export class SqliteChatStore implements ChatStore {
 
   ensureChannel(c: ChannelRecord): ChannelRecord {
     this.db
-      .prepare('INSERT OR IGNORE INTO chat_channels (channel_id, kind, title, created_at) VALUES (?, ?, ?, ?)')
-      .run(c.id, c.kind, c.title, c.createdAt)
+      .prepare('INSERT OR IGNORE INTO chat_channels (channel_id, kind, title, created_at, avatar, owner_id, open) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(c.id, c.kind, c.title, c.createdAt, c.avatar ?? null, c.ownerId ?? null, c.open ? 1 : 0)
     return this.getChannel(c.id)!
   }
   getChannel(id: string) {
@@ -86,8 +99,20 @@ export class SqliteChatStore implements ChatStore {
     return (this.db.prepare('SELECT * FROM chat_channels ORDER BY created_at').all() as unknown as ChannelRow[]).map(channel)
   }
 
+  updateChannel(id: string, patch: { title?: string | null; avatar?: string | null; ownerId?: string | null; open?: boolean }) {
+    if ('title' in patch) this.db.prepare('UPDATE chat_channels SET title = ? WHERE channel_id = ?').run(patch.title ?? null, id)
+    if ('avatar' in patch) this.db.prepare('UPDATE chat_channels SET avatar = ? WHERE channel_id = ?').run(patch.avatar ?? null, id)
+    if ('ownerId' in patch) this.db.prepare('UPDATE chat_channels SET owner_id = ? WHERE channel_id = ?').run(patch.ownerId ?? null, id)
+    if ('open' in patch) this.db.prepare('UPDATE chat_channels SET open = ? WHERE channel_id = ?').run(patch.open ? 1 : 0, id)
+  }
   addMember(channelId: string, agentId: string, at: string) {
     this.db.prepare('INSERT OR IGNORE INTO chat_members (channel_id, agent_id, last_read_id, joined_at) VALUES (?, ?, 0, ?)').run(channelId, agentId, at)
+  }
+  removeMember(channelId: string, agentId: string) {
+    this.db.prepare('DELETE FROM chat_members WHERE channel_id = ? AND agent_id = ?').run(channelId, agentId)
+  }
+  setArchived(channelId: string, agentId: string, at: string | null) {
+    this.db.prepare('UPDATE chat_members SET archived_at = ? WHERE channel_id = ? AND agent_id = ?').run(at, channelId, agentId)
   }
   isMember(channelId: string, agentId: string) {
     return !!this.db.prepare('SELECT 1 FROM chat_members WHERE channel_id = ? AND agent_id = ?').get(channelId, agentId)
@@ -97,12 +122,13 @@ export class SqliteChatStore implements ChatStore {
   }
   listMemberships(agentId: string): MembershipRecord[] {
     return (
-      this.db.prepare('SELECT channel_id, agent_id, last_read_id FROM chat_members WHERE agent_id = ?').all(agentId) as {
+      this.db.prepare('SELECT channel_id, agent_id, last_read_id, archived_at FROM chat_members WHERE agent_id = ?').all(agentId) as {
         channel_id: string
         agent_id: string
         last_read_id: number
+        archived_at: string | null
       }[]
-    ).map((r) => ({ channelId: r.channel_id, agentId: r.agent_id, lastReadId: r.last_read_id }))
+    ).map((r) => ({ channelId: r.channel_id, agentId: r.agent_id, lastReadId: r.last_read_id, archivedAt: r.archived_at }))
   }
   setLastRead(channelId: string, agentId: string, messageId: number) {
     this.db
@@ -147,6 +173,21 @@ export class SqliteChatStore implements ChatStore {
   }
   hideMessage(id: number, by: string, at: string) {
     this.db.prepare('UPDATE chat_messages SET hidden_at = ?, hidden_by = ? WHERE message_id = ? AND hidden_at IS NULL').run(at, by, id)
+  }
+  editMessage(id: number, body: string, by: string, at: string) {
+    const old = this.getMessage(id)
+    if (!old) return
+    this.db.prepare('INSERT INTO chat_message_edits (message_id, body, edited_at, edited_by) VALUES (?, ?, ?, ?)').run(id, old.body, at, by)
+    this.db.prepare('UPDATE chat_messages SET body = ?, edited_at = ? WHERE message_id = ?').run(body, at, id)
+  }
+  listEdits(messageId: number) {
+    return (
+      this.db.prepare('SELECT body, edited_at, edited_by FROM chat_message_edits WHERE message_id = ? ORDER BY edited_at').all(messageId) as {
+        body: string
+        edited_at: string
+        edited_by: string
+      }[]
+    ).map((r) => ({ body: r.body, editedAt: r.edited_at, editedBy: r.edited_by }))
   }
   listMessagesBetween(from: string, to: string) {
     return (

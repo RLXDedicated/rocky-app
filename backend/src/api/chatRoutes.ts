@@ -72,6 +72,49 @@ export function createChatRouter(chat: ChatApplicationService, jobs: ChatJobs): 
     res.setHeader('Cache-Control', 'private, max-age=86400')
     res.send(Buffer.from(a.data))
   })
+  // Groups and open rooms.
+  router.post('/chat/groups', (req: Request, res: Response) => {
+    const b = parseJsonBody(req.body)
+    res.status(201).json(chat.createGroup(me(req), { title: b.title, members: b.members, avatar: b.avatar, open: b.open }, actorOf(req)))
+  })
+  router.get('/chat/groups/:id', (req: Request, res: Response) => {
+    res.json(chat.groupInfo(me(req), req.params.id!))
+  })
+  router.put('/chat/groups/:id', (req: Request, res: Response) => {
+    const b = parseJsonBody(req.body)
+    res.json(chat.updateGroup(me(req), req.params.id!, { title: b.title, avatar: b.avatar }, actorOf(req)))
+  })
+  router.post(
+    '/chat/groups/:id/picture',
+    express.raw({ type: [...IMAGE_TYPES, 'application/octet-stream'], limit: MAX_GIF_BYTES + 1024 }),
+    (req: Request, res: Response) => {
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) throw ApiError.validation('Attach a picture.')
+      res.json(chat.setGroupPicture(me(req), req.params.id!, new Uint8Array(req.body), actorOf(req)))
+    },
+  )
+  router.post('/chat/groups/:id/members', (req: Request, res: Response) => {
+    res.json(chat.addToGroup(me(req), req.params.id!, parseJsonBody(req.body).members, actorOf(req)))
+  })
+  router.delete('/chat/groups/:id/members/:key', (req: Request, res: Response) => {
+    res.json(chat.removeFromGroup(me(req), req.params.id!, req.params.key!, actorOf(req)))
+  })
+  router.get('/chat/rooms', (req: Request, res: Response) => {
+    res.json({ rooms: chat.rooms(me(req)) })
+  })
+  router.post('/chat/rooms/:id/join', (req: Request, res: Response) => {
+    res.json(chat.joinRoom(me(req), req.params.id!))
+  })
+  router.put('/chat/channels/:id/archive', (req: Request, res: Response) => {
+    res.json(chat.archive(me(req), req.params.id!, parseJsonBody(req.body).on !== false))
+  })
+  // Your own messages: fix a typo (24 h) or unsend.
+  router.put('/chat/messages/:id', (req: Request, res: Response) => {
+    const b = parseJsonBody(req.body)
+    res.json(chat.editMessage(me(req), optionalId(req.params.id, 'id') ?? -1, b.text, b.confirm === true, actorOf(req)))
+  })
+  router.delete('/chat/messages/:id', (req: Request, res: Response) => {
+    res.json(chat.deleteMessage(me(req), optionalId(req.params.id, 'id') ?? -1, actorOf(req)))
+  })
   router.post('/chat/messages/:id/react', (req: Request, res: Response) => {
     const body = parseJsonBody(req.body)
     res.json(chat.react(me(req), optionalId(req.params.id, 'id') ?? -1, body.emoji))

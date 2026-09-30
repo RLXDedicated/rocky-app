@@ -32,4 +32,13 @@ describe('Rocky’s Teams voice', () => {
   it('knows which stickers are drawn from a reaction (one image for all stages)', () => {
     expect(new Set(STICKERS.filter((s) => 'reaction' in s.art).map((s) => s.id))).toEqual(REACTION_STICKERS)
   })
+
+  it('doesn’t repeat a line the agent got recently', () => {
+    const seen: string[] = []
+    for (let i = 0; i < ROAST_LINES.Celebration.length; i++) {
+      const line = voiceFor('Celebration', '🎉 Level 5 reached!', ctx, { roast: true, random: () => 0.99, avoid: seen })
+      expect(seen).not.toContain(line.text)
+      seen.push(line.text)
+    }
+  })
 })

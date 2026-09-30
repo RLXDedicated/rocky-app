@@ -341,3 +341,70 @@ describe('GIF search', () => {
     }
   })
 })
+
+describe('groups, rooms, edits and archive', () => {
+  it('a private group: members only, the creator manages it, anyone can leave', async () => {
+    const { app } = build()
+    await enroll(app, ANA, LUIS, BEA)
+    const luis = await keyOf(app, ANA, 'Luis Gomez')
+    const created = await request(app).post('/api/chat/groups').set(as(ANA)).send({ title: 'Night shift', members: [luis], avatar: '🌙' })
+    expect(created.status).toBe(201)
+    expect(created.body).toMatchObject({ kind: 'group', title: 'Night shift', avatar: '🌙', memberCount: 2, canManage: true })
+    const id = created.body.id as string
+    await request(app).post(`/api/chat/channels/${id}/messages`).set(as(LUIS)).send({ text: 'Hola grupo' }).expect(201)
+    // Bea isn't in it.
+    expect((await request(app).get(`/api/chat/channels/${id}/messages`).set(as(BEA))).status).toBe(404)
+    // Only the creator renames it.
+    expect((await request(app).put(`/api/chat/groups/${id}`).set(as(LUIS)).send({ title: 'Mine' })).status).toBe(403)
+    const renamed = await request(app).put(`/api/chat/groups/${id}`).set(as(ANA)).send({ title: 'Night owls', avatar: '🦉' })
+    expect(renamed.body).toMatchObject({ title: 'Night owls', avatar: '🦉' })
+    const bea = await keyOf(app, ANA, 'Bea Ruiz')
+    expect((await request(app).post(`/api/chat/groups/${id}/members`).set(as(ANA)).send({ members: [bea] })).body.members).toHaveLength(3)
+    await request(app).delete(`/api/chat/groups/${id}/members/me`).set(as(LUIS)).expect(200)
+    const list = await request(app).get('/api/chat/channels').set(as(LUIS))
+    expect(list.body.channels.some((c: { id: string }) => c.id === id)).toBe(false)
+  })
+
+  it('open rooms: only admins create them, anyone can find and join', async () => {
+    const { app } = build()
+    await enroll(app, ANA, ADMIN)
+    expect((await request(app).post('/api/chat/groups').set(as(ANA)).send({ title: 'Tips', open: true })).status).toBe(403)
+    const room = await request(app).post('/api/chat/groups').set(as(ADMIN)).send({ title: 'Notes tips', open: true, avatar: '📝' })
+    expect(room.status).toBe(201)
+    const rooms = await request(app).get('/api/chat/rooms').set(as(ANA))
+    expect(rooms.body.rooms).toMatchObject([{ title: 'Notes tips', avatar: '📝', memberCount: 1 }])
+    await request(app).post(`/api/chat/rooms/${room.body.id}/join`).set(as(ANA)).expect(200)
+    await request(app).post(`/api/chat/channels/${room.body.id}/messages`).set(as(ANA)).send({ text: 'Hi all' }).expect(201)
+    expect((await request(app).get('/api/chat/rooms').set(as(ANA))).body.rooms).toEqual([])
+  })
+
+  it('edit and delete your own messages; the admin copy keeps the original', async () => {
+    const { app } = build()
+    await enroll(app, ANA, LUIS)
+    const msg = await request(app).post('/api/chat/channels/general/messages').set(as(ANA)).send({ text: 'Helo team' })
+    expect((await request(app).put(`/api/chat/messages/${msg.body.id}`).set(as(LUIS)).send({ text: 'hack' })).status).toBe(404)
+    const edited = await request(app).put(`/api/chat/messages/${msg.body.id}`).set(as(ANA)).send({ text: 'Hello team' })
+    expect(edited.body).toMatchObject({ body: 'Hello team', edited: true })
+    const admin = await request(app).get('/api/admin/chat/channels/general').set(as(ADMIN))
+    expect(admin.body.messages[0]).toMatchObject({ body: 'Hello team', edits: [{ body: 'Helo team' }] })
+    await request(app).delete(`/api/chat/messages/${msg.body.id}`).set(as(ANA)).expect(200)
+    const seen = await request(app).get('/api/chat/channels/general/messages').set(as(LUIS))
+    expect(seen.body.messages[0]).toMatchObject({ body: '', hidden: true, deleted: true })
+  })
+
+  it('archive hides a conversation until the next message', async () => {
+    const { app } = build()
+    await enroll(app, ANA, LUIS)
+    const luis = await keyOf(app, ANA, 'Luis Gomez')
+    const dm = await request(app).post('/api/chat/direct').set(as(ANA)).send({ friend: luis })
+    await request(app).post(`/api/chat/channels/${dm.body.id}/messages`).set(as(ANA)).send({ text: 'hey' }).expect(201)
+    await request(app).put(`/api/chat/channels/${dm.body.id}/archive`).set(as(ANA)).send({ on: true }).expect(200)
+    let list = await request(app).get('/api/chat/channels').set(as(ANA))
+    expect(list.body.channels.some((c: { id: string }) => c.id === dm.body.id)).toBe(false)
+    expect(list.body.archived.map((c: { id: string }) => c.id)).toEqual([dm.body.id])
+    expect((await request(app).put('/api/chat/channels/general/archive').set(as(ANA)).send({ on: true })).status).toBe(422)
+    await request(app).post(`/api/chat/channels/${dm.body.id}/messages`).set(as(LUIS)).send({ text: 'back!' }).expect(201)
+    list = await request(app).get('/api/chat/channels').set(as(ANA))
+    expect(list.body.channels.some((c: { id: string }) => c.id === dm.body.id)).toBe(true)
+  })
+})
