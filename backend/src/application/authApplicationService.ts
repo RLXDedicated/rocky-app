@@ -87,6 +87,13 @@ export function createAuthApplicationService({ persistence, config, clock = syst
         let firstLogin = false
 
         if (!existing) {
+          // Only people Rocky already knows (the roster, anyone who opened Rocky, admins)
+          // can create a first PIN — nobody can make an account for a stranger's address.
+          const known = admins.has(email) || persistence.repoStore.hasAgent(email) || Boolean(accounts.getSchedules()[email])
+          if (!known) {
+            audit(email, 'auth.unknown-email', null, userAgent)
+            throw ApiError.forbidden('This email isn’t in the Rocky pilot yet. Ask your QA lead to add you.')
+          }
           const salt = randomBytes(16).toString('hex')
           accounts.saveCredential({
             agentId: email,

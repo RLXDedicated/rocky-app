@@ -6,6 +6,7 @@ import {
   buildMemoryPersistence,
   buildSqlitePersistence,
   tempSqlitePath,
+  withAgents,
 } from "./testApp";
 import { fixedClock } from "../../src/engine/clock";
 import type { PersistenceContext } from "../src/infrastructure/persistenceContext";
@@ -17,7 +18,7 @@ const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
 
 function build(
   extra: Record<string, string> = {},
-  persistence: PersistenceContext = buildMemoryPersistence(),
+  persistence: PersistenceContext = withAgents(buildMemoryPersistence(), AGENT),
 ) {
   const config = loadConfig({
     NODE_ENV: "production",
@@ -413,7 +414,7 @@ describe("Rocky the pet on the server", () => {
   it("survives a restart (SQLite) with pet, ledger, audit and sessions intact", async () => {
     const { path, cleanup } = tempSqlitePath();
     try {
-      const first = buildSqlitePersistence(path);
+      const first = withAgents(buildSqlitePersistence(path), AGENT);
       const app1 = build({}, first);
       const login = await request(app1)
         .post("/api/auth/login")
@@ -1025,5 +1026,16 @@ describe("Shop unlocks", () => {
     const gifted = await request(app).post(`/api/admin/agents/${AGENT}/items`).set(as(ADMIN)).send({ itemId: "slot:decor", action: "grant" });
     expect(gifted.body.state.granted).toContain("decor-piano");
     expect(gifted.body.state.granted).not.toContain("back-nova-wings");
+  });
+});
+
+describe("first PIN only for people in the pilot", () => {
+  it("refuses to create an account for an address Rocky doesn't know", async () => {
+    const app = build();
+    const res = await request(app).post("/api/auth/login").send({ email: "stranger@rlx.us", pin: "1234" });
+    expect(res.status).toBe(403);
+    expect(res.body.error.message).toMatch(/isn’t in the Rocky pilot/);
+    // An admin always can.
+    expect((await request(app).post("/api/auth/login").send({ email: ADMIN, pin: "1234" })).status).toBe(200);
   });
 });

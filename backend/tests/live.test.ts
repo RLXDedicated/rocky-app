@@ -7,7 +7,7 @@ import { createApp, type LiveContext } from '../src/app'
 import { loadConfig } from '../src/config/env'
 import { attachLiveHub, type LiveHub } from '../src/infrastructure/live/liveHub'
 import { RULES_VERSION } from '../src/application/chatApplicationService'
-import { buildMemoryPersistence } from './testApp'
+import { buildMemoryPersistence, withAgents } from './testApp'
 
 const ANA = 'ana.perez@rlx.us'
 const LUIS = 'luis.gomez@rlx.us'
@@ -32,7 +32,7 @@ async function start() {
     ROCKY_DB_PATH: '/tmp/rocky-live-test.db',
     ROCKY_AUTH_MODE: 'pilot-header',
   })
-  const app = createApp({ config, persistence: buildMemoryPersistence(), backupTarget: { dir: null, key: null, s3: null } })
+  const app = createApp({ config, persistence: withAgents(buildMemoryPersistence(), ANA, LUIS), backupTarget: { dir: null, key: null, s3: null } })
   server = app.listen(0)
   hub = attachLiveHub(server, app.locals.live as LiveContext, { allowedOrigins: [] })
   const port = (server.address() as AddressInfo).port

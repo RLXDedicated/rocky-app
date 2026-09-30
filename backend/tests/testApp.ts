@@ -34,3 +34,9 @@ export function buildSqlitePersistence(dbPath: string): PersistenceContext {
 export function buildMemoryPersistence(): PersistenceContext {
   return createPersistenceContext({ persistenceDriver: 'memory', dbPath: ':memory:' })
 }
+
+/** Puts agents in the pilot (as the roster import or a first visit would), so they may create a PIN. */
+export function withAgents(p: PersistenceContext, ...emails: string[]): PersistenceContext {
+  for (const e of emails) p.repoStore.forAgent(e)
+  return p
+}
