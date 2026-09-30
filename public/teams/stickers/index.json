@@ -1,0 +1,132 @@
+[
+  {
+    "id": "hi",
+    "label": "Hi!",
+    "perStage": true
+  },
+  {
+    "id": "yay",
+    "label": "Yay!",
+    "perStage": false
+  },
+  {
+    "id": "love",
+    "label": "Love it",
+    "perStage": true
+  },
+  {
+    "id": "nice",
+    "label": "Nice notes!",
+    "perStage": false
+  },
+  {
+    "id": "lol",
+    "label": "LOL",
+    "perStage": true
+  },
+  {
+    "id": "hmm",
+    "label": "Hmm…",
+    "perStage": true
+  },
+  {
+    "id": "levelup",
+    "label": "Level up!",
+    "perStage": false
+  },
+  {
+    "id": "tired",
+    "label": "Coffee time",
+    "perStage": true
+  },
+  {
+    "id": "fire",
+    "label": "On fire!",
+    "perStage": false
+  },
+  {
+    "id": "oops",
+    "label": "Oops",
+    "perStage": false
+  },
+  {
+    "id": "thanks",
+    "label": "Thank you!",
+    "perStage": true
+  },
+  {
+    "id": "gm",
+    "label": "Good morning",
+    "perStage": true
+  },
+  {
+    "id": "gn",
+    "label": "Good night",
+    "perStage": true
+  },
+  {
+    "id": "lunch",
+    "label": "Lunch?",
+    "perStage": true
+  },
+  {
+    "id": "omg",
+    "label": "OMG",
+    "perStage": true
+  },
+  {
+    "id": "boss",
+    "label": "Like a boss",
+    "perStage": true
+  },
+  {
+    "id": "party",
+    "label": "Party!",
+    "perStage": true
+  },
+  {
+    "id": "gotit",
+    "label": "Got it!",
+    "perStage": false
+  },
+  {
+    "id": "help",
+    "label": "Help!",
+    "perStage": true
+  },
+  {
+    "id": "brb",
+    "label": "BRB",
+    "perStage": true
+  },
+  {
+    "id": "congrats",
+    "label": "Congrats!",
+    "perStage": false
+  },
+  {
+    "id": "hug",
+    "label": "Hug",
+    "perStage": true
+  },
+  {
+    "id": "friday",
+    "label": "Friday!",
+    "perStage": true
+  },
+  {
+    "id": "monday",
+    "label": "Monday…",
+    "perStage": true
+  },
+  {
+    "id": "focus",
+    "label": "Focus mode",
+    "perStage": true
+  },
+  {
+    "id": "rescue",
+    "label": "On my way",
+    "perStage": false
+  }
+]

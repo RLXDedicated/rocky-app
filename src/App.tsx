@@ -20,7 +20,6 @@ import { Progress } from "./components/Progress";
 import { NotesGame } from "./components/NotesGame";
 import { loadPetCache } from "./game/petClient";
 import { gameEnabled } from "./game/pantry";
-import { QASimulator } from "./components/QASimulator";
 import { ReminderHost } from "./components/ReminderHost";
 import { NotificationHost } from "./components/extras/NotificationHost";
 import { TeamLeaderboard } from "./components/TeamLeaderboard";
@@ -38,7 +37,6 @@ import {
 } from "./services/identityService";
 import { isLoginRequired } from "./services/remoteSync";
 import { repository } from "./repository/localStorageRepository";
-import { isQaModeEnabled, setQaModeEnabled } from "./services/appModeService";
 import { isQaStaff } from "./services/identityService";
 import { hasCompletedOnboarding } from "./services/onboardingService";
 
@@ -50,7 +48,7 @@ type View =
   | "chat"
   | "my-team"
   | "friends"
-  | "qa-simulator"
+  | "qa-desk"
   | "admin"
   | "achievements"
   | "leaderboard"
@@ -58,16 +56,8 @@ type View =
   | "team-leaderboard"
   | "dev-controls";
 
-// Agent Mode (the everyday experience) vs QA Mode (Phase 8 §23-24): QA
-// Simulator is an internal testing tool, not part of what an agent normally
-// sees, so it's opt-in and clearly labeled rather than sitting in the main
-// nav by default. Developer Controls stay additionally gated to dev builds
-// regardless of this toggle.
-//
-// The toggle itself is only offered to QA staff — agents whose address the
-// backend lists in ROCKY_ADMIN_EMAILS (see identityService.isQaStaff) — or
-// in a dev build. A regular pilot agent never sees QA Tools, even if an old
-// browser still has the toggle switched on in localStorage.
+// Staff tools (Admin, QA desk) live in their own pinned menu, never in the
+// agents' main nav. Developer Controls are dev-build only.
 function App() {
   const [view, setView] = useState<View>("home");
   const openChat = useCallback(() => setView("chat"), []);
@@ -84,10 +74,7 @@ function App() {
   );
   const [onboarded, setOnboarded] = useState(() => hasCompletedOnboarding());
   const [staff] = useState(() => isQaStaff());
-  const canUseQaTools = staff || import.meta.env.DEV;
   const canUseAdmin = staff && isRemoteModeEnabled();
-  const [qaModeSetting, setQaMode] = useState(() => isQaModeEnabled());
-  const qaMode = qaModeSetting && canUseQaTools;
   const [chatWith, setChatWith] = useState<string | null>(null);
   const [arrival, setArrival] = useState<string | null>(null);
   // Arrived from a Rocky card in Teams (the backend already recorded the answer).
@@ -139,10 +126,6 @@ function App() {
     document.title = unread > 0 ? `(${unread}) Rocky` : "Rocky";
   }, [unread]);
 
-  useEffect(() => {
-    if (!qaMode && view === "qa-simulator") setView("home");
-  }, [qaMode, view]);
-
   // Any API call that comes back 401 (session expired, PIN reset by QA)
   // sends the agent to the sign-in screen.
   useEffect(() => {
@@ -178,12 +161,6 @@ function App() {
     repository.resetAll();
     window.localStorage.removeItem("rocky.onboarding.completed");
     window.location.assign(window.location.pathname);
-  }
-
-  function toggleQaMode() {
-    const next = !qaMode;
-    setQaModeEnabled(next);
-    setQaMode(next);
   }
 
   const navItems: {
@@ -234,12 +211,13 @@ function App() {
           },
         ]
       : []),
-    ...(qaMode
+    // QA desk: opens its own light page (/qa/) — auditing never loads the game.
+    ...(isRemoteModeEnabled() && (canUseAdmin || myRole?.title === "qa")
       ? [
           {
-            view: "qa-simulator" as View,
-            label: "QA sim",
-            icon: "flask" as NavIconName,
+            view: "qa-desk" as View,
+            label: "QA desk",
+            icon: "clipboard" as NavIconName,
             internal: true,
           },
         ]
@@ -272,7 +250,7 @@ function App() {
               key={item.view}
               className={`${styles.navButton} ${item.internal ? styles.navButtonQa : ""} ${view === item.view ? styles.navButtonActive : ""}`}
               aria-current={view === item.view ? "page" : undefined}
-              onClick={() => setView(item.view)}
+              onClick={() => (item.view === "qa-desk" ? window.open("/qa/", "_blank", "noopener") : setView(item.view))}
             >
               <NavIcon name={item.icon} />
               <span>{item.label}</span>
@@ -290,7 +268,9 @@ function App() {
                   key={item.view}
                   className={`${styles.navButton} ${styles.navButtonQa} ${view === item.view ? styles.navButtonActive : ""}`}
                   aria-current={view === item.view ? "page" : undefined}
-                  onClick={() => setView(item.view)}
+                  aria-label={item.label}
+                  title={item.label}
+                  onClick={() => (item.view === "qa-desk" ? window.open("/qa/", "_blank", "noopener") : setView(item.view))}
                 >
                   <NavIcon name={item.icon} />
                   <span>{item.label}</span>
@@ -349,7 +329,6 @@ function App() {
       )}
       {view === "arcade" && <Arcade onOpenNotes={() => setView("notes")} />}
       {view === "notes" && <NotesGame />}
-      {view === "qa-simulator" && qaMode && <QASimulator />}
       {view === "admin" && canUseAdmin && <AdminConsole />}
       {view === "achievements" && <Achievements />}
       {view === "leaderboard" && <Leaderboard />}
@@ -384,13 +363,6 @@ function App() {
         </div>
       )}
 
-      {/* Unobtrusive corner toggle — not part of the agent's normal
-          attention path, but always reachable for testers. */}
-      {canUseQaTools && (
-        <button className={styles.qaModeToggle} onClick={toggleQaMode}>
-          {qaMode ? "✓ QA Tools On" : "QA Tools"}
-        </button>
-      )}
     </div>
   );
 }

@@ -3,7 +3,26 @@
 // room full of agents isn't disturbed. Muted per browser with the speaker
 // toggle (and never plays before the agent has interacted, as browsers
 // require). Every call is best-effort: no Web Audio → silence.
-export type Sfx = 'pop' | 'chomp' | 'bounce' | 'kick' | 'splash' | 'bubble' | 'coin' | 'chime' | 'fanfare' | 'tap' | 'nope'
+export type Sfx =
+  | 'pop'
+  | 'chomp'
+  | 'munch'
+  | 'bounce'
+  | 'kick'
+  | 'splash'
+  | 'bubble'
+  | 'coin'
+  | 'chime'
+  | 'fanfare'
+  | 'tap'
+  | 'nope'
+  | 'boop'
+  | 'beep'
+  | 'yawn'
+  | 'pad0'
+  | 'pad1'
+  | 'pad2'
+  | 'pad3'
 
 const MUTE_KEY = 'rocky.sound.muted'
 let ctx: AudioContext | null = null
@@ -88,50 +107,64 @@ function noise(
   src.start(t0)
 }
 
+// Tuned after tester feedback: shorter, softer, no harsh square waves, and
+// every sound matches what's on screen (no "kick" for a toy truck).
 const RECIPES: Record<Sfx, (ac: AudioContext, out: AudioNode) => void> = {
-  tap: (ac, o) => tone(ac, o, { freq: 520, to: 700, dur: 0.06, type: 'triangle', gain: 0.08 }),
-  pop: (ac, o) => {
-    tone(ac, o, { freq: 380, to: 900, dur: 0.12, type: 'sine', gain: 0.2 })
-    tone(ac, o, { freq: 760, to: 1200, at: 0.07, dur: 0.1, type: 'sine', gain: 0.1 })
-  },
+  tap: (ac, o) => tone(ac, o, { freq: 520, to: 700, dur: 0.05, type: 'triangle', gain: 0.05 }),
+  pop: (ac, o) => tone(ac, o, { freq: 420, to: 880, dur: 0.1, type: 'sine', gain: 0.12 }),
   chomp: (ac, o) => {
-    for (let i = 0; i < 3; i++) noise(ac, o, { at: i * 0.16, dur: 0.08, gain: 0.22, from: 400, to: 1200 })
-    tone(ac, o, { freq: 180, to: 120, dur: 0.5, type: 'triangle', gain: 0.06 })
+    for (let i = 0; i < 2; i++) noise(ac, o, { at: i * 0.13, dur: 0.06, gain: 0.12, from: 500, to: 1200 })
   },
-  bounce: (ac, o) => tone(ac, o, { freq: 160, to: 90, dur: 0.16, type: 'sine', gain: 0.28 }),
+  munch: (ac, o) => noise(ac, o, { dur: 0.06, gain: 0.1, from: 600, to: 1400 }),
+  bounce: (ac, o) => tone(ac, o, { freq: 170, to: 110, dur: 0.1, type: 'sine', gain: 0.12 }),
   kick: (ac, o) => {
-    tone(ac, o, { freq: 120, to: 50, dur: 0.18, type: 'sine', gain: 0.35 })
-    noise(ac, o, { dur: 0.05, gain: 0.15, from: 2000, to: 800 })
+    tone(ac, o, { freq: 130, to: 60, dur: 0.12, type: 'sine', gain: 0.18 })
+    noise(ac, o, { dur: 0.03, gain: 0.06, from: 2000, to: 900 })
   },
-  splash: (ac, o) => {
-    noise(ac, o, { dur: 0.6, gain: 0.16, from: 3000, to: 600 })
-    noise(ac, o, { at: 0.15, dur: 0.5, gain: 0.1, from: 5000, to: 1500 })
-  },
+  splash: (ac, o) => noise(ac, o, { dur: 0.4, gain: 0.09, from: 2800, to: 700 }),
   bubble: (ac, o) => {
-    for (let i = 0; i < 5; i++) tone(ac, o, { freq: 500 + Math.random() * 500, to: 1400 + Math.random() * 600, at: i * 0.11, dur: 0.07, gain: 0.07 })
+    for (let i = 0; i < 2; i++) tone(ac, o, { freq: 600 + Math.random() * 300, to: 1300, at: i * 0.09, dur: 0.06, gain: 0.04 })
   },
   coin: (ac, o) => {
-    tone(ac, o, { freq: 988, dur: 0.08, type: 'square', gain: 0.07 })
-    tone(ac, o, { freq: 1319, at: 0.08, dur: 0.28, type: 'square', gain: 0.07 })
+    tone(ac, o, { freq: 988, dur: 0.07, type: 'triangle', gain: 0.09 })
+    tone(ac, o, { freq: 1319, at: 0.07, dur: 0.2, type: 'triangle', gain: 0.09 })
   },
   chime: (ac, o) => {
-    ;[523, 659, 784].forEach((f, i) => tone(ac, o, { freq: f, at: i * 0.09, dur: 0.4, type: 'triangle', gain: 0.12 }))
+    ;[523, 659, 784].forEach((f, i) => tone(ac, o, { freq: f, at: i * 0.08, dur: 0.3, type: 'triangle', gain: 0.08 }))
   },
   fanfare: (ac, o) => {
-    ;[523, 659, 784, 1047].forEach((f, i) => tone(ac, o, { freq: f, at: i * 0.12, dur: i === 3 ? 0.7 : 0.18, type: 'triangle', gain: 0.14 }))
-    tone(ac, o, { freq: 262, at: 0.36, dur: 0.7, type: 'sine', gain: 0.08 })
+    ;[523, 659, 784, 1047].forEach((f, i) => tone(ac, o, { freq: f, at: i * 0.11, dur: i === 3 ? 0.45 : 0.15, type: 'triangle', gain: 0.09 }))
   },
-  nope: (ac, o) => tone(ac, o, { freq: 260, to: 170, dur: 0.18, type: 'triangle', gain: 0.1 }),
+  nope: (ac, o) => tone(ac, o, { freq: 240, to: 180, dur: 0.14, type: 'sine', gain: 0.07 }),
+  boop: (ac, o) => tone(ac, o, { freq: 300, to: 520, dur: 0.08, type: 'sine', gain: 0.1 }),
+  beep: (ac, o) => {
+    tone(ac, o, { freq: 660, dur: 0.07, type: 'triangle', gain: 0.06 })
+    tone(ac, o, { freq: 660, at: 0.13, dur: 0.07, type: 'triangle', gain: 0.06 })
+  },
+  yawn: (ac, o) => tone(ac, o, { freq: 330, to: 180, dur: 0.6, type: 'sine', gain: 0.05 }),
+  // The memory game's pads: a clean C-E-G-C so the sequence is easy to hear.
+  pad0: (ac, o) => tone(ac, o, { freq: 523, dur: 0.3, type: 'triangle', gain: 0.1 }),
+  pad1: (ac, o) => tone(ac, o, { freq: 659, dur: 0.3, type: 'triangle', gain: 0.1 }),
+  pad2: (ac, o) => tone(ac, o, { freq: 784, dur: 0.3, type: 'triangle', gain: 0.1 }),
+  pad3: (ac, o) => tone(ac, o, { freq: 1047, dur: 0.3, type: 'triangle', gain: 0.1 }),
 }
+
+/** No sound repeats faster than this (a ball bouncing or a sponge scrubbing never turns into a buzz). */
+const MIN_GAP_MS: Partial<Record<Sfx, number>> = { bounce: 280, bubble: 700, tap: 70, kick: 120, munch: 90, pop: 90, coin: 150 }
+const lastPlayed = new Map<Sfx, number>()
 
 /** Plays a sound effect unless muted. Safe to call anywhere. */
 export function play(sfx: Sfx): void {
   if (isMuted()) return
+  const now = Date.now()
+  const gap = MIN_GAP_MS[sfx] ?? 60
+  if (now - (lastPlayed.get(sfx) ?? 0) < gap) return
+  lastPlayed.set(sfx, now)
   const ac = audio()
   if (!ac) return
   try {
     const master = ac.createGain()
-    master.gain.value = 0.9
+    master.gain.value = 0.7
     master.connect(ac.destination)
     RECIPES[sfx](ac, master)
   } catch {

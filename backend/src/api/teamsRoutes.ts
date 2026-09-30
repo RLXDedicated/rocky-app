@@ -43,6 +43,14 @@ export function createTeamsAdminRouter(teams: TeamsApplicationService): Router {
     const to = typeof b.email === 'string' && b.email.trim() ? b.email.trim().toLowerCase() : me(req)
     teams.sendTest(to).then((r) => res.json(r), next)
   })
+  router.put('/admin/teams/enabled', admin, (req: Request, res: Response) => {
+    const b = parseJsonBody(req.body)
+    const ids = b.all === true ? 'all' : Array.isArray(b.emails) ? b.emails.filter((e): e is string => typeof e === 'string') : []
+    res.json(teams.setTeamsFor(ids, b.on === true, me(req)))
+  })
+  router.put('/admin/teams/roast', admin, (req: Request, res: Response) => {
+    res.json(teams.setRoast(parseJsonBody(req.body).on === true, me(req)))
+  })
   router.post('/admin/teams/dispatch', admin, (_req: Request, res: Response, next) => {
     teams.dispatch().then((r) => res.json(r), next)
   })

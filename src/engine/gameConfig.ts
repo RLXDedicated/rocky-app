@@ -56,6 +56,8 @@ export const GAME_CONFIG = {
     maxPerDay: 4,
     positiveActionSuppressionMinutes: 30,
     recoveryDelayMinutes: 30,
+    /** Only celebrate what happened recently: an evolution from last month is old news. */
+    celebrationMaxAgeHours: 48,
     // Re-exported from types/reminder.ts rather than redeclared — that file
     // owns WorkingHoursSettings and its default, since it's a plain data
     // shape a settings screen would eventually edit directly.

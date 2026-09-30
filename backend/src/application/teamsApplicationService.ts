@@ -22,6 +22,7 @@ import type { DeliveryRecord, ScheduleRecord } from '../infrastructure/accounts/
 import { checkForReminder, markReminderActed, markReminderOpened, systemClock, todayKey, type Clock } from '../domain/rockyEngine'
 import { emailFitsName, matchByName, minutesIntoShift, toLocalSchedule, validSchedule, validTimeZone, type AgentSchedule, type RosterRow } from '../../../src/game/schedule'
 import { publicName } from './leaderboardApplicationService'
+import { stickerImage, voiceFor, type VoiceLine } from '../../../src/engine/rockyVoice'
 import type { PetApplicationService } from './petApplicationService'
 import type { ReminderRecord } from '../../../src/types/reminder'
 
@@ -103,9 +104,23 @@ export function createTeamsApplicationService({
   }
 
   // ---------------------------------------------------------------- cards
-  function card(agentId: string, deliveryId: string, reminder: Pick<ReminderRecord, 'category' | 'message' | 'actionable'>, name: string) {
+  /** Roast mode (Admin): about half the nudges come with Duolingo-style cheek. On unless turned off. */
+  const ROAST_KEY = 'setting:teams-roast'
+  const roastOn = () => accounts.getCatalogOverrides()[ROAST_KEY]?.enabled !== false
+
+  function card(
+    agentId: string,
+    deliveryId: string,
+    reminder: Pick<ReminderRecord, 'category' | 'message' | 'actionable'>,
+    name: string,
+    fixed?: VoiceLine,
+  ) {
     const game = repo.forAgent(agentId).getGameState()
-    const img = `${config.webUrl}/teams/${game.evolutionStage.toLowerCase()}-${game.mood.toLowerCase()}.png`
+    const firstName = name.split(' ')[0] || name
+    const voice =
+      fixed ??
+      voiceFor(reminder.category, reminder.message, { firstName, streak: game.currentStreak, energy: game.energy, level: game.level, checkedInToday: game.lastCheckInDate === todayKey(clock.now()) }, { roast: roastOn() })
+    const img = `${config.webUrl}${stickerImage(voice.sticker, game.evolutionStage)}`
     const title =
       reminder.category === 'Celebration'
         ? '🎉 Rocky is celebrating!'
@@ -127,17 +142,17 @@ export function createTeamsApplicationService({
         {
           type: 'ColumnSet',
           columns: [
-            { type: 'Column', width: 'auto', items: [{ type: 'Image', url: img, size: 'Medium', altText: 'Rocky' }] },
+            { type: 'Column', width: 'auto', items: [{ type: 'Image', url: img, width: '96px', altText: 'Rocky sticker' }] },
             {
               type: 'Column',
               width: 'stretch',
               verticalContentAlignment: 'Center',
               items: [
                 { type: 'TextBlock', text: title, weight: 'Bolder', size: 'Medium', wrap: true },
-                { type: 'TextBlock', text: reminder.message, wrap: true, spacing: 'Small' },
+                { type: 'TextBlock', text: voice.text, wrap: true, spacing: 'Small' },
                 {
                   type: 'TextBlock',
-                  text: `Hi ${name.split(' ')[0]} · Level ${game.level} · 🔥 ${game.currentStreak} day${game.currentStreak === 1 ? '' : 's'} · ⚡ ${game.energy}`,
+                  text: `${firstName} · Level ${game.level} · 🔥 ${game.currentStreak} day${game.currentStreak === 1 ? '' : 's'} · ⚡ ${game.energy}`,
                   isSubtle: true,
                   size: 'Small',
                   wrap: true,
@@ -206,6 +221,13 @@ export function createTeamsApplicationService({
 
     configured: () => Boolean(config.webhookUrl),
 
+    roast: roastOn,
+    setRoast(on: boolean, actorId: string) {
+      accounts.setCatalogOverride(ROAST_KEY, { price: null, enabled: on }, actorId, clock.now().toISOString())
+      accounts.addAudit({ agentId: null, actor: actorId, action: 'admin.teams.roast', detail: { on }, source: null, createdAt: clock.now().toISOString() })
+      return { roast: on }
+    },
+
     /** Checks every rostered agent and sends the due reminder cards (one webhook call). */
     async dispatch(): Promise<{ due: number; sent: number; error: string | null }> {
       const now = clock.now()
@@ -228,7 +250,8 @@ export function createTeamsApplicationService({
         const d = newDelivery(agentId, 'reminder', reminder)
         const name = nameOf(agentId, s)
         deliveries.push(d)
-        items.push({ email: agentId, name, deliveryId: d.id, kind: 'reminder', category: reminder.category, message: reminder.message, card: card(agentId, d.id, reminder, name) })
+        const c = card(agentId, d.id, reminder, name)
+        items.push({ email: agentId, name, deliveryId: d.id, kind: 'reminder', category: reminder.category, message: reminder.message, card: c })
       }
       if (items.length === 0) {
         lastDispatch = { at: now.toISOString(), due: 0, sent: 0, error: null }
@@ -253,7 +276,8 @@ export function createTeamsApplicationService({
       }
       const d = newDelivery(agentId, 'test', null)
       const name = nameOf(agentId, accounts.getSchedules()[agentId])
-      const result = await post([{ email: agentId, name, deliveryId: d.id, kind: 'test', category: 'Documentation', message: reminder.message, card: card(agentId, d.id, reminder, name) }])
+      const voice = { text: `Hi ${name.split(' ')[0]}! This is a test from Rocky: if you can read this in Teams, we’re connected. Now go write a great note. 🐂`, sticker: 'hi' }
+      const result = await post([{ email: agentId, name, deliveryId: d.id, kind: 'test', category: 'Documentation', message: voice.text, card: card(agentId, d.id, reminder, name, voice) }])
       accounts.addDelivery({ ...d, category: 'Documentation', ok: result.ok, error: result.error })
       return result
     },
@@ -347,6 +371,18 @@ export function createTeamsApplicationService({
           : null,
       )
       accounts.addAudit({ agentId: email, actor: actorId, action: 'admin.schedule', detail: { schedule: s }, source: null, createdAt: clock.now().toISOString() })
+    },
+
+    /** Teams cards on/off for several agents at once (or everyone on the roster). */
+    setTeamsFor(ids: string[] | 'all', on: boolean, actorId: string) {
+      const all = accounts.getSchedules()
+      const targets = ids === 'all' ? Object.keys(all) : ids.map((i) => i.trim().toLowerCase()).filter((i) => all[i])
+      const at = clock.now().toISOString()
+      persistence.withTransaction(() => {
+        for (const id of targets) if (all[id]!.teams !== on) accounts.setSchedule(id, { ...all[id]!, teams: on, updatedAt: at, updatedBy: actorId })
+      })
+      accounts.addAudit({ agentId: null, actor: actorId, action: 'admin.teams.enabled', detail: { on, count: targets.length, all: ids === 'all' }, source: null, createdAt: at })
+      return { changed: targets.length }
     },
 
     /**
@@ -448,6 +484,7 @@ export function createTeamsApplicationService({
       }
       return {
         configured: Boolean(config.webhookUrl),
+        roast: roastOn(),
         webhookHost: host,
         roster: Object.keys(accounts.getSchedules()).length,
         teamsOn: Object.values(accounts.getSchedules()).filter((s) => s.teams).length,

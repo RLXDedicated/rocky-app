@@ -99,6 +99,21 @@ export interface ScheduleRecord {
   updatedBy: string
 }
 
+export interface QaAuditRecord {
+  id: number
+  agentId: string
+  auditDate: string
+  result: 'pass' | 'fail'
+  ticket: string | null
+  reason: string | null
+  note: string | null
+  auditor: string
+  eventId: string | null
+  createdAt: string
+  correctedAt: string | null
+  correctedBy: string | null
+}
+
 export interface DeliveryRecord {
   id: string
   agentId: string
@@ -151,6 +166,11 @@ export interface AccountStore {
   /** Titles by agent (qa analysts, team leaders). */
   getTitles(): Record<string, AgentTitle>
   setTitle(agentId: string, title: AgentTitle | null, by: string, at: string): void
+  addQaAudit(a: Omit<QaAuditRecord, 'id' | 'correctedAt' | 'correctedBy'>): QaAuditRecord
+  getQaAudit(id: number): QaAuditRecord | null
+  updateQaAudit(id: number, patch: Partial<Pick<QaAuditRecord, 'result' | 'eventId' | 'correctedAt' | 'correctedBy' | 'reason' | 'note'>>): void
+  /** Newest first. */
+  listQaAudits(q: { agentId?: string; auditor?: string; since?: string; limit?: number }): QaAuditRecord[]
   getSchedules(): Record<string, ScheduleRecord>
   setSchedule(agentId: string, s: Omit<ScheduleRecord, 'agentId'> | null): void
 

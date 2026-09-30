@@ -213,6 +213,13 @@ describe('findPendingCelebration + priority', () => {
     expect(findPendingCelebration(events, DEFAULT_AGENT_ID, history)).toBeUndefined()
   })
 
+  it('skips celebrations older than two days (an old evolution is old news)', () => {
+    const old = event({ id: 'evo', type: 'EVOLUTION', timestamp: new Date(WORK_TIME.getTime() - 72 * 3_600_000).toISOString() })
+    const recent = event({ id: 'lvl', type: 'LEVEL_UP' })
+    expect(findPendingCelebration([old], DEFAULT_AGENT_ID, [], WORK_TIME)).toBeUndefined()
+    expect(findPendingCelebration([old, recent], DEFAULT_AGENT_ID, [], WORK_TIME)?.id).toBe('lvl')
+  })
+
   it('ignores events belonging to a different agent', () => {
     const events = [event({ id: 'lvl', type: 'LEVEL_UP', agentId: 'someone-else' })]
     expect(findPendingCelebration(events, DEFAULT_AGENT_ID, [])).toBeUndefined()

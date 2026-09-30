@@ -215,6 +215,7 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
             )}
           </section>
         ) : (
+          <div className={styles.hub}>
           <ul className={styles.grid}>
             {GAMES.filter((g) => gameEnabled(pet.overrides, g.id)).map((g) => (
               <li key={g.id} className={styles.card}>
@@ -263,13 +264,15 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
               </li>
             )}
           </ul>
-        )}
-        {!playing && (
-          <ArcadeBoard
-            games={GAMES.filter((g) => gameEnabled(pet.overrides, g.id)).map((g) => g.id)}
-            names={Object.fromEntries(GAMES.map((g) => [g.id, g.name]))}
-            refreshKey={games.arcadeRounds}
-          />
+          {/* The week's top players sit beside the games, always in view. */}
+          <aside className={styles.side}>
+            <ArcadeBoard
+              games={GAMES.filter((g) => gameEnabled(pet.overrides, g.id)).map((g) => g.id)}
+              names={Object.fromEntries(GAMES.map((g) => [g.id, g.name]))}
+              refreshKey={games.arcadeRounds}
+            />
+          </aside>
+          </div>
         )}
       </div>
     </main>
@@ -363,7 +366,7 @@ function TreatCatch({
         s.score = Math.max(0, s.score + pts);
         s.pops.push({ id: c.id, x: c.x, text: pts > 0 ? `+${pts}` : `${pts}` });
         playSfx(
-          c.kind === "mud" ? "nope" : c.kind === "gold" ? "coin" : "chomp",
+          c.kind === "mud" ? "nope" : c.kind === "gold" ? "coin" : "munch",
         );
       }
       s.items = s.items.filter((it) => !caught.includes(it) && it.y < 105);

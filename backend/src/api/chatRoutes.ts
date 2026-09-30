@@ -96,6 +96,9 @@ export function createChatRouter(chat: ChatApplicationService, jobs: ChatJobs): 
   router.get('/admin/chat/channels/:id', admin, (req: Request, res: Response) => {
     res.json(chat.adminRead(req.params.id!, optionalId(req.query.before, 'before'), actorOf(req)))
   })
+  router.get('/admin/chat/pins', admin, (_req: Request, res: Response) => {
+    res.json({ pins: chat.adminPins() })
+  })
   router.post('/admin/chat/messages/:id/pin', admin, (req: Request, res: Response) => {
     const body = parseJsonBody(req.body)
     res.json(chat.adminPin(optionalId(req.params.id, 'id') ?? -1, body.pin !== false, actorOf(req)))

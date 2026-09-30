@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord } from './AccountStore'
 
 interface LedgerDbRow {
   entry_id: number
@@ -264,6 +264,34 @@ export class SqliteAccountStore implements AccountStore {
       .run(agentId, title, at, by)
   }
 
+  addQaAudit(a: Omit<QaAuditRecord, 'id' | 'correctedAt' | 'correctedBy'>): QaAuditRecord {
+    const r = this.db
+      .prepare('INSERT INTO qa_audits (agent_id, audit_date, result, ticket, reason, note, auditor, event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(a.agentId, a.auditDate, a.result, a.ticket, a.reason, a.note, a.auditor, a.eventId, a.createdAt)
+    return { ...a, id: Number(r.lastInsertRowid), correctedAt: null, correctedBy: null }
+  }
+  getQaAudit(id: number): QaAuditRecord | null {
+    const row = this.db.prepare('SELECT * FROM qa_audits WHERE audit_id = ?').get(id) as Record<string, unknown> | undefined
+    return row ? toQaAudit(row) : null
+  }
+  updateQaAudit(id: number, patch: Partial<Pick<QaAuditRecord, 'result' | 'eventId' | 'correctedAt' | 'correctedBy' | 'reason' | 'note'>>): void {
+    const cols: Record<string, string> = { result: 'result', eventId: 'event_id', correctedAt: 'corrected_at', correctedBy: 'corrected_by', reason: 'reason', note: 'note' }
+    const keys = Object.keys(patch).filter((k) => k in cols) as (keyof typeof patch)[]
+    if (!keys.length) return
+    this.db.prepare(`UPDATE qa_audits SET ${keys.map((k) => `${cols[k]} = ?`).join(', ')} WHERE audit_id = ?`).run(...keys.map((k) => (patch[k] ?? null) as string | null), id)
+  }
+  listQaAudits(q: { agentId?: string; auditor?: string; since?: string; limit?: number }): QaAuditRecord[] {
+    const where: string[] = []
+    const args: string[] = []
+    if (q.agentId) (where.push('agent_id = ?'), args.push(q.agentId))
+    if (q.auditor) (where.push('auditor = ?'), args.push(q.auditor))
+    if (q.since) (where.push('created_at >= ?'), args.push(q.since))
+    const rows = this.db
+      .prepare(`SELECT * FROM qa_audits ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY created_at DESC, audit_id DESC LIMIT ?`)
+      .all(...args, q.limit ?? 200) as Record<string, unknown>[]
+    return rows.map(toQaAudit)
+  }
+
   getSchedules(): Record<string, ScheduleRecord> {
     const rows = this.db.prepare('SELECT * FROM agent_schedules').all() as Record<string, string>[]
     return Object.fromEntries(
@@ -413,5 +441,22 @@ export class SqliteAccountStore implements AccountStore {
     this.db.prepare('DELETE FROM coin_ledger WHERE agent_id = ?').run(agentId)
     this.db.prepare('DELETE FROM agent_credentials WHERE agent_id = ?').run(agentId)
     this.db.prepare('DELETE FROM sessions WHERE agent_id = ?').run(agentId)
+  }
+}
+
+function toQaAudit(r: Record<string, unknown>): QaAuditRecord {
+  return {
+    id: Number(r.audit_id),
+    agentId: String(r.agent_id),
+    auditDate: String(r.audit_date),
+    result: r.result === 'fail' ? 'fail' : 'pass',
+    ticket: (r.ticket as string | null) ?? null,
+    reason: (r.reason as string | null) ?? null,
+    note: (r.note as string | null) ?? null,
+    auditor: String(r.auditor),
+    eventId: (r.event_id as string | null) ?? null,
+    createdAt: String(r.created_at),
+    correctedAt: (r.corrected_at as string | null) ?? null,
+    correctedBy: (r.corrected_by as string | null) ?? null,
   }
 }

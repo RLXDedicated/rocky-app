@@ -1,5 +1,5 @@
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord } from './AccountStore'
 
 const clone = <T>(v: T): T => (v === undefined || v === null ? v : (JSON.parse(JSON.stringify(v)) as T))
 const newest = <T extends { id: number }>(rows: T[], limit: number) => [...rows].sort((a, b) => b.id - a.id).slice(0, limit)
@@ -128,6 +128,28 @@ export class InMemoryAccountStore implements AccountStore {
     if (title) this.titles.set(agentId, title)
     else this.titles.delete(agentId)
   }
+  private qaAudits: QaAuditRecord[] = []
+  addQaAudit(a: Omit<QaAuditRecord, 'id' | 'correctedAt' | 'correctedBy'>) {
+    const rec: QaAuditRecord = { ...a, id: this.qaAudits.length + 1, correctedAt: null, correctedBy: null }
+    this.qaAudits.push(rec)
+    return { ...rec }
+  }
+  getQaAudit(id: number) {
+    const r = this.qaAudits.find((x) => x.id === id)
+    return r ? { ...r } : null
+  }
+  updateQaAudit(id: number, patch: Partial<Pick<QaAuditRecord, 'result' | 'eventId' | 'correctedAt' | 'correctedBy' | 'reason' | 'note'>>) {
+    const r = this.qaAudits.find((x) => x.id === id)
+    if (r) Object.assign(r, patch)
+  }
+  listQaAudits(q: { agentId?: string; auditor?: string; since?: string; limit?: number }) {
+    return this.qaAudits
+      .filter((r) => (!q.agentId || r.agentId === q.agentId) && (!q.auditor || r.auditor === q.auditor) && (!q.since || r.createdAt >= q.since))
+      .sort((a, b) => (a.createdAt === b.createdAt ? b.id - a.id : b.createdAt.localeCompare(a.createdAt)))
+      .slice(0, q.limit ?? 200)
+      .map((r) => ({ ...r }))
+  }
+
   private schedules = new Map<string, ScheduleRecord>()
   private deliveries: DeliveryRecord[] = []
   getSchedules() {

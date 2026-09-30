@@ -503,6 +503,35 @@ const authHeaders = (): Record<string, string> => {
   return { 'X-Agent-Email': getAgentEmail() ?? '', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
 }
 
+/** QA desk (QA analysts and admins). */
+export interface QaAudit {
+  id: number
+  agentId: string
+  name: string
+  auditDate: string
+  result: 'pass' | 'fail'
+  ticket: string | null
+  reason: string | null
+  note: string | null
+  auditor: string
+  auditorName: string
+  createdAt: string
+  correctedAt: string | null
+}
+export interface QaDesk {
+  people: { email: string; name: string }[]
+  recent: QaAudit[]
+  today: { pass: number; fail: number }
+}
+export const qaDeskApi = {
+  desk: () => request<QaDesk>('/api/qa/desk'),
+  record: (a: { agent: string; date: string; result: 'pass' | 'fail'; ticket?: string; reason?: string; note?: string }) => request<QaAudit>('/api/qa/audits', post(a)),
+  bulk: (text: string, passMark: number) =>
+    request<{ logged: number; results: { line: number; ok: boolean; error?: string }[] }>('/api/qa/audits/bulk', post({ text, passMark })),
+  change: (id: number, result: 'pass' | 'fail') => request<QaAudit>(`/api/qa/audits/${id}`, { method: 'PUT', body: JSON.stringify({ result }) }),
+  log: (since: string) => request<{ audits: QaAudit[] }>(`/api/admin/qa/audits?since=${since}`),
+}
+
 /** Teams integration (Admin → Horarios y Teams). */
 export interface TeamsSchedule {
   agentId: string
@@ -537,6 +566,7 @@ export interface TeamsStatus {
   webhookHost: string | null
   roster: number
   teamsOn: number
+  roast: boolean
   lastDispatch: { at: string; due: number; sent: number; error: string | null } | null
   last24h: { sent: number; failed: number; opened: number; done: number; ignored: number }
   recent: TeamsDelivery[]
@@ -547,6 +577,9 @@ export const teamsApi = {
   status: () => request<TeamsStatus>('/api/admin/teams/status'),
   test: (email?: string) => request<{ ok: boolean; error: string | null }>('/api/admin/teams/test', post(email ? { email } : {})),
   dispatch: () => request<{ due: number; sent: number; error: string | null }>('/api/admin/teams/dispatch', post()),
+  setTeamsFor: (emails: string[] | 'all', on: boolean) =>
+    request<{ changed: number }>('/api/admin/teams/enabled', { method: 'PUT', body: JSON.stringify(emails === 'all' ? { all: true, on } : { emails, on }) }),
+  setRoast: (on: boolean) => request<{ roast: boolean }>('/api/admin/teams/roast', { method: 'PUT', body: JSON.stringify({ on }) }),
   preview: (email: string) => request<{ card: unknown }>(`/api/admin/teams/preview/${encodeURIComponent(email)}`),
   setSchedule: (email: string, s: { days: number[]; start: string; end: string; name?: string | null; timeZone?: string | null; teams?: boolean }) =>
     request<{ ok: boolean }>(`/api/admin/schedules/${encodeURIComponent(email)}`, put(s)),
@@ -623,6 +656,7 @@ export const chatApi = {
     ),
   adminReports: (all = false) => request<{ reports: AdminChatReport[] }>(`/api/admin/chat/reports${all ? '?all=1' : ''}`),
   adminResolve: (id: number, action: 'hide' | 'dismiss') => request<{ ok: boolean }>(`/api/admin/chat/reports/${id}`, post({ action })),
+  adminPins: () => request<{ pins: { channelId: string; kind: string; title: string; pinned: ChatPinned }[] }>('/api/admin/chat/pins'),
   adminPin: (messageId: number, pin: boolean) => request<{ pinned: ChatPinned | null }>(`/api/admin/chat/messages/${messageId}/pin`, post({ pin })),
   adminHide: (messageId: number) => request<{ ok: boolean }>(`/api/admin/chat/messages/${messageId}/hide`, post()),
   adminMute: (email: string, hours: number, reason: string) => request<{ mutedUntil: string | null }>('/api/admin/chat/mute', post({ email, hours, reason })),

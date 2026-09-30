@@ -64,6 +64,24 @@ export function ChatThread({
   const [picker, setPicker] = useState<'emoji' | 'sticker' | 'gif' | null>(null)
   const [reacting, setReacting] = useState<number | null>(null)
   const [pinned, setPinned] = useState<ChatPinned | null>(null)
+  // Anyone can tuck an announcement away for themselves (a new pin shows again).
+  const readHiddenPin = () => {
+    try {
+      return Number(window.localStorage.getItem(`rocky.chat.hiddenPin.${channelId}`)) || null
+    } catch {
+      return null
+    }
+  }
+  const [hiddenPin, setHiddenPin] = useState<number | null>(readHiddenPin)
+  useEffect(() => setHiddenPin(readHiddenPin()), [channelId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const hidePin = (id: number) => {
+    setHiddenPin(id)
+    try {
+      window.localStorage.setItem(`rocky.chat.hiddenPin.${channelId}`, String(id))
+    } catch {
+      // private mode: hidden for this visit only
+    }
+  }
   const [people, setPeople] = useState<string[] | null>(null)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
@@ -321,15 +339,31 @@ export function ChatThread({
         }
       }}
     >
-      {pinned && (
+      {pinned && hiddenPin !== pinned.id && (
         <div className={styles.pinned} role="note" aria-label="Pinned announcement">
           <span aria-hidden="true">📌</span>
-          <p>
+          <button
+            type="button"
+            className={styles.pinnedText}
+            title="Show the message"
+            onClick={() => {
+              const el = listRef.current?.querySelector(`[data-msg-id="${pinned.id}"]`)
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                el.classList.add(styles.flash!)
+                window.setTimeout(() => el.classList.remove(styles.flash!), 1600)
+              }
+            }}
+          >
             <b>{pinned.name}:</b> {mediaOf(pinned.body) ? '📷 Picture' : stickerOf(pinned.body) ? `🐂 ${stickerOf(pinned.body)!.label}` : pinned.body}
-          </p>
-          {isAdmin && (
-            <button type="button" className={styles.report} style={{ opacity: 1 }} onClick={() => void chatApi.adminPin(pinned.id, false).then((r) => setPinned(r.pinned))} aria-label="Unpin">
-              ✕
+          </button>
+          {isAdmin ? (
+            <button type="button" className={styles.unpin} onClick={() => void chatApi.adminPin(pinned.id, false).then((r) => setPinned(r.pinned))}>
+              Unpin
+            </button>
+          ) : (
+            <button type="button" className={styles.unpin} onClick={() => hidePin(pinned.id)} aria-label="Hide this announcement for me">
+              Hide
             </button>
           )}
         </div>
@@ -346,7 +380,7 @@ export function ChatThread({
           const prev = messages[i - 1]
           const grouped = prev && prev.from === m.from && Date.parse(m.at) - Date.parse(prev.at) < 5 * 60_000
           return (
-            <div key={m.id} className={`${styles.msg} ${m.mine ? styles.mine : ''} ${grouped ? styles.grouped : ''} ${m.staff && !m.hidden ? styles.vip : ''} ${m.mentionsMe ? styles.mentioned : ''}`}>
+            <div key={m.id} data-msg-id={m.id} className={`${styles.msg} ${m.mine ? styles.mine : ''} ${grouped ? styles.grouped : ''} ${m.staff && !m.hidden ? styles.vip : ''} ${m.mentionsMe ? styles.mentioned : ''}`}>
               {!grouped && (!m.mine || m.staff || m.title || m.tester) && (
                 <span className={styles.author}>
                   {m.mine ? 'You' : m.name} <NameBadges staff={m.staff} title={m.title} tester={m.tester} />

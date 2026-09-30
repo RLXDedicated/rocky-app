@@ -4,7 +4,7 @@
 // editing a previously-shipped entry (same immutability principle as
 // GameEvent — a shipped migration is a historical fact).
 import type { DatabaseSync } from 'node:sqlite'
-import { MIGRATION_001_INITIAL, MIGRATION_002_IDEMPOTENCY, MIGRATION_003_ACCOUNTS, MIGRATION_004_COLLECTION_WINDOWS, MIGRATION_005_CHAT, MIGRATION_006_PEOPLE, MIGRATION_007_DEV_QA, MIGRATION_008_TESTERS, MIGRATION_009_CHAT_MEDIA, MIGRATION_010_STREAK_SHIELDS, MIGRATION_011_EXTRAS, MIGRATION_012_TEAMS, MIGRATION_013_SCHEDULE_TZ } from './schema'
+import { MIGRATION_001_INITIAL, MIGRATION_002_IDEMPOTENCY, MIGRATION_003_ACCOUNTS, MIGRATION_004_COLLECTION_WINDOWS, MIGRATION_005_CHAT, MIGRATION_006_PEOPLE, MIGRATION_007_DEV_QA, MIGRATION_008_TESTERS, MIGRATION_009_CHAT_MEDIA, MIGRATION_010_STREAK_SHIELDS, MIGRATION_011_EXTRAS, MIGRATION_012_TEAMS, MIGRATION_013_SCHEDULE_TZ, MIGRATION_014_QA_AUDITS } from './schema'
 
 export interface Migration {
   version: number
@@ -31,6 +31,7 @@ export const MIGRATIONS: Migration[] = [
   { version: 11, name: 'add_pins_challenges_photos', sql: MIGRATION_011_EXTRAS },
   { version: 12, name: 'add_teams_integration', sql: MIGRATION_012_TEAMS },
   { version: 13, name: 'add_schedule_time_zone', sql: MIGRATION_013_SCHEDULE_TZ },
+  { version: 14, name: 'add_qa_audits', sql: MIGRATION_014_QA_AUDITS },
 ]
 
 export function runMigrations(db: DatabaseSync): void {

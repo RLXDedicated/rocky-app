@@ -13,9 +13,11 @@ export type NavIconName =
   | "teams"
   | "admin"
   | "flask"
-  | "wrench";
+  | "wrench"
+  | "clipboard";
 
 const PATHS: Record<NavIconName, string> = {
+  clipboard: "M9 3.5h6v3H9zM7.5 5H5v16h14V5h-2.5M8.5 13.5l2.5 2.5 4.5-5",
   note: "M6 3h9l4 4v14H6zM15 3v4h4M9 12h7M9 16h5",
   chat: "M4 5h16v11H9l-5 4zM8 9.5h8M8 12.5h5",
   games:

@@ -760,7 +760,11 @@ export function RockyWorld({
     if (!playing) void walkTo(px, Math.abs(px - xRef.current) > 30);
   }
 
-  /** Rocky walks over to a placed item and plays with it (just for fun — no stats change). */
+  /**
+   * Rocky walks over to a placed item and plays with it (just for fun — no
+   * stats change). A bowl is the exception: eating from it is a real feed
+   * and uses a treat; with no treats left the bowl is empty.
+   */
   async function visitDecor(id: string) {
     const d = DECOR_ART[id];
     if (!d || busyRef.current || arrangingRef.current) return;
@@ -783,10 +787,16 @@ export function RockyWorld({
       onTop ? cx : cx + side * (halfPct + rockyHalf * 0.55),
       Math.abs(cx - xRef.current) > 35,
     );
-    const pose = VISIT_POSE[d.play];
-    setPose(pose);
+    // An earned treat first, else a snack from the bag.
+    const snack = treats > 0 ? undefined : FOODS.find((f) => (inventory[f.id] ?? 0) > 0)?.id;
+    const fed = d.play === "eat" && !visitor && (treats > 0 || Boolean(snack)) && onFeed(snack);
+    const empty = d.play === "eat" && !fed;
+    setPose(empty ? VISIT_POSE.sniff : VISIT_POSE[d.play]);
     const at = xRef.current;
-    switch (d.play) {
+    switch (empty ? "empty" : d.play) {
+      case "empty":
+        playSfx("tap");
+        break;
       case "eat":
         playSfx("chomp");
         burst("crumb", 5, cx);
@@ -794,7 +804,7 @@ export function RockyWorld({
         break;
       case "nap":
       case "rest":
-        playSfx("pop");
+        playSfx("yawn");
         burst("zzz", d.play === "nap" ? 3 : 1, at, 2200);
         break;
       case "cheer":
@@ -803,14 +813,21 @@ export function RockyWorld({
         burst("heart", 2, at);
         break;
       case "vroom":
-        playSfx("kick");
+        playSfx("beep");
         burst("note", 2, cx);
         break;
       default:
         playSfx("tap");
         burst("sparkle", 2, cx, 1200);
     }
-    say(pick(VISIT_LINES[d.play]), 2400);
+    say(
+      empty
+        ? visitor
+          ? "Looks tasty… but it’s not my bowl to raid."
+          : "The bowl’s empty… check-ins and clean audits earn treats."
+        : pick(VISIT_LINES[d.play]),
+      2400,
+    );
     const hold = !animate
       ? 300
       : d.play === "nap"
@@ -917,8 +934,6 @@ export function RockyWorld({
     setBusy(true);
     setPose("bath");
     playSfx("splash");
-    window.setTimeout(() => playSfx("bubble"), 500);
-    window.setTimeout(() => playSfx("bubble"), 1300);
     burst("bubble", 10, xRef.current, BATH_MS);
     window.setTimeout(
       () => {
@@ -1151,7 +1166,7 @@ export function RockyWorld({
       };
       setFoam((f) => [...f.slice(-70), spot]);
     }
-    if (now - st.lastSound > 380) {
+    if (now - st.lastSound > 900) {
       st.lastSound = now;
       playSfx("bubble");
     }
@@ -1389,7 +1404,7 @@ export function RockyWorld({
             animate={animate}
             track={gazeRef}
             stageRef={worldRef}
-            onBounce={(s) => s > 0.12 && playSfx("bounce")}
+            onBounce={(s) => s > 0.3 && playSfx("bounce")}
             onTap={countTouch}
             onLand={endStreak}
             onDone={() => setBall((b) => (b?.id === ball.id ? null : b))}

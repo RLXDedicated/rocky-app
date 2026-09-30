@@ -268,6 +268,26 @@ export const MIGRATION_006_PEOPLE = `
 `
 
 /** The Teams/SharePoint roster's shifts, and every card Rocky sent to Teams. */
+/** QA desk: every audit a QA analyst logs (the engine event it produced, and any later correction). */
+export const MIGRATION_014_QA_AUDITS = `
+  CREATE TABLE qa_audits (
+    audit_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id     TEXT NOT NULL,
+    audit_date   TEXT NOT NULL,
+    result       TEXT NOT NULL,
+    ticket       TEXT,
+    reason       TEXT,
+    note         TEXT,
+    auditor      TEXT NOT NULL,
+    event_id     TEXT,
+    created_at   TEXT NOT NULL,
+    corrected_at TEXT,
+    corrected_by TEXT
+  );
+  CREATE INDEX idx_qa_audits_agent ON qa_audits(agent_id, audit_date);
+  CREATE INDEX idx_qa_audits_created ON qa_audits(created_at);
+`
+
 /** Shifts written in another time zone (e.g. US Eastern), and who gets Teams cards (SharePoint "Active"). */
 export const MIGRATION_013_SCHEDULE_TZ = `
   ALTER TABLE agent_schedules ADD COLUMN time_zone TEXT;

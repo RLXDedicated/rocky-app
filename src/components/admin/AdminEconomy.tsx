@@ -163,10 +163,7 @@ export function ShopTab({ onChanged, onError }: { onChanged: (m: string) => void
   return (
     <div className={styles.stack}>
       <Collections collections={data.collections ?? []} items={data.items} onChanged={(m) => (onChanged(m), reload())} onError={onError} />
-      <p className={styles.muted}>
-        Los cambios aplican a todos los agentes de inmediato y quedan en la auditoría. Un accesorio retirado de la tienda sigue funcionando para quien
-        ya lo tiene. Para dárselo a alguien sin que lo compre, usa “Regalar” en la ficha del agente.
-      </p>
+      <p className={styles.muted}>Aplica a todos al instante. Quien ya tiene un artículo retirado lo conserva.</p>
       {([...(Object.keys(SLOT_ES) as ItemSlot[]), 'food', 'soap'] as ItemSlot[]).map((slot) => (
         <section key={slot} className={styles.card}>
           <h3>{SLOT_ES[slot] ?? (String(slot) === 'food' ? 'Comida' : 'Jabones')}</h3>

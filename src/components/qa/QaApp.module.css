@@ -1,0 +1,46 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+}
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--navy);
+  color: var(--text-on-dark);
+}
+.bar span {
+  color: var(--text-on-dark-muted);
+}
+.bar a,
+.bar button {
+  color: var(--text-on-dark);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  padding: 4px 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.bar small {
+  color: var(--text-on-dark-muted);
+}
+.spacer {
+  flex: 1;
+}
+.main {
+  padding: 16px;
+}
+.note {
+  max-width: 560px;
+  margin: 40px auto;
+  text-align: center;
+  color: var(--text-muted);
+}

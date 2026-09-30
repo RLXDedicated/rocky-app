@@ -508,6 +508,13 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       })
     },
 
+    /** Every conversation with a pinned announcement (Admin → Chats, one-click unpin). */
+    adminPins() {
+      return this.adminChannels()
+        .map((c) => ({ channelId: c.id, kind: c.kind, title: c.title, pinned: pinnedOf(c.id) }))
+        .filter((c) => c.pinned)
+    },
+
     adminRead(channelId: string, before: number | undefined, actor: ChatActor) {
       const channel = store.getChannel(channelId)
       if (!channel) throw ApiError.notFound('That conversation could not be found.')

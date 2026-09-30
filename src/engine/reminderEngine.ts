@@ -81,10 +81,16 @@ export function findPendingCelebration(
   events: GameEvent[],
   agentId: string,
   history: ReminderRecord[],
+  now?: Date,
 ): GameEvent | undefined {
   const alreadyCelebrated = new Set(history.map((r) => r.dedupeKey).filter((k): k is string => Boolean(k)))
+  const oldest = now ? now.getTime() - GAME_CONFIG.reminders.celebrationMaxAgeHours * 3_600_000 : -Infinity
   const candidates = events.filter(
-    (e) => e.agentId === agentId && CELEBRATION_EVENT_PRIORITY.includes(e.type) && !alreadyCelebrated.has(e.id),
+    (e) =>
+      e.agentId === agentId &&
+      CELEBRATION_EVENT_PRIORITY.includes(e.type) &&
+      !alreadyCelebrated.has(e.id) &&
+      new Date(e.timestamp).getTime() >= oldest,
   )
   for (const type of CELEBRATION_EVENT_PRIORITY) {
     const matches = candidates.filter((e) => e.type === type)
@@ -193,7 +199,7 @@ export function evaluateReminderOpportunity(ctx: ReminderContext): ReminderCandi
   const lastRecord = history[history.length - 1]
 
   // 1) Celebration always wins when one is pending.
-  const celebrationEvent = findPendingCelebration(events, agentId, history)
+  const celebrationEvent = findPendingCelebration(events, agentId, history, now)
   if (celebrationEvent) {
     return {
       category: 'Celebration',

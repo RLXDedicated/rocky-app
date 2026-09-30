@@ -86,7 +86,7 @@
 
 /* Arcade weekly ranking */
 .board {
-  margin-top: 20px;
+  margin-top: 0;
   padding: 16px 18px;
   border: 1px solid var(--card-border);
   border-radius: 18px;

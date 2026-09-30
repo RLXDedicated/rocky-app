@@ -46,7 +46,15 @@ def outline_icon() -> Image.Image:
     return img
 
 
+def optimize_stickers() -> None:
+    """Palette PNGs for the rendered stickers (render-stickers.mjs): ~16 KB instead of ~70 KB each."""
+    for f in sorted((ROOT / "public" / "teams" / "stickers").glob("*.png")):
+        im = Image.open(f).convert("RGBA")
+        im.quantize(colors=256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE).save(f, optimize=True)
+
+
 def main() -> None:
+    optimize_stickers()
     manifest = json.loads((HERE / "manifest.json").read_text())
     color_icon().save(HERE / "color.png")
     outline_icon().save(HERE / "outline.png")

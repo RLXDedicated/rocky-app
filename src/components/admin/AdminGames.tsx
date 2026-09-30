@@ -48,10 +48,7 @@ export function GamesTab({ onChanged, onError }: { onChanged: (m: string) => voi
   return (
     <section className={styles.card}>
       <h3>Minijuegos ({on} de {games.length} activos)</h3>
-      <p className={styles.muted}>
-        Actívalos o desactívalos para todos los agentes. Un juego apagado desaparece del Arcade y deja de pagar coins. Los topes diarios de
-        coins siguen igual.
-      </p>
+      <p className={styles.muted}>Un juego apagado desaparece del Arcade para todos y deja de pagar coins.</p>
       <div className={styles.tableCard}>
         <table className={styles.table}>
           <thead>

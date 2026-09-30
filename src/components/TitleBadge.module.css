@@ -12,7 +12,6 @@
   vertical-align: middle;
   white-space: nowrap;
   color: #ffffff;
-  animation: titleGlow 2.6s ease-in-out infinite;
 }
 
 .sm {
@@ -32,7 +31,8 @@
   inset: 0;
   background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.65) 48%, transparent 66%);
   transform: translateX(-130%);
-  animation: titleShine 3.4s ease-in-out infinite;
+  /* A slow, occasional shine — a lot of moving badges on one screen is tiring. */
+  animation: titleShine 9s ease-in-out infinite;
 }
 
 .qa {
@@ -57,7 +57,6 @@
   box-shadow: 0 0 0 1px rgba(134, 239, 172, 0.75) inset, 0 0 8px rgba(var(--glow), 0.55);
   color: #bbf7d0;
   text-shadow: 0 0 6px rgba(74, 222, 128, 0.9);
-  animation-name: devGlow;
 }
 
 .devCode {
@@ -76,37 +75,26 @@
   animation: devBlink 1.05s steps(2, jump-none) infinite;
 }
 
-/* TESTER: moss green over walnut brown, like a field notebook. */
+/* TESTER: a calm, static olive chip — no glow, shine or wiggle (the other titles already move). */
 .tester {
-  --glow: 132, 204, 22;
   gap: 3px;
-  background: linear-gradient(135deg, #65a30d 0%, #3f6212 50%, #78350f 100%);
-  box-shadow: 0 0 0 1px rgba(217, 249, 157, 0.75) inset, 0 0 8px rgba(var(--glow), 0.5);
-  color: #fefce8;
-  text-shadow: 0 0 5px rgba(190, 242, 100, 0.8);
+  background: linear-gradient(135deg, #5f7a1f 0%, #3f5a14 100%);
+  box-shadow: 0 0 0 1px rgba(190, 220, 120, 0.55) inset;
+  color: #f4f9e4;
+  text-shadow: none;
+  animation: none;
+}
+
+.tester::after {
+  display: none;
 }
 
 .testerBug {
   display: inline-block;
   font-size: 0.95em;
   letter-spacing: 0;
-  text-shadow: none;
-  animation: bugWiggle 2.4s ease-in-out infinite;
 }
 
-@keyframes bugWiggle {
-  0%,
-  70%,
-  100% {
-    transform: rotate(0);
-  }
-  78% {
-    transform: rotate(-14deg);
-  }
-  86% {
-    transform: rotate(12deg);
-  }
-}
 
 .group {
   display: inline-flex;
@@ -116,11 +104,6 @@
   vertical-align: middle;
 }
 
-@keyframes devGlow {
-  50% {
-    box-shadow: 0 0 0 1px rgba(196, 181, 253, 0.9) inset, 0 0 14px rgba(167, 139, 250, 0.85);
-  }
-}
 
 @keyframes devBlink {
   50% {
@@ -128,14 +111,12 @@
   }
 }
 
-@keyframes titleGlow {
-  50% {
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85) inset, 0 0 14px rgba(var(--glow), 0.95);
-  }
-}
 
 @keyframes titleShine {
-  55%,
+  0%,
+  88% {
+    transform: translateX(-130%);
+  }
   100% {
     transform: translateX(130%);
   }

@@ -35,6 +35,8 @@ import { createExtrasRouter } from './api/extrasRoutes'
 import { createChallengeApplicationService, type ChallengeApplicationService } from './application/challengeApplicationService'
 import { createTeamsApplicationService, type TeamsApplicationService, type TeamsConfig } from './application/teamsApplicationService'
 import { createTeamsAdminRouter, createTeamsLinkRouter } from './api/teamsRoutes'
+import { createQaDeskService } from './application/qaDeskService'
+import { createQaDeskRouter } from './api/qaDeskRoutes'
 import { createHash, randomBytes } from 'node:crypto'
 import { backupTargetFromEnv, type BackupTarget } from './infrastructure/chat/chatBackup'
 import type { PetApplicationService } from './application/petApplicationService'
@@ -150,10 +152,13 @@ export function createApp(options: CreateAppOptions = {}): Express {
   api.use(createPeopleRouter(people))
   api.use(createExtrasRouter({ challenges, pet, persistence, clock: options.clock }))
   api.use(createTeamsAdminRouter(teams))
+  const qa = createQaApplicationService({ persistence, clock: options.clock })
+  const qaDesk = createQaDeskService({ persistence, qa, pet, isStaff, titleOf, clock: options.clock })
+  api.use(createQaDeskRouter(qaDesk, () => (options.clock ?? { now: () => new Date() }).now()))
   api.use(
     createApiRouter({
       game: createGameApplicationService({ persistence, clock: options.clock, scheduleOf, onCheckIn: (id) => teams?.onCheckIn(id) }),
-      qa: createQaApplicationService({ persistence, clock: options.clock }),
+      qa,
       reminders: createReminderApplicationService({ persistence, clock: options.clock, scheduleOf }),
       leaderboard: createLeaderboardApplicationService({ persistence }),
       team: createTeamApplicationService({ persistence }),

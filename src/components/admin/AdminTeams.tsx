@@ -8,17 +8,6 @@ const zoneLabel = (tz: string | null) => (tz ? (SHIFT_TIME_ZONES.find(([z]) => z
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' }) : '—')
 const KIND_ES: Record<string, string> = { reminder: 'Recordatorio', test: 'Prueba', ontime: 'Check-in a tiempo' }
 
-/** The JSON the Workflows trigger receives — paste it as the "Parse JSON" sample. */
-const SAMPLE_PAYLOAD = JSON.stringify(
-  {
-    type: 'rocky.cards',
-    sentAt: '2026-09-30T14:00:00.000Z',
-    count: 1,
-    cards: [{ email: 'agente@rlx.us', name: 'Nombre Apellido', deliveryId: 'abc123', kind: 'reminder', category: 'Documentation', message: 'Texto', card: {} }],
-  },
-  null,
-  2,
-)
 
 /** Horarios y Teams: the SharePoint roster (shifts, leaders) and Rocky's reminder cards in Teams. */
 export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => void; onError: (m: string) => void }) {
@@ -112,9 +101,29 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
             👀 Ver JSON de la tarjeta
           </button>
         </div>
+        {status && (
+          <div className={styles.actionRow}>
+            <label>
+              <input
+                type="checkbox"
+                checked={status.roast}
+                onChange={(e) => void run(() => teamsApi.setRoast(e.target.checked), (r) => (r.roast ? 'Rocky vuelve a bromear en Teams 😏' : 'Rocky solo manda mensajes amables.'))}
+              />{' '}
+              😏 Tono con humor (roast estilo Duolingo)
+            </label>
+            <button className={styles.btnGhost} disabled={busy} onClick={() => void run(() => teamsApi.setTeamsFor('all', true), (r) => `Teams activado para ${r.changed} agentes.`)}>
+              ✅ Activar Teams a todos
+            </button>
+            <button className={styles.btnGhost} disabled={busy} onClick={() => void run(() => teamsApi.setTeamsFor('all', false), (r) => `Teams pausado para ${r.changed} agentes.`)}>
+              ⏸ Pausar a todos
+            </button>
+            <a className={styles.linkBtn} href="/teams/rocky-teams-app.zip" download>
+              ⬇ App de Rocky para Teams
+            </a>
+          </div>
+        )}
         <p className={styles.muted}>
-          Efectos en Rocky: responder una tarjeta → +6 felicidad y +2 coins · check-in a tiempo para su turno (30 min antes a 60 min después) → +5 felicidad y +5 coins ·
-          tarjeta ignorada 3 h → −6 felicidad (máx. 2 al día) · los días libres de su horario no rompen la racha.
+          Efectos: responder tarjeta +6 felicidad y +2 coins · check-in a tiempo +5 y +5 · tarjeta ignorada 3 h −6 (máx. 2/día) · días libres no rompen la racha.
         </p>
         {preview && (
           <details open>
@@ -126,11 +135,7 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
 
       <section className={styles.card}>
         <h3>📋 Importar la lista de SharePoint</h3>
-        <p className={styles.muted}>
-          En la lista de SharePoint: <b>Exportar → CSV</b> (o selecciona las filas en Excel y copia). Pega aquí el contenido con la fila de encabezados. Rocky reconoce columnas
-          como <i>Correo, Nombre, Líder, Días, Entrada, Salida</i> u <i>Horario</i> (“8:00 - 17:00”), en español o inglés. Los días pueden ser “L-V”, “Lunes a Viernes”, “Mon-Fri” o
-          “LMXJV”.
-        </p>
+        <p className={styles.muted}>Pega el CSV de la lista de SharePoint (con encabezados) o una lista “Nombre / Horario”; los nombres se buscan en el roster.</p>
         <textarea
           className={styles.field}
           value={text}
@@ -382,51 +387,6 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
         </div>
       )}
 
-      <section className={styles.card}>
-        <h3>🐂 Rocky dentro de Teams</h3>
-        <ol className={styles.plainList} style={{ listStyle: 'decimal', paddingLeft: 20 }}>
-          <li>
-            <b>App de Rocky (recomendado):</b> descarga{' '}
-            <a href="/teams/rocky-teams-app.zip" download>
-              rocky-teams-app.zip
-            </a>{' '}
-            y en Teams ve a <b>Aplicaciones → Administrar sus aplicaciones → Cargar una aplicación</b>. Rocky aparece en la barra lateral y abre con la cuenta de Teams de cada
-            agente, sin enlaces personales. Si tu cuenta no permite cargar apps, pide a TI que la publique para la organización (o solo para el grupo del piloto) desde el Centro
-            de administración de Teams.
-          </li>
-          <li>
-            <b>Sin permisos de TI:</b> en el canal o chat del equipo pulsa <b>+ → Sitio web</b> y pega <code>https://rocky-dist.vercel.app</code>. Cada agente entra una vez con su
-            enlace personal (o su PIN) y queda recordado.
-          </li>
-        </ol>
-      </section>
-
-      <section className={styles.card}>
-        <h3>🛠️ Cómo crear el flujo en Teams (una sola vez, sin conectores premium)</h3>
-        <ol className={styles.plainList} style={{ listStyle: 'decimal', paddingLeft: 20 }}>
-          <li>
-            En Teams abre <b>Workflows</b> (o make.powerautomate.com) → <b>Crear</b> → <b>Flujo de nube instantáneo</b> con el desencadenador{' '}
-            <b>“When a Teams webhook request is received”</b> (Cuando se recibe una solicitud de webhook de Teams). En “Who can trigger the flow” elige <b>Anyone</b>.
-          </li>
-          <li>
-            Agrega <b>Parse JSON</b> (Analizar JSON) con Contenido = <i>Body</i> del desencadenador y “Use sample payload” con este ejemplo:
-            <textarea className={styles.field} readOnly value={SAMPLE_PAYLOAD} rows={8} style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }} />
-          </li>
-          <li>
-            Agrega <b>Apply to each</b> sobre <i>cards</i>. Dentro, <b>Post card in a chat or channel</b> (Publicar tarjeta en un chat o canal): Post as = <b>Flow bot</b>, Post in ={' '}
-            <b>Chat with Flow bot</b>, Recipient = <i>email</i> (del elemento actual), Adaptive Card = la expresión <code>string(item()?['card'])</code>.
-          </li>
-          <li>
-            Guarda. Copia la <b>URL HTTP POST</b> del desencadenador y pégala tú mismo en Railway → servicio rocky-backend → <b>Variables</b> →{' '}
-            <code>ROCKY_TEAMS_WEBHOOK_URL</code> (no la compartas por chat: quien la tenga puede enviar tarjetas).
-          </li>
-          <li>Cuando Railway termine de desplegar, vuelve aquí y pulsa “Enviarme una tarjeta de prueba”.</li>
-        </ol>
-        <p className={styles.muted}>
-          El flujo no decide nada: Rocky ya elige a quién, cuándo (solo dentro de su turno, con el mismo límite diario y pausas que la app) y qué dice. Los botones de la tarjeta abren
-          Rocky con un enlace firmado que registra la respuesta.
-        </p>
-      </section>
     </div>
   )
 }

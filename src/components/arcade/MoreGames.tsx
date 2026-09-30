@@ -183,7 +183,7 @@ export function MudSplat({ rocky, onDone }: { rocky: string; onDone: Done }) {
     const pts = h.kind === "rocky" ? -2 : h.kind === "gold" ? 3 : 1;
     s.score = Math.max(0, s.score + pts);
     s.pops.push({ id: ++s.id, hole: i, text: pts > 0 ? `+${pts}` : `${pts}` });
-    playSfx(h.kind === "rocky" ? "nope" : h.kind === "gold" ? "coin" : "splash");
+    playSfx(h.kind === "rocky" ? "nope" : h.kind === "gold" ? "coin" : "boop");
     h.kind = null;
   }
 
@@ -306,10 +306,10 @@ export function BubblePop({ onDone }: { onDone: Done }) {
 // Rocky Says: watch the pads light up, then repeat the pattern. It grows by one each round.
 // ---------------------------------------------------------------------------
 const PADS = [
-  { emoji: "🍎", color: "#e2445c", sfx: "chomp" as const },
-  { emoji: "⚽", color: "#3f6fb5", sfx: "kick" as const },
-  { emoji: "🫧", color: "#14b8a6", sfx: "bubble" as const },
-  { emoji: "⭐", color: "#f5b82e", sfx: "chime" as const },
+  { emoji: "🍎", color: "#e2445c", sfx: "pad0" as const },
+  { emoji: "⚽", color: "#3f6fb5", sfx: "pad1" as const },
+  { emoji: "🫧", color: "#14b8a6", sfx: "pad2" as const },
+  { emoji: "⭐", color: "#f5b82e", sfx: "pad3" as const },
 ];
 
 export function RockySays({ rocky, onDone }: { rocky: string; onDone: Done }) {

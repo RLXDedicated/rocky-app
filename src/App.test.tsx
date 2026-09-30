@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
 import { completeOnboarding } from './services/onboardingService'
@@ -26,15 +26,9 @@ describe('App — Agent Mode vs QA Mode navigation (Phase 8 §23-24)', () => {
     expect(nav.queryByRole('button', { name: 'QA sim' })).not.toBeInTheDocument()
   })
 
-  it('reveals QA Simulator only after turning QA Mode on', () => {
+  it('has no QA Tools toggle any more (audits live in the QA desk)', () => {
     completeOnboarding()
     render(<App />)
-
-    // Internal tools live in their own pinned "Admin tools" menu, never in the agents' main menu.
-    expect(screen.queryByRole('button', { name: 'QA sim' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByText('QA Tools'))
-    const tools = within(screen.getByRole('navigation', { name: 'Admin tools' }))
-    expect(tools.getByRole('button', { name: 'QA sim' })).toBeInTheDocument()
-    expect(within(screen.getByRole('navigation', { name: 'Main' })).queryByRole('button', { name: 'QA sim' })).not.toBeInTheDocument()
+    expect(screen.queryByText('QA Tools')).not.toBeInTheDocument()
   })
 })

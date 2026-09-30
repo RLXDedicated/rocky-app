@@ -1,9 +1,15 @@
 import react from '@vitejs/plugin-react'
+import { resolve } from 'node:path'
 import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // Two pages: Rocky itself, and the QA desk at /qa/ — a light, separate
+    // page so QA analysts log audits without loading the game.
+    rollupOptions: { input: { main: resolve(__dirname, 'index.html'), qa: resolve(__dirname, 'qa/index.html') } },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

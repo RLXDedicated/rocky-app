@@ -96,6 +96,8 @@ describe('Teams integration', () => {
     expect(posted).toHaveLength(1)
     expect(posted[0]!.type).toBe('rocky.cards')
     expect(posted[0]!.cards.map((c) => c.email)).toEqual([ANA])
+    // The card shows a chat sticker of the agent's own Rocky.
+    expect(JSON.stringify(posted[0]!.cards[0]!.card)).toMatch(/https:\/\/web\.test\/teams\/stickers\/[a-z]+(-baby)?\.png/)
     // Everyone on the roster has a Rocky now, with their roster name.
     expect((await request(app).get('/api/agent/me').set(as(ANA))).body.name ?? 'Ana Pérez').toContain('Ana')
   })
@@ -171,6 +173,14 @@ describe('Teams integration', () => {
     t.set('2026-09-09T09:00:00') // Wednesday
     const res = await request(app).post('/api/events/check-in').set(as(ANA)).send({}).expect(200)
     expect(res.body.state?.currentStreak ?? res.body.gameState?.currentStreak).toBe(2)
+  })
+
+  it('roast mode can be turned off by an admin', async () => {
+    const { app, live } = build(movableClock('2026-09-07T10:00:00').clock)
+    expect(live.teams.roast()).toBe(true)
+    await request(app).put('/api/admin/teams/roast').set(as(ADMIN)).send({ on: false }).expect(200)
+    expect((await request(app).get('/api/admin/teams/status').set(as(ADMIN))).body.roast).toBe(false)
+    expect((await request(app).put('/api/admin/teams/roast').set(as(ANA)).send({ on: true })).status).toBe(403)
   })
 
   it('reports webhook failures without losing track', async () => {

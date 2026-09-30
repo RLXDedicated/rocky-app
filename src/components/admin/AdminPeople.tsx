@@ -40,11 +40,7 @@ export function PeopleTab({ onChanged, onError }: { onChanged: (m: string) => vo
   const shown = people.filter((p) => !q || `${p.name} ${p.email}`.toLowerCase().includes(q))
   return (
     <div className={styles.stack}>
-      <p className={styles.muted}>
-        Los títulos solo muestran una insignia junto al nombre (QA azul, LEAD verde azulado, TESTER verde-café): no dan permisos. TESTER se suma al
-        título (alguien puede ser QA y Tester a la vez); quítalo o ponlo cuando quieras. Cada líder ve únicamente a su equipo en “My team” y
-        su Rocky refleja el espíritu del equipo. Los líderes no tienen acceso a los chats.
-      </p>
+      <p className={styles.muted}>QA abre el QA desk (/qa/) · LEAD ve solo a su equipo en “My team” · TESTER es solo una insignia.</p>
 
       <div className={styles.grid}>
         {leaders.map((l) => {

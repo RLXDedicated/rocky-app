@@ -6,7 +6,7 @@
 
 .layout {
   width: 100%;
-  max-width: 1080px;
+  max-width: 1240px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -42,6 +42,33 @@
   background: #fff6de;
   color: var(--gold-ink, #8a5a00);
   font-weight: 800;
+}
+
+.hub {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  align-items: start;
+}
+
+.side {
+  position: sticky;
+  top: 16px;
+}
+
+.side > * {
+  margin-top: 0;
+}
+
+/* Narrow screens: the ranking comes first (above the games), compact. */
+@media (max-width: 900px) {
+  .hub {
+    grid-template-columns: 1fr;
+  }
+  .side {
+    position: static;
+    order: -1;
+  }
 }
 
 .grid {

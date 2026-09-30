@@ -13,17 +13,15 @@ const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).pad
  * queda en la auditoría.
  */
 export function ChatsTab({ onChanged, onError }: { onChanged: (m: string) => void; onError: (m: string) => void }) {
-  const [sub, setSub] = useState<'reports' | 'conversations' | 'safety'>('reports')
+  const [sub, setSub] = useState<'reports' | 'pins' | 'conversations' | 'safety'>('reports')
   return (
     <div className={styles.stack}>
-      <p className={styles.muted}>
-        Copia completa para control de calidad. Los supervisores no pueden ver los chats. Cada lectura y exportación queda registrada en Auditoría. Los mensajes
-        se borran automáticamente a los 90 días.
-      </p>
+      <p className={styles.muted}>Solo admins. Cada lectura y exportación queda registrada; los mensajes se borran a los 90 días.</p>
       <div className={styles.subTabs}>
         {(
           [
             ['reports', '⚑ Reportes'],
+            ['pins', '📌 Fijados'],
             ['conversations', 'Conversaciones'],
             ['safety', 'Pausas, exportación y backup'],
           ] as const
@@ -34,6 +32,7 @@ export function ChatsTab({ onChanged, onError }: { onChanged: (m: string) => voi
         ))}
       </div>
       {sub === 'reports' && <Reports onChanged={onChanged} onError={onError} />}
+      {sub === 'pins' && <Pins onChanged={onChanged} onError={onError} />}
       {sub === 'conversations' && <Conversations onChanged={onChanged} onError={onError} />}
       {sub === 'safety' && <Safety onChanged={onChanged} onError={onError} />}
     </div>
@@ -319,6 +318,67 @@ function Safety({ onChanged, onError }: { onChanged: (m: string) => void; onErro
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+/** Every pinned announcement in one place: unpin without hunting for the message. */
+function Pins({ onChanged, onError }: { onChanged: (m: string) => void; onError: (m: string) => void }) {
+  const [pins, setPins] = useState<Awaited<ReturnType<typeof chatApi.adminPins>>['pins'] | null>(null)
+  const load = () =>
+    chatApi
+      .adminPins()
+      .then((r) => setPins(r.pins))
+      .catch((e) => onError(String(e.message ?? e)))
+  useEffect(() => {
+    void load()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!pins) return <p className={styles.muted}>Cargando…</p>
+  if (!pins.length) return <p className={styles.muted}>No hay mensajes fijados. Se fija un mensaje desde el chat (📌 junto al mensaje).</p>
+  return (
+    <div className={styles.tableCard}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th>Conversación</th>
+            <th>Mensaje fijado</th>
+            <th>Fijado por</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {pins.map((p) => (
+            <tr key={p.channelId}>
+              <td>
+                <b>{p.title}</b>
+                <br />
+                <small className={styles.muted}>{KIND[p.kind as AdminChatChannel['kind']] ?? p.kind}</small>
+              </td>
+              <td>
+                <b>{p.pinned.name}:</b> {mediaOf(p.pinned.body) ? '📷 Imagen' : p.pinned.body.slice(0, 160)}
+              </td>
+              <td className={styles.muted}>
+                {p.pinned.pinnedBy}
+                <br />
+                {fmt(p.pinned.pinnedAt)}
+              </td>
+              <td>
+                <button
+                  className={styles.btnDangerOutline}
+                  onClick={() =>
+                    void chatApi
+                      .adminPin(p.pinned.id, false)
+                      .then(() => (onChanged('Mensaje desfijado.'), load()))
+                      .catch((e) => onError(String(e.message ?? e)))
+                  }
+                >
+                  Desfijar
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

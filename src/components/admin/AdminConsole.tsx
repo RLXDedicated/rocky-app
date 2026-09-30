@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiClient, peopleApi, type AdminAgentSummary, type AdminOverview, type AdminSystem } from '../../services/apiClient'
+import { apiClient, peopleApi, teamsApi, type AdminAgentSummary, type AdminOverview, type AdminSystem } from '../../services/apiClient'
 import { getAgentEmail } from '../../services/identityService'
 import styles from './AdminConsole.module.css'
 import { BarList, ColumnChart, SERIES_ALERT, SERIES_GREEN } from './AdminCharts'
@@ -10,6 +10,7 @@ import { ChatsTab } from './AdminChats'
 import { PeopleTab } from './AdminPeople'
 import { GamesTab } from './AdminGames'
 import { ChallengesTab } from './AdminChallenges'
+import { QaLogTab } from './AdminQa'
 import { TeamsTab } from './AdminTeams'
 import {
   EVENT_TYPE_ES,
@@ -30,8 +31,8 @@ import {
 // same QA event endpoints an audit integration would use (never a direct
 // XP/Energy edit). See backend/src/application/adminApplicationService.ts.
 
-type Tab = 'overview' | 'agents' | 'rewards' | 'challenges' | 'shop' | 'games' | 'people' | 'teams' | 'chats' | 'records'
-type Sub = 'overview' | 'activity' | 'catalog' | 'economy' | 'audit' | 'system'
+type Tab = 'overview' | 'agents' | 'rewards' | 'shop' | 'people' | 'teams' | 'chats' | 'records'
+type Sub = 'overview' | 'activity' | 'gifts' | 'challenges' | 'catalog' | 'economy' | 'games' | 'qa' | 'audit' | 'system'
 
 /** Sub-sections inside a tab (things that belong together live in one place). */
 const SUBS: Partial<Record<Tab, [Sub, string][]>> = {
@@ -39,19 +40,24 @@ const SUBS: Partial<Record<Tab, [Sub, string][]>> = {
     ['overview', 'Resumen'],
     ['activity', 'Actividad'],
   ],
+  rewards: [
+    ['gifts', 'Regalar y desbloquear'],
+    ['challenges', 'Retos de equipo'],
+  ],
   shop: [
     ['catalog', 'Catálogo y precios'],
     ['economy', 'Economía y coins'],
+    ['games', 'Minijuegos'],
   ],
   records: [
-    ['audit', 'Auditoría de cambios'],
+    ['qa', 'Auditorías QA'],
+    ['audit', 'Cambios en Rocky'],
     ['system', 'Sistema'],
   ],
 }
 type SortKey = 'id' | 'level' | 'xp' | 'energy' | 'streak' | 'lastCheckIn' | 'checkIns' | 'qaPasses' | 'alerts'
 type Filter = 'all' | 'atRisk' | 'checkedIn' | 'notCheckedIn'
 
-const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 interface Toast {
   kind: 'ok' | 'error'
@@ -132,14 +138,12 @@ export function AdminConsole() {
             [
               ['overview', '📊 Resumen'],
               ['agents', `👤 Agentes${agents ? ` (${agents.length})` : ''}`],
-              ['rewards', '🎁 Regalos y recompensas'],
-              ['challenges', '🏆 Retos'],
-              ['shop', '🛍️ Tienda y economía'],
-              ['games', '🎮 Minijuegos'],
+              ['rewards', '🎁 Recompensas y retos'],
+              ['shop', '🛍️ Tienda y juegos'],
               ['people', '👥 Roles y equipos'],
-              ['teams', '🗓️ Horarios y Teams'],
+              ['teams', '🗓️ Teams y horarios'],
               ['chats', '💬 Chats'],
-              ['records', '📜 Registro y sistema'],
+              ['records', '📜 Registros'],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -197,21 +201,34 @@ export function AdminConsole() {
               onError={onError}
               onRewards={(ids) => {
                 setRewardPick(ids)
+                setSub((x) => ({ ...x, rewards: 'gifts' }))
                 setTab('rewards')
               }}
             />
           ) : (
             <p className={styles.muted}>Cargando…</p>
           ))}
-        {tab === 'rewards' && <BulkTab key={rewardPick?.join(',') ?? ''} agents={agents} initial={rewardPick} onChanged={onChanged} onError={onError} />}
-        {tab === 'shop' && (subOf('shop') === 'economy' ? <EconomyTab onOpen={setSelected} onError={onError} /> : <ShopTab onChanged={onChanged} onError={onError} />)}
-        {tab === 'games' && <GamesTab onChanged={onChanged} onError={onError} />}
-        {tab === 'challenges' && <ChallengesTab onChanged={onChanged} onError={onError} />}
+        {tab === 'rewards' &&
+          (subOf('rewards') === 'challenges' ? (
+            <ChallengesTab onChanged={onChanged} onError={onError} />
+          ) : (
+            <BulkTab key={rewardPick?.join(',') ?? ''} agents={agents} initial={rewardPick} onChanged={onChanged} onError={onError} />
+          ))}
+        {tab === 'shop' &&
+          (subOf('shop') === 'economy' ? (
+            <EconomyTab onOpen={setSelected} onError={onError} />
+          ) : subOf('shop') === 'games' ? (
+            <GamesTab onChanged={onChanged} onError={onError} />
+          ) : (
+            <ShopTab onChanged={onChanged} onError={onError} />
+          ))}
         {tab === 'people' && <PeopleTab onChanged={onChanged} onError={onError} />}
         {tab === 'teams' && <TeamsTab onChanged={onChanged} onError={onError} />}
         {tab === 'chats' && <ChatsTab onChanged={onChanged} onError={onError} />}
         {tab === 'records' &&
-          (subOf('records') === 'system' ? (
+          (subOf('records') === 'qa' ? (
+            <QaLogTab onOpen={setSelected} onError={onError} />
+          ) : subOf('records') === 'system' ? (
             system ? (
               <SystemTab system={system} />
             ) : (
@@ -429,7 +446,6 @@ function AgentsTab({
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'xp', dir: -1 })
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [auditDate, setAuditDate] = useState(todayIso)
-  const [manualEmail, setManualEmail] = useState('')
   const [busy, setBusy] = useState(false)
 
   const visible = useMemo(() => {
@@ -522,8 +538,18 @@ function AgentsTab({
     else onChanged(on ? `Insignia Tester puesta a ${ids.length} agente(s).` : `Insignia Tester quitada a ${ids.length} agente(s).`)
   }
 
-  const manual = manualEmail.trim().toLowerCase()
-  const manualValid = LOOKS_LIKE_EMAIL.test(manual)
+  /** Rocky's cards in Teams on/off for the selected agents (only those with a shift on the roster). */
+  async function teamsFor(ids: string[], on: boolean) {
+    setBusy(true)
+    try {
+      const r = await teamsApi.setTeamsFor(ids, on)
+      onChanged(`Teams ${on ? 'activado' : 'pausado'} para ${r.changed} agente(s)${r.changed < ids.length ? ` (${ids.length - r.changed} sin horario en el roster)` : ''}.`)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className={styles.stack}>
@@ -569,6 +595,12 @@ function AgentsTab({
           </button>
           <button className={styles.btnGhost} disabled={busy} onClick={() => onRewards([...picked])}>
             🎁 Regalar / desbloquear…
+          </button>
+          <button className={styles.btnGhost} disabled={busy} onClick={() => void teamsFor([...picked], true)}>
+            📣 Teams: activar
+          </button>
+          <button className={styles.btnGhost} disabled={busy} onClick={() => void teamsFor([...picked], false)}>
+            Teams: pausar
           </button>
           <button className={styles.btnGhost} disabled={busy} onClick={() => void setTesters([...picked], true)}>
             🐞 Marcar Tester
@@ -676,25 +708,6 @@ function AgentsTab({
         Mostrando {visible.length} de {agents.length}. Clic en una fila para ver el detalle completo, historial, correcciones y acciones.
       </p>
 
-      <section className={styles.card}>
-        <h3>Registrar evento para un agente que aún no aparece</h3>
-        <p className={styles.cardSub}>Un agente aparece en la lista cuando abre Rocky desde su link de Teams por primera vez.</p>
-        <div className={styles.actionRow}>
-          <input
-            className={styles.search}
-            type="email"
-            placeholder="nombre.apellido@rlx.us"
-            value={manualEmail}
-            onChange={(e) => setManualEmail(e.target.value)}
-          />
-          <button className={styles.btnPass} disabled={!manualValid || busy} onClick={() => void bulk('qa-pass', [manual])}>
-            QA Pass
-          </button>
-          <button className={styles.btnAlert} disabled={!manualValid || busy} onClick={() => void bulk('alert', [manual])}>
-            Alerta
-          </button>
-        </div>
-      </section>
     </div>
   )
 }
@@ -798,29 +811,6 @@ function SystemTab({ system }: { system: AdminSystem }) {
             </div>
           ))}
         </dl>
-      </section>
-      <section className={styles.card}>
-        <h3>Cómo administrar</h3>
-        <ul className={styles.plainList}>
-          <li>
-            <b>Agregar/quitar administradores:</b> en Railway → servicio <code>rocky-backend</code> → Variables → <code>ROCKY_ADMIN_EMAILS</code>{' '}
-            (correos separados por coma). Se aplica al redeploy.
-          </li>
-          <li>
-            <b>Cambiar la zona horaria del pilot:</b> variable <code>ROCKY_TIMEZONE</code> (por defecto <code>America/Bogota</code>).
-          </li>
-          <li>
-            <b>Corregir una auditoría:</b> abre el agente → Historial → “Corregir a Pass/Alerta”. El motor recalcula el efecto; nunca se edita el XP a
-            mano.
-          </li>
-          <li>
-            <b>Limpiar agentes de prueba:</b> pestaña Agentes → selecciónalos → Eliminar.
-          </li>
-          <li>
-            <b>Seguridad:</b> la identidad es el correo del link de Teams, sin contraseña. Antes de salir del pilot cerrado hay que migrar a SSO
-            (Entra ID).
-          </li>
-        </ul>
       </section>
     </div>
   )

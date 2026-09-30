@@ -71,6 +71,16 @@
   display: none;
 }
 
+/* On laptop widths: staff tools shrink to icons (with a tooltip) and the menu fades at the edge when it scrolls. */
+@media (min-width: 761px) and (max-width: 1440px) {
+  .navPinned .navButton span {
+    display: none;
+  }
+  .nav {
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+}
+
 .navPinned {
   display: flex;
   flex: none;
@@ -211,25 +221,6 @@
   }
 }
 
-.qaModeToggle {
-  position: fixed;
-  left: 12px;
-  bottom: 12px;
-  z-index: 90;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px dashed var(--card-border);
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  cursor: pointer;
-}
-
-@media (max-width: 760px) {
-  .qaModeToggle {
-    bottom: 84px;
-  }
-}
 
 .navBadge {
   min-width: 18px;
