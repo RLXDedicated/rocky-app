@@ -61,6 +61,7 @@ import {
   factsFrom,
   initialPetState,
   normalizePetState,
+  teamsNudge,
   arcadeWeekOf,
   refreshPetState,
   treatsAvailable,
@@ -436,6 +437,13 @@ export function createPetApplicationService({
         { delta, note },
         (state, f) => adminAdjustCoins(state, delta, f, note),
       );
+    },
+
+    /** Rocky's reaction to the agent's day in Teams (see teamsNudge). */
+    teamsEffect(agentId: string, kind: "acted" | "ontime" | "ignored", note: string): PetView {
+      const fx =
+        kind === "acted" ? { happiness: 6, coins: 2 } : kind === "ontime" ? { happiness: 5, coins: 5 } : { happiness: -6, coins: 0 };
+      return adminChange(agentId, { id: "rocky-teams", via: "teams" }, `teams.${kind}`, { note }, (state) => teamsNudge(state, fx, note));
     },
 
     adjustTreats(agentId: string, delta: number, actor: Actor): PetView {

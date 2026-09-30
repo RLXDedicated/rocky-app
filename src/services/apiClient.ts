@@ -503,6 +503,53 @@ const authHeaders = (): Record<string, string> => {
   return { 'X-Agent-Email': getAgentEmail() ?? '', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
 }
 
+/** Teams integration (Admin → Horarios y Teams). */
+export interface TeamsSchedule {
+  agentId: string
+  name: string
+  days: number[]
+  start: string
+  end: string
+  source: string
+  updatedAt: string
+  signedUp: boolean
+  leader: string | null
+}
+export interface TeamsDelivery {
+  id: string
+  agentId: string
+  name: string
+  kind: string
+  category: string | null
+  sentAt: string
+  ok: boolean
+  error: string | null
+  openedAt: string | null
+  actedAt: string | null
+  ignoredAt: string | null
+}
+export interface TeamsStatus {
+  configured: boolean
+  webhookHost: string | null
+  roster: number
+  lastDispatch: { at: string; due: number; sent: number; error: string | null } | null
+  last24h: { sent: number; failed: number; opened: number; done: number; ignored: number }
+  recent: TeamsDelivery[]
+  schedules: TeamsSchedule[]
+}
+const put = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) })
+export const teamsApi = {
+  status: () => request<TeamsStatus>('/api/admin/teams/status'),
+  test: (email?: string) => request<{ ok: boolean; error: string | null }>('/api/admin/teams/test', post(email ? { email } : {})),
+  dispatch: () => request<{ due: number; sent: number; error: string | null }>('/api/admin/teams/dispatch', post()),
+  preview: (email: string) => request<{ card: unknown }>(`/api/admin/teams/preview/${encodeURIComponent(email)}`),
+  setSchedule: (email: string, s: { days: number[]; start: string; end: string; name?: string | null }) =>
+    request<{ ok: boolean }>(`/api/admin/schedules/${encodeURIComponent(email)}`, put(s)),
+  removeSchedule: (email: string) => request<{ ok: boolean }>(`/api/admin/schedules/${encodeURIComponent(email)}`, { method: 'DELETE' }),
+  importRoster: (text: string, removeMissing: boolean, defaultSchedule: { days: number[]; start: string; end: string } | null) =>
+    request<{ schedules: number; leaders: number }>('/api/admin/roster/import', post({ text, removeMissing, defaultSchedule })),
+}
+
 /** Team challenges, the Arcade's weekly ranking and Rocky's photo album. */
 export const extrasApi = {
   challenges: () => request<{ challenges: Challenge[] }>('/api/challenges'),

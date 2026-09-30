@@ -267,6 +267,35 @@ export const MIGRATION_006_PEOPLE = `
     ('kcolina@rlx.us', 'qa', '2026-09-29T12:00:00.000Z', 'seed');
 `
 
+/** The Teams/SharePoint roster's shifts, and every card Rocky sent to Teams. */
+export const MIGRATION_012_TEAMS = `
+  CREATE TABLE agent_schedules (
+    agent_id    TEXT PRIMARY KEY,
+    name        TEXT,
+    work_days   TEXT NOT NULL,
+    start_time  TEXT NOT NULL,
+    end_time    TEXT NOT NULL,
+    source      TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    updated_by  TEXT NOT NULL
+  );
+
+  CREATE TABLE teams_deliveries (
+    delivery_id  TEXT PRIMARY KEY,
+    agent_id     TEXT NOT NULL,
+    reminder_id  TEXT,
+    kind         TEXT NOT NULL,
+    category     TEXT,
+    sent_at      TEXT NOT NULL,
+    ok           INTEGER NOT NULL,
+    error        TEXT,
+    opened_at    TEXT,
+    acted_at     TEXT,
+    ignored_at   TEXT
+  );
+  CREATE INDEX idx_teams_deliveries_agent ON teams_deliveries(agent_id, sent_at);
+`
+
 /** Pinned chat announcements, weekly team challenges and Rocky's photo album. */
 export const MIGRATION_011_EXTRAS = `
   CREATE TABLE chat_pins (

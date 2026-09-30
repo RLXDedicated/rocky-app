@@ -9,7 +9,7 @@ import {
   type QAOutcome,
 } from '../types/domain'
 import { ACHIEVEMENT_CATALOG, evaluateAchievements, type AchievementDef, type AchievementMetrics } from './achievements'
-import { daysBetweenKeys, todayKey } from './dateUtils'
+import { daysBetweenKeys, missedWorkingDays, todayKey } from './dateUtils'
 import { GAME_CONFIG } from './gameConfig'
 import { calculateLevel, evolutionForLevel, evolutionRank } from './levels'
 import { evaluateStreakMilestones, type StreakMilestone } from './streakMilestones'
@@ -286,10 +286,13 @@ export function shieldedStreak(
   lastCheckInDate: string | null,
   today: string,
   shields: number,
+  /** The agent's scheduled work days (from the Teams/SharePoint roster): days off never count as missed. */
+  workingDays?: readonly number[],
 ): { currentStreak: number; alreadyCheckedInToday: boolean; shieldsUsed: number } {
   const base = calculateStreak(previousStreak, lastCheckInDate, today)
   if (base.alreadyCheckedInToday || !lastCheckInDate || previousStreak <= 0) return { ...base, shieldsUsed: 0 }
-  const missed = daysBetweenKeys(lastCheckInDate, today) - 1
+  const missed = workingDays?.length ? missedWorkingDays(lastCheckInDate, today, workingDays) : daysBetweenKeys(lastCheckInDate, today) - 1
+  if (missed <= 0) return { currentStreak: previousStreak + 1, alreadyCheckedInToday: false, shieldsUsed: 0 }
   if (missed >= 1 && missed <= shields) return { currentStreak: previousStreak + 1, alreadyCheckedInToday: false, shieldsUsed: missed }
   return { ...base, shieldsUsed: 0 }
 }
@@ -302,10 +305,11 @@ export function processCheckIn(
   eventsSoFar: GameEvent[] = [],
   now: Date = new Date(),
   agentId: string = DEFAULT_AGENT_ID,
+  workingDays?: readonly number[],
 ): CheckInResult {
   const today = todayKey(now)
   const shields = state.streakShields ?? 0
-  const { currentStreak, alreadyCheckedInToday, shieldsUsed } = shieldedStreak(state.currentStreak, state.lastCheckInDate, today, shields)
+  const { currentStreak, alreadyCheckedInToday, shieldsUsed } = shieldedStreak(state.currentStreak, state.lastCheckInDate, today, shields, workingDays)
 
   if (alreadyCheckedInToday) {
     return { state, events: [], newAchievements: [], alreadyCheckedInToday: true, leveledUp: false, evolved: false }
@@ -322,7 +326,14 @@ export function processCheckIn(
       agentId,
       date: today,
       timestamp: now.toISOString(),
-      payload: { xpGained: CHECK_IN_XP, energyGained: CHECK_IN_ENERGY, streak: currentStreak, ...(shieldsUsed ? { shieldsUsed } : {}) },
+      payload: {
+        xpGained: CHECK_IN_XP,
+        energyGained: CHECK_IN_ENERGY,
+        streak: currentStreak,
+        ...(shieldsUsed ? { shieldsUsed } : {}),
+        // Kept so a replay (QA corrections) reaches the same streak.
+        ...(workingDays?.length ? { workingDays: [...workingDays] } : {}),
+      },
     },
   ]
 
@@ -709,7 +720,8 @@ export function recalculateStateFromEvents(events: GameEvent[], agentId: string 
     const when = new Date(event.timestamp)
 
     if (event.type === 'CHECK_IN') {
-      state = processCheckIn(state, historyBefore, when, agentId).state
+      const days = (event.payload as { workingDays?: unknown } | undefined)?.workingDays
+      state = processCheckIn(state, historyBefore, when, agentId, Array.isArray(days) ? (days as number[]) : undefined).state
       continue
     }
 

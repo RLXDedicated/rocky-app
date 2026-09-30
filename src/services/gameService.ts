@@ -50,10 +50,10 @@ export class GameService {
     }
   }
 
-  checkIn(now: Date = this.clock.now()): CheckInResult {
+  checkIn(now: Date = this.clock.now(), workingDays?: readonly number[]): CheckInResult {
     const state = this.repo.getGameState()
     const events = this.repo.getEvents()
-    const result = processCheckIn(state, events, now, this.repo.getAgent().id ?? DEFAULT_AGENT_ID)
+    const result = processCheckIn(state, events, now, this.repo.getAgent().id ?? DEFAULT_AGENT_ID, workingDays)
     if (!result.alreadyCheckedInToday) {
       this.repo.saveGameState(result.state)
       for (const event of result.events) {

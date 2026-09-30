@@ -10,6 +10,7 @@ import { ChatsTab } from './AdminChats'
 import { PeopleTab } from './AdminPeople'
 import { GamesTab } from './AdminGames'
 import { ChallengesTab } from './AdminChallenges'
+import { TeamsTab } from './AdminTeams'
 import {
   EVENT_TYPE_ES,
   MOOD_ES,
@@ -29,7 +30,7 @@ import {
 // same QA event endpoints an audit integration would use (never a direct
 // XP/Energy edit). See backend/src/application/adminApplicationService.ts.
 
-type Tab = 'overview' | 'agents' | 'rewards' | 'challenges' | 'shop' | 'games' | 'people' | 'chats' | 'records'
+type Tab = 'overview' | 'agents' | 'rewards' | 'challenges' | 'shop' | 'games' | 'people' | 'teams' | 'chats' | 'records'
 type Sub = 'overview' | 'activity' | 'catalog' | 'economy' | 'audit' | 'system'
 
 /** Sub-sections inside a tab (things that belong together live in one place). */
@@ -136,6 +137,7 @@ export function AdminConsole() {
               ['shop', '🛍️ Tienda y economía'],
               ['games', '🎮 Minijuegos'],
               ['people', '👥 Roles y equipos'],
+              ['teams', '🗓️ Horarios y Teams'],
               ['chats', '💬 Chats'],
               ['records', '📜 Registro y sistema'],
             ] as const
@@ -206,6 +208,7 @@ export function AdminConsole() {
         {tab === 'games' && <GamesTab onChanged={onChanged} onError={onError} />}
         {tab === 'challenges' && <ChallengesTab onChanged={onChanged} onError={onError} />}
         {tab === 'people' && <PeopleTab onChanged={onChanged} onError={onError} />}
+        {tab === 'teams' && <TeamsTab onChanged={onChanged} onError={onError} />}
         {tab === 'chats' && <ChatsTab onChanged={onChanged} onError={onError} />}
         {tab === 'records' &&
           (subOf('records') === 'system' ? (

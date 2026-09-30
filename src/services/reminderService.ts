@@ -3,7 +3,7 @@ import { evaluateReminderOpportunity, type ReminderCandidate } from '../engine/r
 import { repository } from '../repository/localStorageRepository'
 import type { Repository } from '../repository/repository'
 import { DEFAULT_AGENT_ID } from '../types/domain'
-import type { ReminderCategory, ReminderRecord, ReminderStatus } from '../types/reminder'
+import type { ReminderCategory, ReminderRecord, ReminderStatus, WorkingHoursSettings } from '../types/reminder'
 
 let idCounter = 0
 function makeReminderId(): string {
@@ -47,7 +47,7 @@ function toRecord(candidate: ReminderCandidate, now: Date): ReminderRecord {
  * so — persists it as 'sent' and returns it. Returns null otherwise. Never
  * touches XP/Energy/Streak/Achievements (Phase 7 §25).
  */
-export function checkForReminder(repo: Repository = repository, now: Date = systemClock.now()): ReminderRecord | null {
+export function checkForReminder(repo: Repository = repository, now: Date = systemClock.now(), settings?: WorkingHoursSettings): ReminderRecord | null {
   const state = repo.getGameState()
   const events = repo.getEvents()
   const history = repo.getReminders()
@@ -60,6 +60,7 @@ export function checkForReminder(repo: Repository = repository, now: Date = syst
     history,
     agentId,
     forceWorkingHours: isForcingWorkingHours(),
+    settings,
   })
   if (!candidate) return null
 

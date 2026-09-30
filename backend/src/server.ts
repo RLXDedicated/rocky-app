@@ -49,6 +49,13 @@ const houseJobs = () => {
 houseJobs()
 const houseTimer = setInterval(houseJobs, 60 * 60_000)
 houseTimer.unref()
+// Every 5 minutes: Rocky's reminder cards to Teams (only inside each agent's shift).
+const teamsJob = () => {
+  live.teams.dispatch().catch((err) => console.error('[rocky-backend] teams dispatch failed:', err))
+}
+const teamsTimer = setInterval(teamsJob, 5 * 60_000)
+teamsTimer.unref()
+console.log(`[rocky-backend] Teams cards: ${live.teams.configured() ? 'ON' : 'off (set ROCKY_TEAMS_WEBHOOK_URL)'}`)
 const backup = live.jobs.status().target
 console.log(`[rocky-backend] live channel at /api/live; chat backups: volume ${backup.local ? 'on' : 'off'}, bucket ${backup.bucket ? 'on' : 'off'}, ${backup.encrypted ? 'encrypted' : 'NOT encrypted (set ROCKY_CHAT_BACKUP_KEY)'}`)
 

@@ -90,6 +90,23 @@ function App() {
   const qaMode = qaModeSetting && canUseQaTools;
   const [chatWith, setChatWith] = useState<string | null>(null);
   const [arrival, setArrival] = useState<string | null>(null);
+  // Arrived from a Rocky card in Teams (the backend already recorded the answer).
+  const [teamsNote, setTeamsNote] = useState<string | null>(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("from") !== "teams") return null;
+    return p.get("teams") === "done"
+      ? "✅ Thanks for confirming your notes — Rocky is proud of you!"
+      : "🐂 Rocky saw you coming from Teams and is happy to see you!";
+  });
+  useEffect(() => {
+    if (!teamsNote) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("from");
+    url.searchParams.delete("teams");
+    window.history.replaceState(null, "", url.toString());
+    const t = window.setTimeout(() => setTeamsNote(null), 8000);
+    return () => window.clearTimeout(t);
+  }, [teamsNote]);
   const unread = useChatUnread();
   const myRole = useMyRole();
   const [visitId, setVisitId] = useState<string | null>(null);
@@ -342,6 +359,15 @@ function App() {
 
       <ReminderHost />
       {isRemoteModeEnabled() && <NotificationHost onOpenChat={openChat} onOpenHome={openHome} />}
+
+      {teamsNote && (
+        <div className={styles.arrival} role="status">
+          <span>{teamsNote}</span>
+          <button type="button" onClick={() => setTeamsNote(null)}>
+            OK
+          </button>
+        </div>
+      )}
 
       {arrival && view !== 'home' && (
         <div className={styles.arrival} role="status">

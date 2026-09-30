@@ -1171,6 +1171,28 @@ export function adminAdjustCoins(
   };
 }
 
+/**
+ * What the agent's day in Teams does to Rocky: answering a reminder card or
+ * checking in on time makes him happier (and pays a few coins); ignoring
+ * reminders makes him a little sad. Small on purpose — the real growth
+ * still comes from the documentation work itself.
+ */
+export function teamsNudge(
+  state: PetState,
+  fx: { happiness: number; coins: number },
+  note: string,
+): { state: PetState; ledger?: LedgerEntry } {
+  const coins = Math.max(0, Math.trunc(fx.coins));
+  return {
+    state: {
+      ...state,
+      needs: bump(state.needs, { happiness: fx.happiness }),
+      gameCoins: state.gameCoins + coins,
+    },
+    ...(coins ? { ledger: { delta: coins, kind: "game" as const, note } } : {}),
+  };
+}
+
 /** Gives an item to the agent for free, bypassing its progress unlock. */
 export function adminGrantItem(state: PetState, itemId: string): PetState {
   return state.granted.includes(itemId)

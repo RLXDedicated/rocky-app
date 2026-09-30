@@ -1,0 +1,31 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "5f0c8a52-4c1e-4f6b-9a57-2b8e3d6c1a90",
+  "developer": {
+    "name": "RLX Quality",
+    "websiteUrl": "https://rocky-dist.vercel.app",
+    "privacyUrl": "https://rocky-dist.vercel.app",
+    "termsOfUseUrl": "https://rocky-dist.vercel.app"
+  },
+  "name": { "short": "Rocky", "full": "Rocky — your RLX buddy" },
+  "description": {
+    "short": "Take care of Rocky while you keep great notes.",
+    "full": "Rocky is the RLX pilot's virtual buddy. Check in for your shift, keep your notes clear and Rocky grows with you: levels, streaks, a home to decorate, friends and team challenges. Rocky also sends friendly reminders here in Teams during your shift."
+  },
+  "icons": { "color": "color.png", "outline": "outline.png" },
+  "accentColor": "#10233F",
+  "staticTabs": [
+    {
+      "entityId": "rocky-home",
+      "name": "Rocky",
+      "contentUrl": "https://rocky-dist.vercel.app/?agente={loginHint}&from=teams-tab",
+      "websiteUrl": "https://rocky-dist.vercel.app/",
+      "scopes": ["personal"]
+    }
+  ],
+  "permissions": ["identity"],
+  "validDomains": ["rocky-dist.vercel.app", "rocky-backend-production-6208.up.railway.app"],
+  "showLoadingIndicator": false
+}

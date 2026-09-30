@@ -15,9 +15,13 @@ import type { AchievementsResponse, CheckInResponse, GameStateResponse } from '.
 export interface GameApplicationServiceDeps {
   persistence: PersistenceContext
   clock?: Clock
+  /** The agent's shift from the Teams/SharePoint roster (days off never break the streak). */
+  scheduleOf?: (agentId: string) => { days: number[]; start: string; end: string } | null
+  /** Called after a real (first of the day) check-in — e.g. the on-time bonus. */
+  onCheckIn?: (agentId: string) => void
 }
 
-export function createGameApplicationService({ persistence, clock = systemClock }: GameApplicationServiceDeps) {
+export function createGameApplicationService({ persistence, clock = systemClock, scheduleOf = () => null, onCheckIn }: GameApplicationServiceDeps) {
   function serviceFor(agentId: string): GameService {
     return new GameService(persistence.repoStore.forAgent(agentId), clock)
   }
@@ -45,8 +49,8 @@ export function createGameApplicationService({ persistence, clock = systemClock 
     },
 
     checkIn(agentId: string): CheckInResponse {
-      return persistence.withTransaction(() => {
-        const result = serviceFor(agentId).checkIn()
+      const response = persistence.withTransaction(() => {
+        const result = serviceFor(agentId).checkIn(clock.now(), scheduleOf(agentId)?.days)
         return {
           state: result.state,
           events: result.events,
@@ -56,6 +60,8 @@ export function createGameApplicationService({ persistence, clock = systemClock 
           evolved: result.evolved,
         }
       })
+      if (!response.alreadyCheckedInToday) onCheckIn?.(agentId)
+      return response
     },
 
     getAchievements(agentId: string): AchievementsResponse {

@@ -18,16 +18,19 @@ import type { ReminderActionResponse, RemindersResponse } from '../types/dto'
 export interface ReminderApplicationServiceDeps {
   persistence: PersistenceContext
   clock?: Clock
+  /** The agent's shift (Teams/SharePoint roster): reminders only happen inside it. */
+  scheduleOf?: (agentId: string) => { days: number[]; start: string; end: string } | null
 }
 
-export function createReminderApplicationService({ persistence, clock = systemClock }: ReminderApplicationServiceDeps) {
+export function createReminderApplicationService({ persistence, clock = systemClock, scheduleOf = () => null }: ReminderApplicationServiceDeps) {
   return {
     getReminders(agentId: string): RemindersResponse {
       const repo = persistence.repoStore.forAgent(agentId)
       // Also gives a due reminder a chance to be created, mirroring the
       // frontend's ReminderHost poll — a read-and-record call, same as the
       // local architecture already does (ARCHITECTURE.md §Reminder flow).
-      checkForReminder(repo, clock.now())
+      const shift = scheduleOf(agentId)
+      checkForReminder(repo, clock.now(), shift ? { workingDays: shift.days, workingStartTime: shift.start, workingEndTime: shift.end } : undefined)
       return { reminders: getReminderHistory(repo) }
     },
 

@@ -33,6 +33,9 @@ import { createPeopleApplicationService, type PeopleApplicationService } from '.
 import { createPeopleRouter } from './api/peopleRoutes'
 import { createExtrasRouter } from './api/extrasRoutes'
 import { createChallengeApplicationService, type ChallengeApplicationService } from './application/challengeApplicationService'
+import { createTeamsApplicationService, type TeamsApplicationService, type TeamsConfig } from './application/teamsApplicationService'
+import { createTeamsAdminRouter, createTeamsLinkRouter } from './api/teamsRoutes'
+import { createHash, randomBytes } from 'node:crypto'
 import { backupTargetFromEnv, type BackupTarget } from './infrastructure/chat/chatBackup'
 import type { PetApplicationService } from './application/petApplicationService'
 import type { AuthApplicationService } from './application/authApplicationService'
@@ -53,6 +56,25 @@ export interface CreateAppOptions {
   config?: AppConfig
   /** Test-only: where chat backups go (defaults to the volume next to the database, plus the bucket if configured). */
   backupTarget?: BackupTarget
+  /** Test-only: the Teams webhook settings and a fake fetch. */
+  teams?: Partial<TeamsConfig> & { fetchFn?: typeof fetch }
+}
+
+/** Teams settings from the environment (see docs/TEAMS_INTEGRATION.md). */
+function teamsConfigFromEnv(env: NodeJS.ProcessEnv): TeamsConfig {
+  const trim = (v: string | undefined) => v?.trim().replace(/\/+$/, '') || null
+  let linkSecret = env.ROCKY_LINK_SECRET?.trim() || null
+  if (!linkSecret && env.ROCKY_CHAT_BACKUP_KEY) linkSecret = createHash('sha256').update(`rocky-links:${env.ROCKY_CHAT_BACKUP_KEY}`).digest('hex')
+  if (!linkSecret) {
+    linkSecret = randomBytes(32).toString('hex')
+    if (env.ROCKY_TEAMS_WEBHOOK_URL) console.warn('[rocky-backend] ROCKY_LINK_SECRET is not set: Teams card links stop working after a restart.')
+  }
+  return {
+    webhookUrl: env.ROCKY_TEAMS_WEBHOOK_URL?.trim() || null,
+    webUrl: trim(env.ROCKY_PUBLIC_WEB_URL) ?? 'https://rocky-dist.vercel.app',
+    apiUrl: trim(env.ROCKY_PUBLIC_API_URL) ?? 'https://rocky-backend-production-6208.up.railway.app',
+    linkSecret,
+  }
 }
 
 /** What the live WebSocket hub (server.ts) needs from the app. */
@@ -64,6 +86,7 @@ export interface LiveContext {
   jobs: ChatJobs
   persistence: PersistenceContext
   challenges: ChallengeApplicationService
+  teams: TeamsApplicationService
 }
 
 export function createApp(options: CreateAppOptions = {}): Express {
@@ -80,6 +103,11 @@ export function createApp(options: CreateAppOptions = {}): Express {
 
   const api = express.Router()
   const auth = createAuthApplicationService({ persistence, config, clock: options.clock })
+  // Late-bound: Teams needs pet, which is built after identity.
+  let teams: TeamsApplicationService | null = null
+
+  // Teams card buttons: public, the signed link is the identity.
+  api.use(createTeamsLinkRouter(() => teams!))
 
   // Sign-in routes come before identity: they are how an identity is obtained.
   api.post('/auth/status', (req, res) => {
@@ -113,16 +141,20 @@ export function createApp(options: CreateAppOptions = {}): Express {
   people = createPeopleApplicationService({ persistence, pet, isStaff, isOnline: (id) => bus.isOnline(id), clock: options.clock })
   const jobs = createChatJobs(chat, options.backupTarget ?? backupTargetFromEnv(process.env, config.persistenceDriver === 'sqlite' ? config.dbPath : null), options.clock)
   const challenges = createChallengeApplicationService({ persistence, pet, clock: options.clock })
-  const live: LiveContext = { auth, pet, chat, bus, jobs, persistence, challenges }
+  const { fetchFn, ...teamsOverrides } = options.teams ?? {}
+  teams = createTeamsApplicationService({ persistence, pet, config: { ...teamsConfigFromEnv(process.env), ...teamsOverrides }, clock: options.clock, fetchFn })
+  const scheduleOf = teams.scheduleOf
+  const live: LiveContext = { auth, pet, chat, bus, jobs, persistence, challenges, teams }
   app.locals.live = live
   api.use(createChatRouter(chat, jobs))
   api.use(createPeopleRouter(people))
   api.use(createExtrasRouter({ challenges, pet, persistence, clock: options.clock }))
+  api.use(createTeamsAdminRouter(teams))
   api.use(
     createApiRouter({
-      game: createGameApplicationService({ persistence, clock: options.clock }),
+      game: createGameApplicationService({ persistence, clock: options.clock, scheduleOf, onCheckIn: (id) => teams?.onCheckIn(id) }),
       qa: createQaApplicationService({ persistence, clock: options.clock }),
-      reminders: createReminderApplicationService({ persistence, clock: options.clock }),
+      reminders: createReminderApplicationService({ persistence, clock: options.clock, scheduleOf }),
       leaderboard: createLeaderboardApplicationService({ persistence }),
       team: createTeamApplicationService({ persistence }),
       admin: createAdminApplicationService({ persistence, config, clock: options.clock }),

@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord } from './AccountStore'
 
 interface LedgerDbRow {
   entry_id: number
@@ -80,6 +80,22 @@ const toSession = (r: SessionDbRow): SessionRecord => ({
  * Durable AccountStore. Shares the repository's SQLite connection, so its
  * writes join the same transactions (withTransaction) as the game data.
  */
+function toDelivery(r: Record<string, unknown>): DeliveryRecord {
+  return {
+    id: r.delivery_id as string,
+    agentId: r.agent_id as string,
+    reminderId: (r.reminder_id as string | null) ?? null,
+    kind: r.kind as string,
+    category: (r.category as string | null) ?? null,
+    sentAt: r.sent_at as string,
+    ok: r.ok === 1,
+    error: (r.error as string | null) ?? null,
+    openedAt: (r.opened_at as string | null) ?? null,
+    actedAt: (r.acted_at as string | null) ?? null,
+    ignoredAt: (r.ignored_at as string | null) ?? null,
+  }
+}
+
 export class SqliteAccountStore implements AccountStore {
   constructor(private readonly db: DatabaseSync) {}
 
@@ -246,6 +262,68 @@ export class SqliteAccountStore implements AccountStore {
         'INSERT INTO agent_titles (agent_id, title, updated_at, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT(agent_id) DO UPDATE SET title = excluded.title, updated_at = excluded.updated_at, updated_by = excluded.updated_by',
       )
       .run(agentId, title, at, by)
+  }
+
+  getSchedules(): Record<string, ScheduleRecord> {
+    const rows = this.db.prepare('SELECT * FROM agent_schedules').all() as Record<string, string>[]
+    return Object.fromEntries(
+      rows.map((r) => [
+        r.agent_id,
+        {
+          agentId: r.agent_id!,
+          name: r.name ?? null,
+          days: r.work_days!.split(',').filter(Boolean).map(Number),
+          start: r.start_time!,
+          end: r.end_time!,
+          source: r.source!,
+          updatedAt: r.updated_at!,
+          updatedBy: r.updated_by!,
+        },
+      ]),
+    )
+  }
+  setSchedule(agentId: string, s: Omit<ScheduleRecord, 'agentId'> | null): void {
+    if (!s) {
+      this.db.prepare('DELETE FROM agent_schedules WHERE agent_id = ?').run(agentId)
+      return
+    }
+    this.db
+      .prepare(
+        `INSERT INTO agent_schedules (agent_id, name, work_days, start_time, end_time, source, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(agent_id) DO UPDATE SET name = excluded.name, work_days = excluded.work_days, start_time = excluded.start_time, end_time = excluded.end_time, source = excluded.source, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+      )
+      .run(agentId, s.name, s.days.join(','), s.start, s.end, s.source, s.updatedAt, s.updatedBy)
+  }
+
+  addDelivery(d: DeliveryRecord): void {
+    this.db
+      .prepare('INSERT INTO teams_deliveries (delivery_id, agent_id, reminder_id, kind, category, sent_at, ok, error, opened_at, acted_at, ignored_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(d.id, d.agentId, d.reminderId, d.kind, d.category, d.sentAt, d.ok ? 1 : 0, d.error, d.openedAt, d.actedAt, d.ignoredAt)
+  }
+  getDelivery(id: string): DeliveryRecord | null {
+    const r = this.db.prepare('SELECT * FROM teams_deliveries WHERE delivery_id = ?').get(id) as Record<string, unknown> | undefined
+    return r ? toDelivery(r) : null
+  }
+  updateDelivery(id: string, patch: Partial<Pick<DeliveryRecord, 'openedAt' | 'actedAt' | 'ignoredAt'>>): void {
+    if (patch.openedAt) this.db.prepare('UPDATE teams_deliveries SET opened_at = COALESCE(opened_at, ?) WHERE delivery_id = ?').run(patch.openedAt, id)
+    if (patch.actedAt) this.db.prepare('UPDATE teams_deliveries SET acted_at = COALESCE(acted_at, ?) WHERE delivery_id = ?').run(patch.actedAt, id)
+    if (patch.ignoredAt) this.db.prepare('UPDATE teams_deliveries SET ignored_at = COALESCE(ignored_at, ?) WHERE delivery_id = ?').run(patch.ignoredAt, id)
+  }
+  listDeliveries(opts: { agentId?: string; since?: string; limit?: number }): DeliveryRecord[] {
+    const where: string[] = []
+    const args: (string | number)[] = []
+    if (opts.agentId) {
+      where.push('agent_id = ?')
+      args.push(opts.agentId)
+    }
+    if (opts.since) {
+      where.push('sent_at >= ?')
+      args.push(opts.since)
+    }
+    const rows = this.db
+      .prepare(`SELECT * FROM teams_deliveries ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY sent_at DESC LIMIT ?`)
+      .all(...args, opts.limit ?? 500) as Record<string, unknown>[]
+    return rows.map(toDelivery)
   }
 
   listChallenges(): ChallengeRecord[] {

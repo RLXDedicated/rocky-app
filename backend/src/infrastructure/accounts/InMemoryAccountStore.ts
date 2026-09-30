@@ -1,5 +1,5 @@
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord } from './AccountStore'
 
 const clone = <T>(v: T): T => (v === undefined || v === null ? v : (JSON.parse(JSON.stringify(v)) as T))
 const newest = <T extends { id: number }>(rows: T[], limit: number) => [...rows].sort((a, b) => b.id - a.id).slice(0, limit)
@@ -128,6 +128,37 @@ export class InMemoryAccountStore implements AccountStore {
     if (title) this.titles.set(agentId, title)
     else this.titles.delete(agentId)
   }
+  private schedules = new Map<string, ScheduleRecord>()
+  private deliveries: DeliveryRecord[] = []
+  getSchedules() {
+    return Object.fromEntries([...this.schedules].map(([k, v]) => [k, { ...v, days: [...v.days] }]))
+  }
+  setSchedule(agentId: string, s: Omit<ScheduleRecord, 'agentId'> | null) {
+    if (s) this.schedules.set(agentId, { ...s, agentId })
+    else this.schedules.delete(agentId)
+  }
+  addDelivery(d: DeliveryRecord) {
+    this.deliveries.push({ ...d })
+  }
+  getDelivery(id: string) {
+    const d = this.deliveries.find((x) => x.id === id)
+    return d ? { ...d } : null
+  }
+  updateDelivery(id: string, patch: Partial<Pick<DeliveryRecord, 'openedAt' | 'actedAt' | 'ignoredAt'>>) {
+    const d = this.deliveries.find((x) => x.id === id)
+    if (!d) return
+    if (patch.openedAt && !d.openedAt) d.openedAt = patch.openedAt
+    if (patch.actedAt && !d.actedAt) d.actedAt = patch.actedAt
+    if (patch.ignoredAt && !d.ignoredAt) d.ignoredAt = patch.ignoredAt
+  }
+  listDeliveries(opts: { agentId?: string; since?: string; limit?: number }) {
+    return this.deliveries
+      .filter((d) => (!opts.agentId || d.agentId === opts.agentId) && (!opts.since || d.sentAt >= opts.since))
+      .sort((a, b) => b.sentAt.localeCompare(a.sentAt))
+      .slice(0, opts.limit ?? 500)
+      .map((d) => ({ ...d }))
+  }
+
   private challenges: ChallengeRecord[] = []
   private photos = new Map<string, PhotoRecord>()
   listChallenges() {

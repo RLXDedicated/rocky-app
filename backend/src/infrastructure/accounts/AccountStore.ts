@@ -83,6 +83,33 @@ export interface ChallengeRecord {
   finalScore: number | null
 }
 
+export interface ScheduleRecord {
+  agentId: string
+  name: string | null
+  days: number[]
+  start: string
+  end: string
+  /** "import" (roster paste), "admin" (edited by hand). */
+  source: string
+  updatedAt: string
+  updatedBy: string
+}
+
+export interface DeliveryRecord {
+  id: string
+  agentId: string
+  reminderId: string | null
+  /** "reminder" | "test" | "shift-summary" … */
+  kind: string
+  category: string | null
+  sentAt: string
+  ok: boolean
+  error: string | null
+  openedAt: string | null
+  actedAt: string | null
+  ignoredAt: string | null
+}
+
 export interface PhotoRecord {
   id: string
   agentId: string
@@ -120,6 +147,15 @@ export interface AccountStore {
   /** Titles by agent (qa analysts, team leaders). */
   getTitles(): Record<string, AgentTitle>
   setTitle(agentId: string, title: AgentTitle | null, by: string, at: string): void
+  getSchedules(): Record<string, ScheduleRecord>
+  setSchedule(agentId: string, s: Omit<ScheduleRecord, 'agentId'> | null): void
+
+  addDelivery(d: DeliveryRecord): void
+  getDelivery(id: string): DeliveryRecord | null
+  updateDelivery(id: string, patch: Partial<Pick<DeliveryRecord, 'openedAt' | 'actedAt' | 'ignoredAt'>>): void
+  /** Newest first. */
+  listDeliveries(opts: { agentId?: string; since?: string; limit?: number }): DeliveryRecord[]
+
   listChallenges(): ChallengeRecord[]
   addChallenge(c: Omit<ChallengeRecord, 'id' | 'settledAt' | 'result' | 'finalScore'>): ChallengeRecord
   settleChallenge(id: number, result: 'won' | 'missed' | 'cancelled', finalScore: number | null, at: string): void
