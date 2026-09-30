@@ -129,7 +129,7 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
         )}
         {status && status.notesOnly !== false && (
           <p className={styles.muted}>
-            Modo solo notas activo: al inicio del turno un enfoque de notas y hasta 3 recordatorios al día, cada uno con un consejo. Sin stickers, sin datos de la mascota, sin enlaces a la app ni efectos en Rocky. Las opciones de abajo aplican cuando lo desactives.
+            Modo solo notas activo: al inicio del turno un enfoque de notas y 5 recordatorios al día repartidos en el turno (mín. 60 min entre uno y otro), cada uno con un consejo. Sin stickers, sin datos de la mascota, sin enlaces a la app ni efectos en Rocky. Las opciones de abajo aplican cuando lo desactives.
           </p>
         )}
         {status && (

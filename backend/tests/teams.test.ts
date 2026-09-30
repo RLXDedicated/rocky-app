@@ -362,7 +362,7 @@ describe('Teams integration', () => {
     await live.teams.dispatch()
     const start = posted[0]!.cards.find((c) => c.email === ANA)!
     expect(start.kind).toBe('notes-start')
-    t.set('2026-09-08T09:00:00')
+    t.set('2026-09-08T09:35:00')
     await live.teams.dispatch()
     const reminder = posted.flatMap((p) => p.cards).find((c) => c.kind === 'notes')!
     for (const c of [start, reminder]) {
@@ -386,10 +386,23 @@ describe('Teams integration', () => {
       await live.teams.dispatch()
     }
     const kinds = posted.flatMap((p) => p.cards).filter((c) => c.email === ANA).map((c) => c.kind)
-    expect(kinds.filter((k) => k === 'notes').length).toBeLessThanOrEqual(3)
+    expect(kinds.filter((k) => k === 'notes').length).toBeLessThanOrEqual(5)
     expect(kinds.every((k) => k === 'notes' || k === 'notes-start')).toBe(true)
     t.set('2026-09-14T10:00:00') // Monday
     await live.teams.dispatch()
     expect(posted.flatMap((p) => p.cards).some((c) => c.kind === 'leader')).toBe(false)
+  })
+
+  it('notes-only: 5 note reminders a day, spread evenly over the shift', async () => {
+    const t = movableClock('2026-09-08T07:55:00')
+    const { app, live, posted } = build(t.clock, 202, true)
+    await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
+    for (let m = 0; m <= 9 * 60 + 10; m += 5) {
+      t.set(new Date(new Date('2026-09-08T07:55:00').getTime() + m * 60_000).toISOString())
+      await live.teams.dispatch()
+    }
+    const ana = posted.flatMap((p) => p.cards).filter((c) => c.email === ANA)
+    expect(ana.filter((c) => c.kind === 'notes-start')).toHaveLength(1)
+    expect(ana.filter((c) => c.kind === 'notes')).toHaveLength(5)
   })
 })

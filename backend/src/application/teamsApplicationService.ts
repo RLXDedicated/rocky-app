@@ -65,6 +65,10 @@ const STREAK_RISK_WINDOW: [number, number] = [30, 120]
 /** Team leads' weekly summary: Monday from this hour (server time). */
 const LEADER_SUMMARY_HOUR = 9
 /** Kinds the agent answers (cheers Rocky up the first time; card replaced once answered). */
+/** Notes-only mode: note reminders a day (besides the shift-start focus), spread evenly over the shift. */
+export const NOTES_PER_DAY = 5
+/** Never closer than this, even on a short shift. */
+const NOTES_MIN_GAP_MIN = 60
 const ANSWERABLE = new Set(['reminder', 'streakrisk', 'test', 'notes'])
 
 const GREETING_LINES: [string, string][] = [
@@ -654,12 +658,16 @@ export function createTeamsApplicationService({
             queue(d, name, d.voice, notesStartCard(d.voice, lesson, weekly))
             continue
           }
+          // 2) Up to NOTES_PER_DAY note reminders, spread over the shift: the shift is cut
+          //    into NOTES_PER_DAY + 1 slices and one goes out per slice (never in the last 15 min).
+          const sent = todaysNotes.filter((d) => d.kind === 'notes')
+          if (sent.length >= NOTES_PER_DAY || untilEnd < 15) continue
+          const shiftLen = into + untilEnd
+          const gap = Math.max(NOTES_MIN_GAP_MIN, Math.floor(shiftLen / (NOTES_PER_DAY + 1)))
+          if (into < gap * (sent.length + 1) - 5) continue
           const last = todaysNotes[0]
-          if (last && last.kind === 'notes-start' && now.getTime() - new Date(last.sentAt).getTime() < 45 * 60_000) continue
-          // 2) Up to 3 note reminders a day (the reminder engine's timing: cooldowns, daily cap).
-          const reminder = persistence.withTransaction(() => checkForReminder(repo.forAgent(agentId), now, shift))
-          if (!reminder) continue
-          const d = newDelivery(agentId, 'notes', reminder)
+          if (last && now.getTime() - new Date(last.sentAt).getTime() < (last.kind === 'notes-start' ? 45 : gap - 5) * 60_000) continue
+          const d = newDelivery(agentId, 'notes', null)
           const lesson = lessonOf(agentId)
           d.category = 'Documentation'
           d.voice = notesLine(NOTE_REMINDERS, agentId, first)
