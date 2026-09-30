@@ -89,6 +89,10 @@ export interface ScheduleRecord {
   days: number[]
   start: string
   end: string
+  /** IANA zone the shift is written in (e.g. "America/New_York"); null = the server's zone. */
+  timeZone: string | null
+  /** Gets Rocky's cards in Teams (SharePoint "Active"). The shift still applies in the app either way. */
+  teams: boolean
   /** "import" (roster paste), "admin" (edited by hand). */
   source: string
   updatedAt: string

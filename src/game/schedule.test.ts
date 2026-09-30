@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describeSchedule, minutesIntoShift, parseDays, parseRoster, parseShift, parseTime } from './schedule'
+import { describeSchedule, minutesIntoShift, parseDays, parseRoster, parseShift, parseTime, parseScheduleText, matchByName, emailFitsName, toLocalSchedule, zoneOffsetMinutes } from './schedule'
 
 describe('schedule parsing', () => {
   it('reads days the ways people write them', () => {
@@ -51,5 +51,58 @@ describe('schedule parsing', () => {
     const s = { days: [1, 2, 3, 4, 5], start: '08:00', end: '17:00' }
     expect(minutesIntoShift(s, new Date(2026, 8, 29, 8, 20))).toBe(20)
     expect(minutesIntoShift(s, new Date(2026, 9, 4, 9, 0))).toBeNull()
+  })
+})
+
+describe('the RLX roster formats', () => {
+  it('reads days and hours in one cell', () => {
+    expect(parseScheduleText('WED-SUN / 1100 - 2000')).toEqual({ days: [0, 3, 4, 5, 6], start: '11:00', end: '20:00' })
+    expect(parseScheduleText('SUN - THU 1200 / 2100')).toEqual({ days: [0, 1, 2, 3, 4], start: '12:00', end: '21:00' })
+    expect(parseScheduleText('SAT-MON;WED-THU / 1000 - 1900')).toEqual({ days: [0, 1, 3, 4, 6], start: '10:00', end: '19:00' })
+    expect(parseScheduleText('THU - MON / 0800 - 1700PM')).toEqual({ days: [0, 1, 4, 5, 6], start: '08:00', end: '17:00' })
+    expect(parseScheduleText('MON - FRI / 1100-2000')?.start).toBe('11:00')
+    expect(parseScheduleText('whenever')).toBeNull()
+  })
+
+  it('imports a Name / Schedule list (no emails) and the SharePoint export', () => {
+    const byName = parseRoster('Name\tSchedule\nNohelia Laverde Mejia\tSAT-MON;WED-THU / 1000 - 1900')
+    expect(byName.missing).toEqual([])
+    expect(byName.rows[0]).toMatchObject({ email: '', name: 'Nohelia Laverde Mejia', schedule: { days: [0, 1, 3, 4, 6] } })
+    const sp = parseRoster(
+      '﻿"Título","TeamLead","TeamLeadEmail","AgentName","TeamsEmail","Active","ShiftStart","ShiftEnd","WorkDays"\n' +
+        ',"Maria Cantillo","mcantillo@rlx.us","Eduardo Luis Nuñez Garcia","enunez@rlx.us","No","10:00","19:00","Fri,Sat,Sun,Mon,Tue"',
+    )
+    expect(sp.rows[0]).toMatchObject({ email: 'enunez@rlx.us', name: 'Eduardo Luis Nuñez Garcia', leader: 'mcantillo@rlx.us', active: false, schedule: { days: [0, 1, 2, 5, 6], start: '10:00', end: '19:00' } })
+  })
+
+  it('matches people by name and RLX emails by initial + surname', () => {
+    const people = [
+      { email: 'jnunez@rlx.us', name: 'Julieth Paola Nuñez Salas' },
+      { email: 'enunez@rlx.us', name: 'Eduardo Luis Nuñez Garcia' },
+    ]
+    expect(matchByName('Julieth Paola Nunez Salas', people)?.email).toBe('jnunez@rlx.us')
+    expect(matchByName('Nuñez', people)).toBeNull()
+    expect(emailFitsName('mcantillo@rlx.us', 'Maria Cantillo')).toBe(true)
+    expect(emailFitsName('jmullet@rlx.us', 'Juan David Mulett Millan')).toBe(false)
+  })
+
+  it('moves a US Eastern shift into local time, following US daylight saving', () => {
+    const s = { days: [3, 4, 5, 6, 0], start: '08:00', end: '17:00' }
+    // Expected local = Eastern wall time minus the zone gap at that moment.
+    for (const at of [new Date('2026-09-30T15:00:00Z'), new Date('2026-12-02T15:00:00Z')]) {
+      const gap = zoneOffsetMinutes('America/New_York', at) + at.getTimezoneOffset()
+      const local = toLocalSchedule(s, 'America/New_York', at)
+      const minutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3))
+      if (minutes('08:00') - gap >= 0 && minutes('17:00') - gap < 1440) expect(minutes(local.start)).toBe(minutes('08:00') - gap)
+    }
+    expect(zoneOffsetMinutes('America/New_York', new Date('2026-09-30T15:00:00Z'))).toBe(-240)
+    expect(zoneOffsetMinutes('America/New_York', new Date('2026-12-02T15:00:00Z'))).toBe(-300)
+    expect(zoneOffsetMinutes('America/Bogota', new Date('2026-09-30T15:00:00Z'))).toBe(-300)
+    expect(toLocalSchedule(s, null, new Date())).toBe(s)
+  })
+
+  it('describes shifts that wrap past Saturday', () => {
+    expect(describeSchedule({ days: [0, 3, 4, 5, 6], start: '11:00', end: '20:00' })).toBe('Mié–Dom · 11:00–20:00')
+    expect(describeSchedule({ days: [0, 1, 3, 4, 6], start: '10:00', end: '19:00' })).toBe('Dom, Lun, Mié, Jue, Sáb · 10:00–19:00')
   })
 })

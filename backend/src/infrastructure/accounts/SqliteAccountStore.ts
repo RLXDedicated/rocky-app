@@ -275,6 +275,8 @@ export class SqliteAccountStore implements AccountStore {
           days: r.work_days!.split(',').filter(Boolean).map(Number),
           start: r.start_time!,
           end: r.end_time!,
+          timeZone: r.time_zone ?? null,
+          teams: Number(r.teams_enabled ?? 1) !== 0,
           source: r.source!,
           updatedAt: r.updated_at!,
           updatedBy: r.updated_by!,
@@ -289,10 +291,10 @@ export class SqliteAccountStore implements AccountStore {
     }
     this.db
       .prepare(
-        `INSERT INTO agent_schedules (agent_id, name, work_days, start_time, end_time, source, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(agent_id) DO UPDATE SET name = excluded.name, work_days = excluded.work_days, start_time = excluded.start_time, end_time = excluded.end_time, source = excluded.source, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+        `INSERT INTO agent_schedules (agent_id, name, work_days, start_time, end_time, time_zone, teams_enabled, source, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(agent_id) DO UPDATE SET name = excluded.name, work_days = excluded.work_days, start_time = excluded.start_time, end_time = excluded.end_time, time_zone = excluded.time_zone, teams_enabled = excluded.teams_enabled, source = excluded.source, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
       )
-      .run(agentId, s.name, s.days.join(','), s.start, s.end, s.source, s.updatedAt, s.updatedBy)
+      .run(agentId, s.name, s.days.join(','), s.start, s.end, s.timeZone, s.teams ? 1 : 0, s.source, s.updatedAt, s.updatedBy)
   }
 
   addDelivery(d: DeliveryRecord): void {

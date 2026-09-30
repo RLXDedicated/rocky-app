@@ -5,6 +5,9 @@ import { loadConfig } from '../src/config/env'
 import type { Clock } from '../../src/engine/clock'
 import { buildMemoryPersistence } from './testApp'
 
+// Shifts in US Eastern are converted to the server's zone (Colombia in production).
+process.env.TZ = 'America/Bogota'
+
 const ADMIN = 'qa.lead@rlx.us'
 const ANA = 'ana.perez@rlx.us'
 const LUIS = 'luis.gomez@rlx.us'
@@ -59,7 +62,7 @@ describe('Teams integration', () => {
     const { app } = build(movableClock('2026-09-07T09:00:00').clock)
     const res = await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER })
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({ schedules: 2, leaders: 2 })
+    expect(res.body).toMatchObject({ schedules: 2, leaders: 2 })
     const status = await request(app).get('/api/admin/teams/status').set(as(ADMIN))
     expect(status.body.configured).toBe(true)
     expect(status.body.roster).toBe(2)
@@ -72,9 +75,13 @@ describe('Teams integration', () => {
     const { app } = build(movableClock('2026-09-07T09:00:00').clock)
     const text = ['AgentName\tTeamsEmail\tActive\tPilotStatus', `Ana Pérez\t${ANA}\tYes\tTest`, `Luis Gómez\t${LUIS}\tNo\tTest`].join('\n')
     const res = await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text, defaultSchedule: { days: [1, 2, 3, 4, 5], start: '09:00', end: '18:00' } })
-    expect(res.body).toEqual({ schedules: 1, leaders: 0 })
+    // Active = No keeps the shift (streaks, in-app reminders) but no Teams cards.
+    expect(res.body).toMatchObject({ schedules: 2, leaders: 0 })
     const status = await request(app).get('/api/admin/teams/status').set(as(ADMIN))
-    expect(status.body.schedules).toMatchObject([{ agentId: ANA, name: 'Ana Pérez', start: '09:00', end: '18:00' }])
+    expect(status.body.schedules).toMatchObject([
+      { agentId: ANA, name: 'Ana Pérez', start: '09:00', end: '18:00', teams: true },
+      { agentId: LUIS, teams: false },
+    ])
   })
 
   it('sends reminder cards only inside each agent’s shift, in one webhook call', async () => {
@@ -173,5 +180,34 @@ describe('Teams integration', () => {
     expect(await live.teams.dispatch()).toMatchObject({ due: 1, sent: 0, error: 'Teams answered 500' })
     const status = await request(app).get('/api/admin/teams/status').set(as(ADMIN))
     expect(status.body.last24h.failed).toBe(1)
+  })
+
+  it('imports the SharePoint list, then updated hours by name in US Eastern time; only Active agents get cards', async () => {
+    const t = movableClock('2026-09-30T07:30:00') // Wednesday, Colombia (07:30 = 08:30 in New York)
+    const { app, live, posted } = build(t.clock)
+    const sharepoint = [
+      '"Título","TeamLead","TeamLeadEmail","AgentName","TeamsEmail","Active","ShiftStart","ShiftEnd","WorkDays"',
+      `,"Maria Cantillo","${LEADER}","Ana Pérez","${ANA}","Yes","07:00","16:00","Wed,Thu,Fri,Sat,Sun"`,
+      `,"Maria Cantillo","${LEADER}","Luis Gómez","${LUIS}","No","07:00","16:00","Wed,Thu,Fri,Sat,Sun"`,
+    ].join('\n')
+    const first = await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: sharepoint, timeZone: 'America/Bogota' })
+    expect(first.body).toMatchObject({ schedules: 2, leaders: 2 })
+    // The updated list has names only, with hours in New York time.
+    const updated = await request(app)
+      .post('/api/admin/roster/import')
+      .set(as(ADMIN))
+      .send({ text: 'Name\tSchedule\nAna Perez\tWED-SUN / 0800 - 1700\nLuis Gomez\tWED-SUN / 0800 - 1700\nNobody Here\tMON-FRI / 0800 - 1700', timeZone: 'America/New_York' })
+    expect(updated.body).toMatchObject({ schedules: 2, matchedByName: 2, unmatched: ['Nobody Here'] })
+    const status = await request(app).get('/api/admin/teams/status').set(as(ADMIN))
+    const ana = status.body.schedules.find((s: { agentId: string }) => s.agentId === ANA)
+    expect(ana).toMatchObject({ start: '08:00', end: '17:00', timeZone: 'America/New_York', teams: true, local: { start: '07:00', end: '16:00' } })
+    expect(status.body.schedules.find((s: { agentId: string }) => s.agentId === LUIS).teams).toBe(false)
+    expect(status.body.teamsOn).toBe(1)
+    // 07:30 in Colombia is inside the (converted) shift: Ana gets a card, Luis (Active = No) doesn't.
+    await live.teams.dispatch()
+    expect(posted.flatMap((p) => p.cards.map((c) => c.email))).toEqual([ANA])
+    // 06:30 in Colombia (07:30 in New York) is before the shift.
+    t.set('2026-10-01T06:30:00')
+    expect((await live.teams.dispatch()).due).toBe(0)
   })
 })

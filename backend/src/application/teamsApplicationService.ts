@@ -20,7 +20,7 @@ import { ApiError } from '../api/errors'
 import type { PersistenceContext } from '../infrastructure/persistenceContext'
 import type { DeliveryRecord, ScheduleRecord } from '../infrastructure/accounts/AccountStore'
 import { checkForReminder, markReminderActed, markReminderOpened, systemClock, todayKey, type Clock } from '../domain/rockyEngine'
-import { minutesIntoShift, validSchedule, type AgentSchedule, type RosterRow } from '../../../src/game/schedule'
+import { emailFitsName, matchByName, minutesIntoShift, toLocalSchedule, validSchedule, validTimeZone, type AgentSchedule, type RosterRow } from '../../../src/game/schedule'
 import { publicName } from './leaderboardApplicationService'
 import type { PetApplicationService } from './petApplicationService'
 import type { ReminderRecord } from '../../../src/types/reminder'
@@ -66,9 +66,11 @@ export function createTeamsApplicationService({
   const repo = persistence.repoStore
   let lastDispatch: { at: string; due: number; sent: number; error: string | null } | null = null
 
+  /** The agent's shift in server time right now (a US Eastern shift moves with US daylight saving). */
+  const localShift = (s: ScheduleRecord, at: Date = clock.now()): AgentSchedule => toLocalSchedule({ days: s.days, start: s.start, end: s.end }, s.timeZone, at)
   const scheduleOf = (agentId: string): AgentSchedule | null => {
     const s = accounts.getSchedules()[agentId]
-    return s ? { days: s.days, start: s.start, end: s.end } : null
+    return s ? localShift(s) : null
   }
 
   function nameOf(agentId: string, s?: ScheduleRecord): string {
@@ -212,7 +214,10 @@ export function createTeamsApplicationService({
       const items: Parameters<typeof post>[0] = []
       const deliveries: DeliveryRecord[] = []
       for (const [agentId, s] of Object.entries(accounts.getSchedules())) {
-        const shift = { workingDays: s.days, workingStartTime: s.start, workingEndTime: s.end }
+        // SharePoint "Active" = No: the shift still counts in the app, but no cards in Teams.
+        if (!s.teams) continue
+        const local = localShift(s, now)
+        const shift = { workingDays: local.days, workingStartTime: local.start, workingEndTime: local.end }
         // Everyone on the roster gets Rocky, even before they first open the app.
         if (!repo.hasAgent(agentId)) {
           const r = repo.forAgent(agentId)
@@ -311,46 +316,125 @@ export function createTeamsApplicationService({
     schedules() {
       const all = accounts.getSchedules()
       return Object.values(all)
-        .map((s) => ({ ...s, name: nameOf(s.agentId, s), signedUp: repo.hasAgent(s.agentId), leader: accounts.getTeams()[s.agentId] ?? null }))
+        .map((s) => ({ ...s, name: nameOf(s.agentId, s), signedUp: repo.hasAgent(s.agentId), leader: accounts.getTeams()[s.agentId] ?? null, local: s.timeZone ? localShift(s) : null }))
         .sort((a, b) => a.name.localeCompare(b.name))
     },
 
-    setSchedule(agentId: string, s: AgentSchedule | null, actorId: string, name?: string | null) {
+    setSchedule(
+      agentId: string,
+      s: (AgentSchedule & { timeZone?: string | null; teams?: boolean }) | null,
+      actorId: string,
+      name?: string | null,
+    ) {
       const email = agentId.trim().toLowerCase()
       if (s && !validSchedule(s)) throw ApiError.validation('Pick at least one day, and an end time after the start time.')
-      accounts.setSchedule(email, s ? { ...s, name: name ?? accounts.getSchedules()[email]?.name ?? null, source: 'admin', updatedAt: clock.now().toISOString(), updatedBy: actorId } : null)
+      if (s?.timeZone && !validTimeZone(s.timeZone)) throw ApiError.validation('Unknown time zone.')
+      const before = accounts.getSchedules()[email]
+      accounts.setSchedule(
+        email,
+        s
+          ? {
+              days: s.days,
+              start: s.start,
+              end: s.end,
+              timeZone: s.timeZone === undefined ? (before?.timeZone ?? null) : s.timeZone,
+              teams: s.teams ?? before?.teams ?? true,
+              name: name ?? before?.name ?? null,
+              source: 'admin',
+              updatedAt: clock.now().toISOString(),
+              updatedBy: actorId,
+            }
+          : null,
+      )
       accounts.addAudit({ agentId: email, actor: actorId, action: 'admin.schedule', detail: { schedule: s }, source: null, createdAt: clock.now().toISOString() })
     },
 
-    /** Applies the rows of a pasted roster (only the usable ones). */
-    importRoster(rows: RosterRow[], actorId: string, opts: { removeMissing: boolean; defaultSchedule?: AgentSchedule | null }) {
+    /**
+     * Applies the rows of a pasted roster (only the usable ones). Rows with no
+     * email (a "Name / Schedule" list) are matched by name to the roster
+     * already in Rocky; a leader given by name is matched to a person too.
+     */
+    importRoster(
+      rows: RosterRow[],
+      actorId: string,
+      opts: { removeMissing: boolean; defaultSchedule?: AgentSchedule | null; timeZone?: string | null },
+    ) {
       if (opts.defaultSchedule && !validSchedule(opts.defaultSchedule)) throw ApiError.validation('The default shift needs at least one day and an end time after the start time.')
+      if (opts.timeZone && !validTimeZone(opts.timeZone)) throw ApiError.validation('Unknown time zone.')
       const at = clock.now().toISOString()
       let schedules = 0
       let leaders = 0
+      let matchedByName = 0
+      const unmatched: string[] = []
+      const unmatchedLeaders = new Set<string>()
       const seen = new Set<string>()
+      const existing = accounts.getSchedules()
+      // Everyone Rocky can name: the roster (existing + this paste) and people who opened the app.
+      const people = new Map<string, string>()
+      for (const id of repo.listAgentIds()) people.set(id, nameOf(id))
+      for (const s of Object.values(existing)) if (s.name) people.set(s.agentId, s.name)
+      for (const r of rows) if (r.email && r.name) people.set(r.email, r.name)
+      const byName = [...people].map(([email, name]) => ({ email, name }))
+      const leaderFor = (name: string): string | null => {
+        const titled = Object.entries(accounts.getTitles())
+          .filter(([, t]) => t === 'leader')
+          .map(([email]) => ({ email, name: people.get(email) ?? nameOf(email) }))
+        const hit = matchByName(name, titled) ?? titled.find((p) => emailFitsName(p.email, name)) ?? matchByName(name, byName)
+        if (hit) return hit.email
+        const guess = [...people.keys(), ...Object.keys(accounts.getTitles())].find((email) => emailFitsName(email, name))
+        return guess ?? null
+      }
       persistence.withTransaction(() => {
         for (const r of rows) {
-          // Invalid email, inactive in the list, unreadable shift: left out.
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email) || r.problem) continue
-          seen.add(r.email)
+          let email = r.email
+          if (!email && r.name) {
+            email = matchByName(r.name, byName)?.email ?? ''
+            if (!email) {
+              unmatched.push(r.name)
+              continue
+            }
+            matchedByName++
+          }
+          // Invalid email or unreadable shift: left out.
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || r.problem) continue
+          seen.add(email)
+          const before = accounts.getSchedules()[email]
           const schedule = r.schedule ?? opts.defaultSchedule ?? null
           if (schedule) {
-            accounts.setSchedule(r.email, { ...schedule, name: r.name, source: 'import', updatedAt: at, updatedBy: actorId })
+            accounts.setSchedule(email, {
+              ...schedule,
+              name: r.name ?? before?.name ?? null,
+              timeZone: r.timeZone ?? opts.timeZone ?? null,
+              teams: r.active ?? before?.teams ?? true,
+              source: 'import',
+              updatedAt: at,
+              updatedBy: actorId,
+            })
             schedules++
+          } else if (before && typeof r.active === 'boolean' && before.teams !== r.active) {
+            accounts.setSchedule(email, { ...before, teams: r.active, updatedAt: at, updatedBy: actorId })
           }
-          if (r.leader && r.leader !== r.email) {
-            if (!accounts.getTitles()[r.leader]) accounts.setTitle(r.leader, 'leader', actorId, at)
-            if (accounts.getTitles()[r.leader] === 'leader') {
-              accounts.setLeader(r.email, r.leader, actorId, at)
+          const leader = r.leader ?? (r.leaderName ? leaderFor(r.leaderName) : null)
+          if (r.leaderName && !leader) unmatchedLeaders.add(r.leaderName)
+          if (leader && leader !== email) {
+            if (!accounts.getTitles()[leader]) accounts.setTitle(leader, 'leader', actorId, at)
+            if (accounts.getTitles()[leader] === 'leader') {
+              accounts.setLeader(email, leader, actorId, at)
               leaders++
             }
           }
         }
         if (opts.removeMissing) for (const id of Object.keys(accounts.getSchedules())) if (!seen.has(id)) accounts.setSchedule(id, null)
       })
-      accounts.addAudit({ agentId: null, actor: actorId, action: 'admin.roster.import', detail: { rows: rows.length, schedules, leaders, removeMissing: opts.removeMissing, defaultSchedule: opts.defaultSchedule ?? null }, source: null, createdAt: at })
-      return { schedules, leaders }
+      accounts.addAudit({
+        agentId: null,
+        actor: actorId,
+        action: 'admin.roster.import',
+        detail: { rows: rows.length, schedules, leaders, matchedByName, unmatched, removeMissing: opts.removeMissing, defaultSchedule: opts.defaultSchedule ?? null, timeZone: opts.timeZone ?? null },
+        source: null,
+        createdAt: at,
+      })
+      return { schedules, leaders, matchedByName, unmatched, unmatchedLeaders: [...unmatchedLeaders] }
     },
 
     status() {
@@ -366,6 +450,7 @@ export function createTeamsApplicationService({
         configured: Boolean(config.webhookUrl),
         webhookHost: host,
         roster: Object.keys(accounts.getSchedules()).length,
+        teamsOn: Object.values(accounts.getSchedules()).filter((s) => s.teams).length,
         lastDispatch,
         last24h: {
           sent: recent.filter((d) => d.ok).length,

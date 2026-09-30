@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { DAY_SHORT_ES, describeSchedule, parseRoster } from '../../game/schedule'
+import { DAY_SHORT_ES, SHIFT_TIME_ZONES, describeSchedule, parseRoster } from '../../game/schedule'
 import { teamsApi, type TeamsSchedule, type TeamsStatus } from '../../services/apiClient'
 import { getAgentEmail } from '../../services/identityService'
 import styles from './AdminConsole.module.css'
 
+const zoneLabel = (tz: string | null) => (tz ? (SHIFT_TIME_ZONES.find(([z]) => z === tz)?.[1] ?? tz) : 'Hora de Colombia')
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' }) : '—')
 const KIND_ES: Record<string, string> = { reminder: 'Recordatorio', test: 'Prueba', ontime: 'Check-in a tiempo' }
 
@@ -26,6 +27,8 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
   const [removeMissing, setRemoveMissing] = useState(false)
   // For lists without shift columns (like the pilot's "Pilot agents" list).
   const [useDefault, setUseDefault] = useState(true)
+  // Zone the pasted hours are written in (a "TimeZone" column overrides it per row).
+  const [zone, setZone] = useState('America/New_York')
   const [fallback, setFallback] = useState({ days: [1, 2, 3, 4, 5], start: '08:00', end: '17:00' })
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState<TeamsSchedule | null>(null)
@@ -72,7 +75,7 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
             <div className={styles.kpi}>
               <span className={styles.kpiLabel}>Agentes con horario</span>
               <span className={styles.kpiValue}>{status.roster}</span>
-              <span className={styles.kpiHint}>Solo ellos reciben tarjetas, y solo en su turno</span>
+              <span className={styles.kpiHint}>{status.teamsOn} reciben tarjetas en Teams (Active = Yes), solo en su turno</span>
             </div>
             <div className={styles.kpi}>
               <span className={styles.kpiLabel}>Tarjetas 24 h</span>
@@ -156,6 +159,7 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
                     <th>Agente</th>
                     <th>Líder</th>
                     <th>Horario</th>
+                    <th>Teams</th>
                     <th>Estado</th>
                   </tr>
                 </thead>
@@ -166,10 +170,14 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
                       <td>
                         {r.name ?? '—'}
                         <br />
-                        <small className={styles.muted}>{r.email}</small>
+                        <small className={styles.muted}>{r.email || 'se busca por nombre'}</small>
                       </td>
-                      <td className={styles.muted}>{r.leader ?? '—'}</td>
-                      <td>{r.schedule ? describeSchedule(r.schedule) : withDefault && !r.problem ? <i className={styles.muted}>{describeSchedule(fallback)} (por defecto)</i> : '—'}</td>
+                      <td className={styles.muted}>{r.leader ?? r.leaderName ?? '—'}</td>
+                      <td>
+                        {r.schedule ? describeSchedule(r.schedule) : withDefault && !r.problem ? <i className={styles.muted}>{describeSchedule(fallback)} (por defecto)</i> : '—'}
+                        {r.timeZone && <small className={styles.muted}> · {zoneLabel(r.timeZone)}</small>}
+                      </td>
+                      <td>{r.active === false ? <span className={styles.chip}>No</span> : r.active ? <span className={styles.statusOk}>Sí</span> : <span className={styles.muted}>—</span>}</td>
                       <td>{r.problem ? <span className={styles.statusWarn}>{r.problem}</span> : r.schedule || withDefault ? <span className={styles.statusOk}>OK</span> : <span className={styles.chip}>sin horario</span>}</td>
                     </tr>
                   ))}
@@ -196,6 +204,22 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
                 <input type="time" disabled={!useDefault} value={fallback.end} onChange={(e) => setFallback((f) => ({ ...f, end: e.target.value }))} aria-label="Salida por defecto" />
               </div>
             )}
+            <div className={styles.inlineForm}>
+              <label className={styles.field}>
+                <span>Las horas de esta lista están en</span>
+                <select className={styles.select} value={zone} onChange={(e) => setZone(e.target.value)}>
+                  {SHIFT_TIME_ZONES.map(([z, label]) => (
+                    <option key={z} value={z}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <small className={styles.muted}>
+                Si las horas están en hora del Este, Rocky las pasa a hora Colombia solo (hoy 08:00 Este = 07:00 Colombia) y sigue el cambio de horario de EE. UU. en
+                noviembre. Una columna TimeZone en la lista tiene prioridad.
+              </small>
+            </div>
             <div className={styles.actionRow}>
               <label>
                 <input type="checkbox" checked={removeMissing} onChange={(e) => setRemoveMissing(e.target.checked)} /> Quitar el horario a quien ya no está en la lista
@@ -205,8 +229,16 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
                 disabled={busy || usable === 0}
                 onClick={() =>
                   void run(
-                    () => teamsApi.importRoster(text, removeMissing, withDefault ? fallback : null),
-                    (r) => `Lista importada: ${r.schedules} horarios y ${r.leaders} asignaciones de líder.`,
+                    () => teamsApi.importRoster(text, removeMissing, withDefault ? fallback : null, zone),
+                    (r) =>
+                      [
+                        `Lista importada: ${r.schedules} horarios y ${r.leaders} asignaciones de líder.`,
+                        r.matchedByName ? `${r.matchedByName} encontrados por nombre.` : '',
+                        r.unmatched.length ? `Sin coincidencia (no están en el roster): ${r.unmatched.join(', ')}.` : '',
+                        r.unmatchedLeaders.length ? `Líder sin identificar: ${r.unmatchedLeaders.join(', ')} (asígnalo en Roles y equipos).` : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' '),
                   ).then((r) => r && setText(''))
                 }
               >
@@ -224,6 +256,7 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
               <th>Agente</th>
               <th>Líder</th>
               <th>Horario</th>
+              <th>Teams</th>
               <th>Origen</th>
               <th />
             </tr>
@@ -239,14 +272,14 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
             {status?.schedules.map((s) =>
               editing?.agentId === s.agentId ? (
                 <tr key={s.agentId}>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <ScheduleEditor
                       value={editing}
                       onChange={setEditing}
                       onCancel={() => setEditing(null)}
                       onSave={() =>
                         void run(
-                          () => teamsApi.setSchedule(editing.agentId, { days: editing.days, start: editing.start, end: editing.end }),
+                          () => teamsApi.setSchedule(editing.agentId, { days: editing.days, start: editing.start, end: editing.end, timeZone: editing.timeZone }),
                           () => `Horario guardado: ${editing.name}`,
                         ).then((r) => r && setEditing(null))
                       }
@@ -262,7 +295,31 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
                     <small className={styles.muted}>{s.agentId}</small>
                   </td>
                   <td className={styles.muted}>{s.leader ?? '—'}</td>
-                  <td>{describeSchedule(s)}</td>
+                  <td>
+                    {describeSchedule(s)}
+                    {s.local && (
+                      <>
+                        <br />
+                        <small className={styles.muted}>
+                          {zoneLabel(s.timeZone)} · hoy en Colombia: {s.local.start}–{s.local.end}
+                        </small>
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      className={styles.linkBtn}
+                      title={s.teams ? 'Recibe tarjetas en Teams. Clic para pausar.' : 'No recibe tarjetas (Active = No). Clic para activar.'}
+                      onClick={() =>
+                        void run(
+                          () => teamsApi.setSchedule(s.agentId, { days: s.days, start: s.start, end: s.end, teams: !s.teams }),
+                          () => (s.teams ? `${s.name} ya no recibe tarjetas en Teams.` : `${s.name} recibirá tarjetas en Teams en su turno.`),
+                        )
+                      }
+                    >
+                      {s.teams ? '✅ Sí' : '⏸ No'}
+                    </button>
+                  </td>
                   <td className={styles.muted}>{s.source === 'import' ? 'SharePoint' : 'Admin'}</td>
                   <td>
                     <button className={styles.linkBtn} onClick={() => setEditing(s)}>
@@ -404,6 +461,13 @@ function ScheduleEditor({
         <span>Salida</span>
         <input type="time" value={value.end} onChange={(e) => onChange({ ...value, end: e.target.value })} />
       </label>
+      <select className={styles.select} value={value.timeZone ?? 'America/Bogota'} onChange={(e) => onChange({ ...value, timeZone: e.target.value })} aria-label="Zona horaria">
+        {SHIFT_TIME_ZONES.map(([z, label]) => (
+          <option key={z} value={z}>
+            {label}
+          </option>
+        ))}
+      </select>
       <button className={styles.btnPrimary} disabled={busy || value.days.length === 0 || value.start >= value.end} onClick={onSave}>
         Guardar
       </button>

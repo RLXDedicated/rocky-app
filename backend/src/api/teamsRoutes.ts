@@ -51,10 +51,12 @@ export function createTeamsAdminRouter(teams: TeamsApplicationService): Router {
   })
   router.put('/admin/schedules/:email', admin, (req: Request, res: Response) => {
     const b = parseJsonBody(req.body)
-    const s: AgentSchedule = {
+    const s = {
       days: Array.isArray(b.days) ? b.days.map(Number) : [],
       start: typeof b.start === 'string' ? b.start : '',
       end: typeof b.end === 'string' ? b.end : '',
+      ...(b.timeZone === null || typeof b.timeZone === 'string' ? { timeZone: (b.timeZone as string | null) || null } : {}),
+      ...(typeof b.teams === 'boolean' ? { teams: b.teams } : {}),
     }
     teams.setSchedule(String(req.params.email), s, me(req), typeof b.name === 'string' ? b.name.trim() || null : null)
     res.json({ ok: true })
@@ -69,14 +71,15 @@ export function createTeamsAdminRouter(teams: TeamsApplicationService): Router {
     let rows: RosterRow[]
     if (typeof b.text === 'string') {
       const parsed = parseRoster(b.text)
-      if (parsed.missing.includes('email')) throw ApiError.validation('The pasted list needs an email column.')
+      if (parsed.missing.includes('email')) throw ApiError.validation('The pasted list needs an email or a name column.')
       rows = parsed.rows
     } else if (Array.isArray(b.rows)) rows = b.rows as RosterRow[]
     else throw ApiError.validation('Paste the roster first.')
     if (rows.length > 2000) throw ApiError.validation('That roster is too long.')
     const d = b.defaultSchedule as Partial<AgentSchedule> | null | undefined
     const defaultSchedule = d ? { days: Array.isArray(d.days) ? d.days.map(Number) : [], start: String(d.start ?? ''), end: String(d.end ?? '') } : null
-    res.json(teams.importRoster(rows, me(req), { removeMissing: b.removeMissing === true, defaultSchedule }))
+    const timeZone = typeof b.timeZone === 'string' && b.timeZone ? b.timeZone : null
+    res.json(teams.importRoster(rows, me(req), { removeMissing: b.removeMissing === true, defaultSchedule, timeZone }))
   })
   return router
 }

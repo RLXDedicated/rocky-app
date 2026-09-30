@@ -268,6 +268,12 @@ export const MIGRATION_006_PEOPLE = `
 `
 
 /** The Teams/SharePoint roster's shifts, and every card Rocky sent to Teams. */
+/** Shifts written in another time zone (e.g. US Eastern), and who gets Teams cards (SharePoint "Active"). */
+export const MIGRATION_013_SCHEDULE_TZ = `
+  ALTER TABLE agent_schedules ADD COLUMN time_zone TEXT;
+  ALTER TABLE agent_schedules ADD COLUMN teams_enabled INTEGER NOT NULL DEFAULT 1;
+`
+
 export const MIGRATION_012_TEAMS = `
   CREATE TABLE agent_schedules (
     agent_id    TEXT PRIMARY KEY,
