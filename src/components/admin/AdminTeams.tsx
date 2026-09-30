@@ -113,6 +113,27 @@ export function TeamsTab({ onChanged, onError }: { onChanged: (m: string) => voi
         </div>
         {status && (
           <div className={styles.actionRow}>
+            <label style={{ fontWeight: 700 }}>
+              <input
+                type="checkbox"
+                checked={status.notesOnly !== false}
+                onChange={(e) =>
+                  void run(() => teamsApi.setNotesOnly(e.target.checked), (r) =>
+                    r.notesOnly ? 'Modo solo notas: recordatorios y consejos, sin Rocky.' : 'Tarjetas completas de Rocky activadas (mascota, stickers, kudos, líderes).',
+                  )
+                }
+              />{' '}
+              📝 Solo notas (sin Rocky ni datos de la mascota)
+            </label>
+          </div>
+        )}
+        {status && status.notesOnly !== false && (
+          <p className={styles.muted}>
+            Modo solo notas activo: al inicio del turno un enfoque de notas y hasta 3 recordatorios al día, cada uno con un consejo. Sin stickers, sin datos de la mascota, sin enlaces a la app ni efectos en Rocky. Las opciones de abajo aplican cuando lo desactives.
+          </p>
+        )}
+        {status && (
+          <div className={styles.actionRow}>
             <label>
               <input
                 type="checkbox"

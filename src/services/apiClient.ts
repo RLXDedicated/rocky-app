@@ -608,6 +608,8 @@ export interface TeamsStatus {
   /** Team leads' weekly summary on/off, and how many leads have a team. */
   leaderSummary?: boolean
   leaders?: number
+  /** Notes-only cards: no Rocky, no pet data, no app links. */
+  notesOnly?: boolean
   lastDispatch: { at: string; due: number; sent: number; error: string | null } | null
   last24h: { sent: number; failed: number; opened: number; done: number; ignored: number; byKind?: Record<string, number> }
   recent: TeamsDelivery[]
@@ -622,6 +624,7 @@ export const teamsApi = {
     request<{ changed: number }>('/api/admin/teams/enabled', { method: 'PUT', body: JSON.stringify(emails === 'all' ? { all: true, on } : { emails, on }) }),
   setRoast: (on: boolean) => request<{ roast: boolean }>('/api/admin/teams/roast', { method: 'PUT', body: JSON.stringify({ on }) }),
   preview: (email: string, kind = 'reminder') => request<{ card: unknown }>(`/api/admin/teams/preview/${encodeURIComponent(email)}?kind=${encodeURIComponent(kind)}`),
+  setNotesOnly: (on: boolean) => request<{ notesOnly: boolean }>('/api/admin/teams/notes-only', { method: 'PUT', body: JSON.stringify({ on }) }),
   setLeaderSummary: (on: boolean) => request<{ leaderSummary: boolean }>('/api/admin/teams/leader-summary', { method: 'PUT', body: JSON.stringify({ on }) }),
   sendLeaderSummaries: () => request<{ ok: boolean; sent: number; error: string | null }>('/api/admin/teams/leaders/send', post()),
   setSchedule: (email: string, s: { days: number[]; start: string; end: string; name?: string | null; timeZone?: string | null; teams?: boolean }) =>

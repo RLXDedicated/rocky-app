@@ -28,6 +28,12 @@
 //   streakrisk  near the end of the shift when a streak would break (counts as a reminder);
 //   kudos       teammates' thank-yous (extra).
 // Team leads get a weekly team summary (Monday morning).
+//
+// Notes-only mode (Admin, on by default for now): the cards don't mention
+// Rocky or the pet at all and don't link to the app — just the shift-start
+// notes focus and up to 3 plain note reminders, each with a lesson. No pet
+// effects, no streak/kudos/leader cards. The "notes done" button records the
+// answer and shows a thank-you page.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { ApiError } from '../api/errors'
 import type { PersistenceContext } from '../infrastructure/persistenceContext'
@@ -36,7 +42,7 @@ import { checkForReminder, markReminderActed, markReminderOpened, systemClock, t
 import { emailFitsName, matchByName, minutesIntoShift, toLocalSchedule, validSchedule, validTimeZone, type AgentSchedule, type RosterRow } from '../../../src/game/schedule'
 import { publicName } from './leaderboardApplicationService'
 import { stickerImage, voiceFor, type VoiceLine } from '../../../src/engine/rockyVoice'
-import { checklistBlock, findLesson, lessonBlock, pickLesson, THEME_ICON, THEME_LABEL, weekTheme, type NoteLesson } from '../../../src/engine/noteCoaching'
+import { checklistBlock, findLesson, lessonBlock, NOTE_REMINDERS, NOTE_SHIFT_STARTS, pickLesson, THEME_ICON, THEME_LABEL, weekTheme, type NoteLesson } from '../../../src/engine/noteCoaching'
 import { NOTE_TIPS } from '../../../src/game/notesQuiz'
 import { MAX_DAILY_REMINDERS } from '../../../src/engine/reminderEngine'
 import { WORKING_DAYS } from '../../../src/engine/dateUtils'
@@ -59,7 +65,7 @@ const STREAK_RISK_WINDOW: [number, number] = [30, 120]
 /** Team leads' weekly summary: Monday from this hour (server time). */
 const LEADER_SUMMARY_HOUR = 9
 /** Kinds the agent answers (cheers Rocky up the first time; card replaced once answered). */
-const ANSWERABLE = new Set(['reminder', 'streakrisk', 'test'])
+const ANSWERABLE = new Set(['reminder', 'streakrisk', 'test', 'notes'])
 
 const GREETING_LINES: [string, string][] = [
   ['Rocky’s here and ready. Let’s make every note count today, {name}.', 'gm'],
@@ -156,6 +162,9 @@ export function createTeamsApplicationService({
   /** Team leads' weekly summary (Admin). On unless turned off. */
   const LEADER_KEY = 'setting:teams-leader-summary'
   const leaderSummaryOn = () => accounts.getCatalogOverrides()[LEADER_KEY]?.enabled !== false
+  /** Notes-only cards (no Rocky, no pet data, no app links). On unless turned off. */
+  const NOTES_ONLY_KEY = 'setting:teams-notes-only'
+  const notesOnlyOn = () => accounts.getCatalogOverrides()[NOTES_ONLY_KEY]?.enabled !== false
 
   const firstNameOf = (name: string) => name.split(' ')[0] || name
   const recentVoices = (agentId: string) =>
@@ -238,6 +247,41 @@ export function createTeamsApplicationService({
   const learnAction = (deliveryId: string, agentId: string) => ({ type: 'Action.OpenUrl', title: '📘 Practice notes', url: link(deliveryId, agentId, 'learn') })
   const openAction = (deliveryId: string, agentId: string, title = '🐂 Open Rocky') => ({ type: 'Action.OpenUrl', title, url: link(deliveryId, agentId, 'open') })
   const doneAction = (deliveryId: string, agentId: string) => ({ type: 'Action.OpenUrl', title: '✅ My notes are done', url: link(deliveryId, agentId, 'done'), style: 'positive' })
+
+  // ------------------------------------------------ notes-only cards (no Rocky)
+  /** A plain note reminder: the reminder, the lesson, and "My notes are done". */
+  function notesReminderCard(agentId: string, deliveryId: string, text: string, lesson: NoteLesson) {
+    return adaptive(
+      [
+        { type: 'TextBlock', text: '📝 Notes check', weight: 'Bolder', size: 'Medium', wrap: true },
+        { type: 'TextBlock', text, wrap: true, spacing: 'Small' },
+        lessonBlock(lesson, `Note tip · ${THEME_LABEL[lesson.theme]}`),
+      ],
+      [doneAction(deliveryId, agentId)],
+    )
+  }
+
+  /** Start of the shift: the day's notes focus and the checklist (Monday-style: the week's theme). */
+  function notesStartCard(text: string, lesson: NoteLesson, weekly: boolean) {
+    const theme = weekTheme(clock.now())
+    return adaptive(
+      [
+        { type: 'TextBlock', text: weekly ? '📅 New week — notes focus' : '☀️ Shift start — notes focus', weight: 'Bolder', size: 'Medium', wrap: true },
+        { type: 'TextBlock', text, wrap: true, spacing: 'Small' },
+        ...(weekly
+          ? [{ type: 'TextBlock', text: `This week’s focus: ${THEME_ICON[theme]} **${THEME_LABEL[theme]}** — one tip a day in these messages.`, wrap: true, spacing: 'Small' }]
+          : []),
+        lessonBlock(lesson, `Today’s focus · ${THEME_LABEL[lesson.theme]}`),
+        checklistBlock(),
+      ],
+      [],
+    )
+  }
+
+  /** A line from a pool with the agent's first name, not one they got lately. */
+  function notesLine(pool: string[], agentId: string, first: string): string {
+    return lineFrom(pool, (t) => t.replace(/\{name\}/g, first), agentId).replace(/\{name\}/g, first)
+  }
 
   /** A reminder: Rocky's line, then the note lesson. Evolutions and streak milestones get a big celebration card. */
   function card(
@@ -454,6 +498,17 @@ export function createTeamsApplicationService({
    * message (it keeps each card's message ID in a SharePoint list).
    */
   function finalCard(d: DeliveryRecord) {
+    if (notesOnlyOn() || d.kind === 'notes') {
+      const first = firstNameOf(nameOf(d.agentId, accounts.getSchedules()[d.agentId]))
+      const lesson = findLesson(d.lesson)
+      const [title, text] = d.actedAt
+        ? [`✅ Notes confirmed — thanks, ${first}!`, 'Complete notes on every interaction. Keep it up.']
+        : ['⌛ This reminder expired', 'No problem — keep every note complete: who, what, outcome, next step.']
+      return adaptive(
+        [{ type: 'TextBlock', text: title, weight: 'Bolder', wrap: true }, { type: 'TextBlock', text, wrap: true, isSubtle: true, spacing: 'Small' }, ...(lesson ? [lessonBlock(lesson)] : [])],
+        [],
+      )
+    }
     const game = repo.forAgent(d.agentId).getGameState()
     const first = nameOf(d.agentId, accounts.getSchedules()[d.agentId]).split(' ')[0]
     const [title, text, sticker] = d.actedAt
@@ -528,10 +583,10 @@ export function createTeamsApplicationService({
     const today = todayKey(now)
     const recent = accounts.listDeliveries({ since: new Date(now.getTime() - 86_400_000).toISOString(), limit: 5000 })
     for (const d of recent) {
-      if ((d.kind !== 'reminder' && d.kind !== 'streakrisk') || !d.ok || d.openedAt || d.actedAt || d.ignoredAt || d.sentAt > cutoff) continue
+      if ((d.kind !== 'reminder' && d.kind !== 'streakrisk' && d.kind !== 'notes') || !d.ok || d.openedAt || d.actedAt || d.ignoredAt || d.sentAt > cutoff) continue
       accounts.updateDelivery(d.id, { ignoredAt: now.toISOString() })
-      // The streak card only expires (its own consequence is the streak).
-      if (d.kind !== 'reminder') continue
+      // The streak card only expires (its own consequence is the streak); notes-only cards never touch Rocky.
+      if (d.kind !== 'reminder' || notesOnlyOn()) continue
       const ignoredToday = recent.filter((x) => x.agentId === d.agentId && x.kind === 'reminder' && x.ignoredAt && todayKey(new Date(x.ignoredAt)) === today).length
       if (ignoredToday >= MAX_IGNORED_PER_DAY) continue
       try {
@@ -586,6 +641,31 @@ export function createTeamsApplicationService({
         if (untilEnd <= 0) continue
         const name = nameOf(agentId, s)
         const first = firstNameOf(name)
+        if (notesOnlyOn()) {
+          const todaysNotes = accounts.listDeliveries({ agentId, since: new Date(now.getTime() - 86_400_000).toISOString(), limit: 100 }).filter((d) => todayKey(new Date(d.sentAt)) === today)
+          // 1) The shift-start notes focus (extra, not one of the 3 reminders).
+          if (into >= GREETING_WINDOW[0] && into <= GREETING_WINDOW[1] && !todaysNotes.some((d) => d.kind === 'notes-start')) {
+            const weekly = !local.days.some((d) => (d + 6) % 7 < (now.getDay() + 6) % 7)
+            const lesson = lessonOf(agentId, weekTheme(now))
+            const d = newDelivery(agentId, 'notes-start', null)
+            d.voice = notesLine(NOTE_SHIFT_STARTS, agentId, first)
+            d.lesson = lesson.id
+            queue(d, name, d.voice, notesStartCard(d.voice, lesson, weekly))
+            continue
+          }
+          const last = todaysNotes[0]
+          if (last && last.kind === 'notes-start' && now.getTime() - new Date(last.sentAt).getTime() < 45 * 60_000) continue
+          // 2) Up to 3 note reminders a day (the reminder engine's timing: cooldowns, daily cap).
+          const reminder = persistence.withTransaction(() => checkForReminder(repo.forAgent(agentId), now, shift))
+          if (!reminder) continue
+          const d = newDelivery(agentId, 'notes', reminder)
+          const lesson = lessonOf(agentId)
+          d.category = 'Documentation'
+          d.voice = notesLine(NOTE_REMINDERS, agentId, first)
+          d.lesson = lesson.id
+          queue(d, name, d.voice, notesReminderCard(agentId, d.id, d.voice, lesson))
+          continue
+        }
         const game = repo.forAgent(agentId).getGameState()
         const todays = accounts.listDeliveries({ agentId, since: new Date(now.getTime() - 86_400_000).toISOString(), limit: 100 }).filter((d) => todayKey(new Date(d.sentAt)) === today)
 
@@ -649,7 +729,7 @@ export function createTeamsApplicationService({
       }
 
       // Team leads' weekly summary: Monday morning, once a week.
-      if (leaderSummaryOn() && now.getDay() === 1 && now.getHours() >= LEADER_SUMMARY_HOUR) {
+      if (!notesOnlyOn() && leaderSummaryOn() && now.getDay() === 1 && now.getHours() >= LEADER_SUMMARY_HOUR) {
         const weekAgo = new Date(now.getTime() - 5 * 86_400_000).toISOString()
         for (const leaderId of leadersWithTeams()) {
           if (accounts.listDeliveries({ agentId: leaderId, since: weekAgo, limit: 50 }).some((d) => d.kind === 'leader' && d.ok)) continue
@@ -673,6 +753,12 @@ export function createTeamsApplicationService({
     },
 
     leaderSummary: leaderSummaryOn,
+    notesOnly: notesOnlyOn,
+    setNotesOnly(on: boolean, actorId: string) {
+      accounts.setCatalogOverride(NOTES_ONLY_KEY, { price: null, enabled: on }, actorId, clock.now().toISOString())
+      accounts.addAudit({ agentId: null, actor: actorId, action: 'admin.teams.notes-only', detail: { on }, source: null, createdAt: clock.now().toISOString() })
+      return { notesOnly: on }
+    },
     setLeaderSummary(on: boolean, actorId: string) {
       accounts.setCatalogOverride(LEADER_KEY, { price: null, enabled: on }, actorId, clock.now().toISOString())
       accounts.addAudit({ agentId: null, actor: actorId, action: 'admin.teams.leader-summary', detail: { on }, source: null, createdAt: clock.now().toISOString() })
@@ -702,6 +788,13 @@ export function createTeamsApplicationService({
       }
       const d = newDelivery(agentId, 'test', null)
       const name = nameOf(agentId, accounts.getSchedules()[agentId])
+      if (notesOnlyOn()) {
+        const lesson = lessonOf(agentId)
+        const text = `Hi ${firstNameOf(name)}! This is a test: if you can read this in Teams, note reminders are connected.`
+        const result = await post([{ email: agentId, name, deliveryId: d.id, kind: 'test', category: 'Documentation', message: text, card: notesReminderCard(agentId, d.id, text, lesson) }])
+        accounts.addDelivery({ ...d, category: 'Documentation', ok: result.ok, error: result.error, lesson: lesson.id })
+        return result
+      }
       const voice = { text: `Hi ${name.split(' ')[0]}! This is a test from Rocky: if you can read this in Teams, we’re connected. Now go write a great note. 🐂`, sticker: 'hi' }
       const lesson = lessonOf(agentId)
       const result = await post([{ email: agentId, name, deliveryId: d.id, kind: 'test', category: 'Documentation', message: voice.text, card: card(agentId, d.id, reminder, name, voice, lesson) }])
@@ -714,6 +807,10 @@ export function createTeamsApplicationService({
       const name = nameOf(agentId, accounts.getSchedules()[agentId])
       const game = repo.forAgent(agentId).getGameState()
       const first = firstNameOf(name)
+      if (notesOnlyOn() && ['reminder', 'greeting', 'weekly'].includes(kind))
+        return kind === 'reminder'
+          ? notesReminderCard(agentId, 'preview', NOTE_REMINDERS[0]!.replace(/\{name\}/g, first), lessonOf(agentId))
+          : notesStartCard(NOTE_SHIFT_STARTS[0]!.replace(/\{name\}/g, first), lessonOf(agentId, weekTheme(clock.now())), kind === 'weekly')
       switch (kind) {
         case 'greeting':
         case 'weekly':
@@ -735,7 +832,7 @@ export function createTeamsApplicationService({
     },
 
     /** A card button was clicked: record it, let Rocky react, and say where to send the agent. */
-    follow(token: string): string {
+    follow(token: string): string | null {
       const { d: deliveryId, a: agentId, x: action, g: go } = readLink(token)
       const d = accounts.getDelivery(deliveryId)
       const now = clock.now()
@@ -752,7 +849,7 @@ export function createTeamsApplicationService({
           }
         }
         // Answering a card (the first time, before it went stale) cheers Rocky up.
-        if (first && !d.ignoredAt && (d.kind === 'reminder' || d.kind === 'streakrisk') && repo.hasAgent(agentId)) {
+        if (first && !d.ignoredAt && (d.kind === 'reminder' || d.kind === 'streakrisk') && !notesOnlyOn() && repo.hasAgent(agentId)) {
           try {
             pet.teamsEffect(agentId, 'acted', action === 'done' ? 'Confirmed notes from a Teams card' : 'Opened Rocky from a Teams card')
           } catch {
@@ -762,6 +859,8 @@ export function createTeamsApplicationService({
       }
       // Swap the card in Teams for its "done" version right away (not on the next 5-minute round).
       if (d && config.webhookUrl) void post([], pendingUpdates(now).filter((x) => x.id === deliveryId))
+      // Notes-only: no link into the app — the route shows a thank-you page.
+      if (notesOnlyOn() || d?.kind === 'notes') return null
       const q = new URLSearchParams({ agente: agentId, from: 'teams', teams: action === 'done' ? 'done' : 'open' })
       // "Practice notes" lands on the Note Check game; kudos and team cards on their screens.
       const target = action === 'learn' ? 'notes' : go
@@ -937,6 +1036,7 @@ export function createTeamsApplicationService({
         configured: Boolean(config.webhookUrl),
         roast: roastOn(),
         leaderSummary: leaderSummaryOn(),
+        notesOnly: notesOnlyOn(),
         leaders: leadersWithTeams().length,
         webhookHost: host,
         roster: Object.keys(accounts.getSchedules()).length,

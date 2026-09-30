@@ -134,3 +134,29 @@ export function checklistBlock() {
     ],
   }
 }
+
+// ---------------------------------------------------------------------------
+// Notes-only Teams cards (no Rocky, no pet data): plain documentation
+// reminders. {name} is the agent's first name.
+// ---------------------------------------------------------------------------
+export const NOTE_REMINDERS: string[] = [
+  'Hi {name} — quick notes check: does your last interaction have a complete note?',
+  'Before the next call: who, what, outcome, next step. Is it all in the note?',
+  'Reminder: every interaction gets a note — calls, chats, emails and voicemails.',
+  'Take 30 seconds to re-read your last note. Would a teammate understand it without calling the customer back?',
+  'Did you promise a callback or a follow-up? Make sure the date and time are in the note.',
+  'Reference numbers in the note? Ticket, claim or order — they connect the note to the case.',
+  'Notes written right away are the accurate ones. Anything pending from your last few interactions?',
+  'Quick check: dates written as dates (6/14), not “tomorrow”.',
+  'Facts, not opinions: “Customer states…” keeps the note clear and fair.',
+  'Transferred a call? Note who you sent it to and why.',
+  'Voicemail or no answer? It still gets a note: the time, the number, and whether you left a VM.',
+  'A clear next step closes every note: who does what, and when.',
+]
+
+export const NOTE_SHIFT_STARTS: string[] = [
+  'Good shift, {name}! Today’s notes focus is below — keep every note complete.',
+  'New shift, {name}. Every interaction gets a note: who, what, outcome, next step.',
+  'Welcome back, {name}. A quick notes refresher before your first interaction 👇',
+  'Hi {name}! Clear notes today mean nobody has to call the customer twice.',
+]

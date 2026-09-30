@@ -285,6 +285,11 @@ export const MIGRATION_016_CHAT_GROUPS = `
   ALTER TABLE teams_deliveries ADD COLUMN voice TEXT;
 `
 
+/** Notes-only Teams rollout: everyone on the roster gets the note reminders. */
+export const MIGRATION_018_TEAMS_FOR_ALL = `
+  UPDATE agent_schedules SET teams_enabled = 1;
+`
+
 /** Kudos between agents; the note lesson each Teams card carried (so it doesn't repeat soon). */
 export const MIGRATION_017_KUDOS = `
   CREATE TABLE kudos (

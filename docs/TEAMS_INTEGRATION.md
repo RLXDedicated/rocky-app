@@ -16,6 +16,17 @@ registration, no Graph. Rules live in Rocky; the flow only delivers
 | Card buttons | `GET /api/teams/go?t=…` (public) | HMAC-signed, 7-day links. Records opened / "notes done", marks the reminder, and redirects to the web app (`?agente=…&from=teams&teams=done|open`). Tampered/expired → friendly 403 page. |
 | Rocky in Teams | `public/teams/rocky-teams-app.zip` (built by `tools/teams-app/build.py`) | Personal static tab opening the web app with `?agente={loginHint}`. Fallback: a Website tab in a channel. |
 
+## Notes-only mode (current default)
+
+Admin → Teams y horarios → "📝 Solo notas". While on, cards never mention
+Rocky or the pet and never link to the app: a shift-start notes focus
+(`notes-start`, extra) and up to 3 note reminders a day (`notes`, timed by
+the reminder engine), each with a lesson. "My notes are done" records the
+answer and shows a thank-you page; answered/expired cards are replaced by a
+plain version. No pet effects, no streak/kudos/leader cards. Migration 018
+turned Teams on for the whole roster. Turn the mode off to get the full
+Rocky cards below.
+
 ## Cards (all note coaching first)
 
 Every card carries a rotating **note lesson** (`src/engine/noteCoaching.ts`):

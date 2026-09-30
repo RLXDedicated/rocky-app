@@ -14,7 +14,16 @@ export function createTeamsLinkRouter(service: () => TeamsApplicationService): R
     const teams = service()
     const token = typeof req.query.t === 'string' ? req.query.t : ''
     try {
-      res.redirect(302, teams.follow(token))
+      const target = teams.follow(token)
+      if (target) res.redirect(302, target)
+      else
+        res
+          .type('html')
+          .send(
+            `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Notes confirmed</title>` +
+              `<body style="font-family:system-ui;text-align:center;padding:48px 16px;color:#10233f"><p style="font-size:48px;margin:0">✅</p>` +
+              `<h2>Thanks — your answer was recorded.</h2><p>Keep every note complete: who, what, outcome, next step.</p><p style="color:#667085">You can close this tab and go back to Teams.</p></body>`,
+          )
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Something went wrong.'
       res
@@ -50,6 +59,9 @@ export function createTeamsAdminRouter(teams: TeamsApplicationService): Router {
   })
   router.put('/admin/teams/roast', admin, (req: Request, res: Response) => {
     res.json(teams.setRoast(parseJsonBody(req.body).on === true, me(req)))
+  })
+  router.put('/admin/teams/notes-only', admin, (req: Request, res: Response) => {
+    res.json(teams.setNotesOnly(parseJsonBody(req.body).on === true, me(req)))
   })
   router.put('/admin/teams/leader-summary', admin, (req: Request, res: Response) => {
     res.json(teams.setLeaderSummary(parseJsonBody(req.body).on === true, me(req)))

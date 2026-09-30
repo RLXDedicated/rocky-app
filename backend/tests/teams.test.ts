@@ -27,7 +27,7 @@ interface Posted {
   cards: { email: string; deliveryId: string; kind: string; card: { actions: { title: string; url: string }[] } }[]
 }
 
-function build(clock: Clock, status = 202) {
+function build(clock: Clock, status = 202, notesOnly = false) {
   const posted: Posted[] = []
   const fetchFn = (async (_url: string, init: { body: string }) => {
     posted.push(JSON.parse(init.body))
@@ -47,7 +47,10 @@ function build(clock: Clock, status = 202) {
     backupTarget: { dir: null, key: null, s3: null },
     teams: { webhookUrl: 'https://example.invalid/workflows/hook', apiUrl: 'https://api.test', webUrl: 'https://web.test', linkSecret: 'test-secret', fetchFn },
   })
-  return { app, live: app.locals.live as LiveContext, posted }
+  const live = app.locals.live as LiveContext
+  // These tests cover the full Rocky cards; notes-only mode has its own tests below.
+  if (!notesOnly) live.teams.setNotesOnly(false, 'test')
+  return { app, live, posted }
 }
 
 const ROSTER = [
@@ -349,5 +352,44 @@ describe('Teams integration', () => {
     expect((await request(app).get('/api/admin/teams/status').set(as(ADMIN))).body.leaderSummary).toBe(false)
     for (const kind of ['greeting', 'weekly', 'streakrisk', 'milestone', 'kudos', 'leader', 'reminder'])
       expect((await request(app).get(`/api/admin/teams/preview/${ANA}?kind=${kind}`).set(as(ADMIN))).body.card.type).toBe('AdaptiveCard')
+  })
+
+  it('notes-only mode (the default): plain note reminders, no Rocky, no pet data, no app links, no pet effects', async () => {
+    const t = movableClock('2026-09-08T08:05:00') // Tuesday, Ana starts at 08:00
+    const { app, live, posted } = build(t.clock, 202, true)
+    expect(live.teams.notesOnly()).toBe(true)
+    await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
+    await live.teams.dispatch()
+    const start = posted[0]!.cards.find((c) => c.email === ANA)!
+    expect(start.kind).toBe('notes-start')
+    t.set('2026-09-08T09:00:00')
+    await live.teams.dispatch()
+    const reminder = posted.flatMap((p) => p.cards).find((c) => c.kind === 'notes')!
+    for (const c of [start, reminder]) {
+      const text = JSON.stringify(c.card)
+      expect(text).not.toMatch(/Rocky|sticker|Level|⚡/)
+      expect(text.toLowerCase()).toContain('note')
+    }
+    expect(reminder.card.actions.map((a) => a.title)).toEqual(['✅ My notes are done'])
+    const before = (await request(app).get('/api/pet').set(as(ANA))).body.state.gameCoins
+    const go = await request(app).get(`/api/teams/go?t=${token(reminder.card.actions[0]!.url)}`)
+    expect(go.status).toBe(200)
+    expect(go.text).toContain('Thanks')
+    expect((await request(app).get('/api/pet').set(as(ANA))).body.state.gameCoins).toBe(before)
+    await new Promise((r) => setTimeout(r, 20))
+    const update = posted.find((p) => p.updates?.length)!
+    expect(JSON.stringify(update.updates![0]!.card)).toContain('Notes confirmed')
+    expect(JSON.stringify(update.updates![0]!.card)).not.toContain('Rocky')
+    // No leader summary, kudos or streak cards; at most 3 reminders a day.
+    for (const at of ['2026-09-08T11:00:00', '2026-09-08T13:00:00', '2026-09-08T15:00:00', '2026-09-08T16:30:00']) {
+      t.set(at)
+      await live.teams.dispatch()
+    }
+    const kinds = posted.flatMap((p) => p.cards).filter((c) => c.email === ANA).map((c) => c.kind)
+    expect(kinds.filter((k) => k === 'notes').length).toBeLessThanOrEqual(3)
+    expect(kinds.every((k) => k === 'notes' || k === 'notes-start')).toBe(true)
+    t.set('2026-09-14T10:00:00') // Monday
+    await live.teams.dispatch()
+    expect(posted.flatMap((p) => p.cards).some((c) => c.kind === 'leader')).toBe(false)
   })
 })
