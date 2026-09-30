@@ -268,6 +268,11 @@ export const MIGRATION_006_PEOPLE = `
 `
 
 /** The Teams/SharePoint roster's shifts, and every card Rocky sent to Teams. */
+/** Teams cards replaced after the agent answers (or the card goes stale). */
+export const MIGRATION_015_CARD_UPDATES = `
+  ALTER TABLE teams_deliveries ADD COLUMN card_updated_at TEXT;
+`
+
 /** QA desk: every audit a QA analyst logs (the engine event it produced, and any later correction). */
 export const MIGRATION_014_QA_AUDITS = `
   CREATE TABLE qa_audits (

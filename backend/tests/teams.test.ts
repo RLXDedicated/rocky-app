@@ -22,6 +22,7 @@ function movableClock(start: string) {
 
 interface Posted {
   type: string
+  updates?: { deliveryId: string; email: string; card: { body: unknown[]; actions: { title: string }[] } }[]
   cards: { email: string; deliveryId: string; kind: string; card: { actions: { title: string; url: string }[] } }[]
 }
 
@@ -173,6 +174,27 @@ describe('Teams integration', () => {
     t.set('2026-09-09T09:00:00') // Wednesday
     const res = await request(app).post('/api/events/check-in').set(as(ANA)).send({}).expect(200)
     expect(res.body.state?.currentStreak ?? res.body.gameState?.currentStreak).toBe(2)
+  })
+
+  it('replaces an answered card with its "done" version, and expired ones on the next round', async () => {
+    const t = movableClock('2026-09-07T08:30:00')
+    const { app, live, posted } = build(t.clock)
+    await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
+    await live.teams.dispatch()
+    const card = posted[0]!.cards[0]!
+    const done = card.card.actions.find((a) => a.title.includes('done'))!
+    await request(app).get(`/api/teams/go?t=${token(done.url)}`).expect(302)
+    await new Promise((r) => setTimeout(r, 20))
+    const update = posted.find((p) => p.updates?.length)!
+    expect(update.cards).toEqual([])
+    expect(update.updates![0]).toMatchObject({ deliveryId: card.deliveryId, email: ANA })
+    expect(JSON.stringify(update.updates![0]!.card)).toContain('Notes done')
+    expect(update.updates![0]!.card.actions.map((a) => a.title)).toEqual(['🐂 Open Rocky'])
+    // Sent once: the next round doesn't resend it.
+    const before = posted.length
+    t.set('2026-09-07T09:00:00')
+    await live.teams.dispatch()
+    expect(posted.slice(before).some((p) => p.updates?.some((u) => u.deliveryId === card.deliveryId))).toBe(false)
   })
 
   it('roast mode can be turned off by an admin', async () => {

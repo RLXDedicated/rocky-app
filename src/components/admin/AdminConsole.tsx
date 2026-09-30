@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiClient, peopleApi, teamsApi, type AdminAgentSummary, type AdminOverview, type AdminSystem } from '../../services/apiClient'
+import { apiClient, backupApi, peopleApi, teamsApi, type GameBackupStatus, type AdminAgentSummary, type AdminOverview, type AdminSystem } from '../../services/apiClient'
 import { getAgentEmail } from '../../services/identityService'
 import styles from './AdminConsole.module.css'
 import { BarList, ColumnChart, SERIES_ALERT, SERIES_GREEN } from './AdminCharts'
@@ -812,6 +812,50 @@ function SystemTab({ system }: { system: AdminSystem }) {
           ))}
         </dl>
       </section>
+      <BackupCard />
     </div>
+  )
+}
+
+/** The nightly whole-game backup: when it last ran, where it went, and a button to run it now. */
+function BackupCard() {
+  const [st, setSt] = useState<GameBackupStatus | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  useEffect(() => {
+    backupApi.status().then(setSt).catch((e) => setErr(e instanceof Error ? e.message : String(e)))
+  }, [])
+  if (!st) return err ? <p className={styles.riskLine}>{err}</p> : null
+  const l = st.last
+  return (
+    <section className={styles.card}>
+      <h3>💾 Respaldo de todo el juego</h3>
+      <p className={styles.muted}>
+        Cada noche (después de las 2 a. m.) se guarda una copia completa de la base de datos: progreso, Rocky, coins, auditorías QA, horarios y chat.
+        {' '}
+        {st.target.local ? 'En el volumen (últimas 14)' : 'Sin volumen'} · {st.target.bucket ? 'bucket externo ✓' : 'sin bucket externo'} ·{' '}
+        {st.target.encrypted ? 'cifrado ✓' : 'SIN cifrar (falta ROCKY_CHAT_BACKUP_KEY)'}
+      </p>
+      <p>
+        {l
+          ? `Último: ${new Date(l.at).toLocaleString('es-CO')} · ${Math.round(l.bytes / 1024)} KB${l.uploaded ? ' · subido al bucket' : ''}${l.error ? ` · error del bucket: ${l.error}` : ''}`
+          : 'Aún no hay respaldo desde el último reinicio del servidor.'}
+      </p>
+      <button
+        className={styles.btnPrimary}
+        disabled={busy || !st.enabled}
+        onClick={() => {
+          setBusy(true)
+          backupApi
+            .run()
+            .then((r) => (setSt(r), setErr(null)))
+            .catch((e) => setErr(e instanceof Error ? e.message : String(e)))
+            .finally(() => setBusy(false))
+        }}
+      >
+        {busy ? 'Respaldando…' : '💾 Respaldar ahora'}
+      </button>
+      {err && <p className={styles.riskLine}>{err}</p>}
+    </section>
   )
 }

@@ -127,6 +127,8 @@ export interface DeliveryRecord {
   openedAt: string | null
   actedAt: string | null
   ignoredAt: string | null
+  /** When the card in Teams was replaced by its answered/expired version. */
+  cardUpdatedAt?: string | null
 }
 
 export interface PhotoRecord {
@@ -176,7 +178,7 @@ export interface AccountStore {
 
   addDelivery(d: DeliveryRecord): void
   getDelivery(id: string): DeliveryRecord | null
-  updateDelivery(id: string, patch: Partial<Pick<DeliveryRecord, 'openedAt' | 'actedAt' | 'ignoredAt'>>): void
+  updateDelivery(id: string, patch: Partial<Pick<DeliveryRecord, 'openedAt' | 'actedAt' | 'ignoredAt' | 'cardUpdatedAt'>>): void
   /** Newest first. */
   listDeliveries(opts: { agentId?: string; since?: string; limit?: number }): DeliveryRecord[]
 

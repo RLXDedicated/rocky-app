@@ -53,7 +53,7 @@ export const GAME_CONFIG = {
   reminders: {
     cooldownMinutes: 90,
     adaptiveCooldownMultiplier: 2,
-    maxPerDay: 4,
+    maxPerDay: 3,
     positiveActionSuppressionMinutes: 30,
     recoveryDelayMinutes: 30,
     /** Only celebrate what happened recently: an evolution from last month is old news. */

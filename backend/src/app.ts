@@ -36,6 +36,8 @@ import { createChallengeApplicationService, type ChallengeApplicationService } f
 import { createTeamsApplicationService, type TeamsApplicationService, type TeamsConfig } from './application/teamsApplicationService'
 import { createTeamsAdminRouter, createTeamsLinkRouter } from './api/teamsRoutes'
 import { createQaDeskService } from './application/qaDeskService'
+import { createGameBackupJobs, type GameBackupJobs } from './application/gameBackupJobs'
+import { requireRole } from './middleware/devIdentity'
 import { createQaDeskRouter } from './api/qaDeskRoutes'
 import { createHash, randomBytes } from 'node:crypto'
 import { backupTargetFromEnv, type BackupTarget } from './infrastructure/chat/chatBackup'
@@ -89,6 +91,7 @@ export interface LiveContext {
   persistence: PersistenceContext
   challenges: ChallengeApplicationService
   teams: TeamsApplicationService
+  backups: GameBackupJobs
 }
 
 export function createApp(options: CreateAppOptions = {}): Express {
@@ -141,17 +144,26 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const pet = createPetApplicationService({ persistence, clock: options.clock, isStaff, titleOf, testerOf, teamMood: (id) => people?.teamMood(id) ?? null })
   const chat = createChatApplicationService({ persistence, bus, clock: options.clock, isStaff, titleOf, testerOf, bubbleOf: (id) => pet.bubbleOf(id), giphyKey: process.env.ROCKY_GIPHY_API_KEY?.trim() || null })
   people = createPeopleApplicationService({ persistence, pet, isStaff, isOnline: (id) => bus.isOnline(id), clock: options.clock })
-  const jobs = createChatJobs(chat, options.backupTarget ?? backupTargetFromEnv(process.env, config.persistenceDriver === 'sqlite' ? config.dbPath : null), options.clock)
+  const backupTarget = options.backupTarget ?? backupTargetFromEnv(process.env, config.persistenceDriver === 'sqlite' ? config.dbPath : null)
+  const jobs = createChatJobs(chat, backupTarget, options.clock)
+  const backups = createGameBackupJobs(persistence, backupTarget, options.clock)
   const challenges = createChallengeApplicationService({ persistence, pet, clock: options.clock })
   const { fetchFn, ...teamsOverrides } = options.teams ?? {}
   teams = createTeamsApplicationService({ persistence, pet, config: { ...teamsConfigFromEnv(process.env), ...teamsOverrides }, clock: options.clock, fetchFn })
   const scheduleOf = teams.scheduleOf
-  const live: LiveContext = { auth, pet, chat, bus, jobs, persistence, challenges, teams }
+  const live: LiveContext = { auth, pet, chat, bus, jobs, persistence, challenges, teams, backups }
   app.locals.live = live
   api.use(createChatRouter(chat, jobs))
   api.use(createPeopleRouter(people))
   api.use(createExtrasRouter({ challenges, pet, persistence, clock: options.clock }))
   api.use(createTeamsAdminRouter(teams))
+  // Whole-game backups (Admin → Registros → Sistema).
+  api.get('/admin/backups/game', requireRole('ADMIN'), (_req, res) => {
+    res.json(backups.status())
+  })
+  api.post('/admin/backups/game', requireRole('ADMIN'), (_req, res, next) => {
+    backups.run().then((r) => res.json({ ...backups.status(), result: r }), next)
+  })
   const qa = createQaApplicationService({ persistence, clock: options.clock })
   const qaDesk = createQaDeskService({ persistence, qa, pet, isStaff, titleOf, clock: options.clock })
   api.use(createQaDeskRouter(qaDesk, () => (options.clock ?? { now: () => new Date() }).now()))

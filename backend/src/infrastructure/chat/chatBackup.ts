@@ -102,7 +102,7 @@ export function backupExists(target: BackupTarget, day: string): boolean {
 const sha256 = (data: string | Buffer) => createHash('sha256').update(data).digest('hex')
 const hmac = (key: Buffer | string, data: string) => createHmac('sha256', key).update(data).digest()
 
-export async function putObject(s3: S3Config, key: string, body: string): Promise<void> {
+export async function putObject(s3: S3Config, key: string, body: string | Buffer, contentType = 'application/json'): Promise<void> {
   const endpoint = new URL(s3.endpoint)
   const host = s3.pathStyle ? endpoint.host : `${s3.bucket}.${endpoint.host}`
   const path = `${s3.pathStyle ? `/${s3.bucket}` : ''}/${key.split('/').map(encodeURIComponent).join('/')}`
@@ -114,7 +114,7 @@ export async function putObject(s3: S3Config, key: string, body: string): Promis
     host,
     'x-amz-content-sha256': payloadHash,
     'x-amz-date': amzDate,
-    'content-type': 'application/json',
+    'content-type': contentType,
   }
   const signedHeaders = Object.keys(headers).sort().join(';')
   const canonical = [
@@ -139,7 +139,7 @@ export async function putObject(s3: S3Config, key: string, body: string): Promis
       ...headers,
       authorization: `AWS4-HMAC-SHA256 Credential=${s3.accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
     },
-    body,
+    body: typeof body === 'string' ? body : new Uint8Array(body),
   })
   if (!res.ok) throw new Error(`Bucket upload failed: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`)
 }

@@ -183,14 +183,71 @@ export function createTeamsApplicationService({
     }
   }
 
-  async function post(items: { email: string; name: string; deliveryId: string; kind: string; category: string | null; message: string; card: unknown }[]) {
+  /**
+   * The answered/expired version of a card: same sticker style, no buttons
+   * to click again. Sent as an "update" the flow applies to the original
+   * message (it keeps each card's message ID in a SharePoint list).
+   */
+  function finalCard(d: DeliveryRecord) {
+    const game = repo.forAgent(d.agentId).getGameState()
+    const first = nameOf(d.agentId, accounts.getSchedules()[d.agentId]).split(' ')[0]
+    const [title, text, sticker] = d.actedAt
+      ? [`✅ Notes done — thanks, ${first}!`, 'Rocky is proud of you. Keep them coming! 🐂', 'gotit']
+      : d.openedAt
+        ? ['👀 You checked in with Rocky', 'He saw you. He’s happy. That’s the whole message. 💚', 'hi']
+        : ['⌛ This reminder expired', 'No worries — Rocky will be back later. 😉', 'tired']
+    return {
+      type: 'AdaptiveCard',
+      $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
+      version: '1.4',
+      msteams: { width: 'Full' },
+      body: [
+        {
+          type: 'ColumnSet',
+          columns: [
+            { type: 'Column', width: 'auto', items: [{ type: 'Image', url: `${config.webUrl}${stickerImage(sticker, game.evolutionStage)}`, width: '72px', altText: 'Rocky sticker' }] },
+            {
+              type: 'Column',
+              width: 'stretch',
+              verticalContentAlignment: 'Center',
+              items: [
+                { type: 'TextBlock', text: title, weight: 'Bolder', wrap: true },
+                { type: 'TextBlock', text, wrap: true, spacing: 'Small', isSubtle: true },
+              ],
+            },
+          ],
+        },
+      ],
+      actions: [{ type: 'Action.OpenUrl', title: '🐂 Open Rocky', url: `${config.webUrl}/?${new URLSearchParams({ agente: d.agentId })}` }],
+    }
+  }
+
+  /** Cards answered or expired in the last week whose Teams message still shows the buttons. */
+  function pendingUpdates(now: Date) {
+    return accounts
+      .listDeliveries({ since: new Date(now.getTime() - 7 * 86_400_000).toISOString(), limit: 5000 })
+      .filter((d) => d.ok && (d.kind === 'reminder' || d.kind === 'test') && !d.cardUpdatedAt && (d.actedAt || d.openedAt || d.ignoredAt))
+      .slice(0, 200)
+  }
+
+  async function post(
+    items: { email: string; name: string; deliveryId: string; kind: string; category: string | null; message: string; card: unknown }[],
+    updates: DeliveryRecord[] = [],
+  ) {
     if (!config.webhookUrl) return { ok: false, error: 'Teams webhook not configured (ROCKY_TEAMS_WEBHOOK_URL).' }
     try {
       const res = await fetchFn(config.webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'rocky.cards', sentAt: clock.now().toISOString(), count: items.length, cards: items }),
+        body: JSON.stringify({
+          type: 'rocky.cards',
+          sentAt: clock.now().toISOString(),
+          count: items.length,
+          cards: items,
+          updates: updates.map((d) => ({ deliveryId: d.id, email: d.agentId, card: finalCard(d) })),
+        }),
       })
+      if (res.ok) for (const d of updates) accounts.updateDelivery(d.id, { cardUpdatedAt: clock.now().toISOString() })
       return res.ok ? { ok: true, error: null } : { ok: false, error: `Teams answered ${res.status}` }
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) }
@@ -253,11 +310,13 @@ export function createTeamsApplicationService({
         const c = card(agentId, d.id, reminder, name)
         items.push({ email: agentId, name, deliveryId: d.id, kind: 'reminder', category: reminder.category, message: reminder.message, card: c })
       }
+      const updates = pendingUpdates(now)
       if (items.length === 0) {
+        if (updates.length) await post([], updates)
         lastDispatch = { at: now.toISOString(), due: 0, sent: 0, error: null }
         return { due: 0, sent: 0, error: null }
       }
-      const result = await post(items)
+      const result = await post(items, updates)
       for (const d of deliveries) accounts.addDelivery({ ...d, ok: result.ok, error: result.error })
       lastDispatch = { at: now.toISOString(), due: items.length, sent: result.ok ? items.length : 0, error: result.error }
       log(`[rocky-backend] teams: ${items.length} card(s) ${result.ok ? 'sent' : `NOT sent (${result.error})`}`)
@@ -314,6 +373,8 @@ export function createTeamsApplicationService({
           }
         }
       }
+      // Swap the card in Teams for its "done" version right away (not on the next 5-minute round).
+      if (d && config.webhookUrl) void post([], pendingUpdates(now).filter((x) => x.id === deliveryId))
       const q = new URLSearchParams({ agente: agentId, from: 'teams', teams: action })
       return `${config.webUrl}/?${q}`
     },

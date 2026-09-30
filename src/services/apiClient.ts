@@ -503,6 +503,17 @@ const authHeaders = (): Record<string, string> => {
   return { 'X-Agent-Email': getAgentEmail() ?? '', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
 }
 
+/** Whole-game backups (Admin → Registros → Sistema). */
+export interface GameBackupStatus {
+  enabled: boolean
+  target: { local: boolean; bucket: boolean; encrypted: boolean }
+  last: { day: string; at: string; bytes: number; file: string | null; uploaded: boolean; encrypted: boolean; error?: string } | null
+}
+export const backupApi = {
+  status: () => request<GameBackupStatus>('/api/admin/backups/game'),
+  run: () => request<GameBackupStatus>('/api/admin/backups/game', post()),
+}
+
 /** QA desk (QA analysts and admins). */
 export interface QaAudit {
   id: number

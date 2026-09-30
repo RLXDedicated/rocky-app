@@ -49,6 +49,11 @@ const houseJobs = () => {
 houseJobs()
 const houseTimer = setInterval(houseJobs, 60 * 60_000)
 houseTimer.unref()
+// Nightly: a backup of the whole game database (volume + bucket).
+const backupJob = () => void live.backups.tick()
+backupJob()
+const backupTimer = setInterval(backupJob, 30 * 60_000)
+backupTimer.unref()
 // Every 5 minutes: Rocky's reminder cards to Teams (only inside each agent's shift).
 const teamsJob = () => {
   live.teams.dispatch().catch((err) => console.error('[rocky-backend] teams dispatch failed:', err))

@@ -93,6 +93,7 @@ function toDelivery(r: Record<string, unknown>): DeliveryRecord {
     openedAt: (r.opened_at as string | null) ?? null,
     actedAt: (r.acted_at as string | null) ?? null,
     ignoredAt: (r.ignored_at as string | null) ?? null,
+    cardUpdatedAt: (r.card_updated_at as string | null) ?? null,
   }
 }
 
@@ -334,10 +335,11 @@ export class SqliteAccountStore implements AccountStore {
     const r = this.db.prepare('SELECT * FROM teams_deliveries WHERE delivery_id = ?').get(id) as Record<string, unknown> | undefined
     return r ? toDelivery(r) : null
   }
-  updateDelivery(id: string, patch: Partial<Pick<DeliveryRecord, 'openedAt' | 'actedAt' | 'ignoredAt'>>): void {
+  updateDelivery(id: string, patch: Partial<Pick<DeliveryRecord, 'openedAt' | 'actedAt' | 'ignoredAt' | 'cardUpdatedAt'>>): void {
     if (patch.openedAt) this.db.prepare('UPDATE teams_deliveries SET opened_at = COALESCE(opened_at, ?) WHERE delivery_id = ?').run(patch.openedAt, id)
     if (patch.actedAt) this.db.prepare('UPDATE teams_deliveries SET acted_at = COALESCE(acted_at, ?) WHERE delivery_id = ?').run(patch.actedAt, id)
     if (patch.ignoredAt) this.db.prepare('UPDATE teams_deliveries SET ignored_at = COALESCE(ignored_at, ?) WHERE delivery_id = ?').run(patch.ignoredAt, id)
+    if (patch.cardUpdatedAt) this.db.prepare('UPDATE teams_deliveries SET card_updated_at = ? WHERE delivery_id = ?').run(patch.cardUpdatedAt, id)
   }
   listDeliveries(opts: { agentId?: string; since?: string; limit?: number }): DeliveryRecord[] {
     const where: string[] = []

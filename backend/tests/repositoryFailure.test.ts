@@ -34,7 +34,8 @@ function brokenPersistence(): PersistenceContext {
     withTransaction<T>(fn: () => T): T {
       return fn()
     },
-    close: () => {},
+    snapshot: null,
+  close: () => {},
   }
 }
 

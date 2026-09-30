@@ -104,13 +104,13 @@ describe('daily frequency', () => {
     expect(reminderCountToday(history, new Date('2026-09-09T15:00:00'))).toBe(1)
   })
 
-  it('respects the daily limit of 4', () => {
-    const history = Array.from({ length: 4 }, (_, i) => record({ id: `r${i}`, timestamp: WORK_TIME.toISOString() }))
+  it('respects the daily limit of 3', () => {
+    const history = Array.from({ length: 3 }, (_, i) => record({ id: `r${i}`, timestamp: WORK_TIME.toISOString() }))
     expect(hasReachedDailyLimit(history, WORK_TIME)).toBe(true)
   })
 
-  it('does not report the limit reached below 4', () => {
-    const history = Array.from({ length: 3 }, (_, i) => record({ id: `r${i}`, timestamp: WORK_TIME.toISOString() }))
+  it('does not report the limit reached below 3', () => {
+    const history = Array.from({ length: 2 }, (_, i) => record({ id: `r${i}`, timestamp: WORK_TIME.toISOString() }))
     expect(hasReachedDailyLimit(history, WORK_TIME)).toBe(false)
   })
 })

@@ -166,12 +166,13 @@ export class InMemoryAccountStore implements AccountStore {
     const d = this.deliveries.find((x) => x.id === id)
     return d ? { ...d } : null
   }
-  updateDelivery(id: string, patch: Partial<Pick<DeliveryRecord, 'openedAt' | 'actedAt' | 'ignoredAt'>>) {
+  updateDelivery(id: string, patch: Partial<Pick<DeliveryRecord, 'openedAt' | 'actedAt' | 'ignoredAt' | 'cardUpdatedAt'>>) {
     const d = this.deliveries.find((x) => x.id === id)
     if (!d) return
     if (patch.openedAt && !d.openedAt) d.openedAt = patch.openedAt
     if (patch.actedAt && !d.actedAt) d.actedAt = patch.actedAt
     if (patch.ignoredAt && !d.ignoredAt) d.ignoredAt = patch.ignoredAt
+    if (patch.cardUpdatedAt) d.cardUpdatedAt = patch.cardUpdatedAt
   }
   listDeliveries(opts: { agentId?: string; since?: string; limit?: number }) {
     return this.deliveries

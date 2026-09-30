@@ -27,6 +27,8 @@ export interface PersistenceContext {
   chat: ChatStore
   /** One atomic unit of work spanning both the repository and idempotency writes — see RepositoryStore.withTransaction. */
   withTransaction<T>(fn: () => T): T
+  /** Writes a consistent copy of the whole database to `file` (SQLite only; null for the in-memory driver). */
+  snapshot: ((file: string) => void) | null
   /** Releases the underlying resource (a no-op for the in-memory driver; closes the SQLite connection otherwise). Call on graceful shutdown and always in tests. */
   close(): void
 }
@@ -41,6 +43,8 @@ export function createPersistenceContext(config: Pick<AppConfig, 'persistenceDri
       accounts: new SqliteAccountStore(store.connection),
       chat: new SqliteChatStore(store.connection),
       withTransaction: (fn) => store.withTransaction(fn),
+      // VACUUM INTO: a consistent, compact copy taken while the app keeps running.
+      snapshot: (file) => store.connection.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`),
       close: () => store.close(),
     }
   }
@@ -53,6 +57,7 @@ export function createPersistenceContext(config: Pick<AppConfig, 'persistenceDri
     accounts: new InMemoryAccountStore(),
     chat: new InMemoryChatStore(),
     withTransaction: (fn) => store.withTransaction(fn),
+    snapshot: null,
     close: () => {},
   }
 }

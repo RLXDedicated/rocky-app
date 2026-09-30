@@ -41,3 +41,31 @@ All effects go through `pet.teamsEffect` (ledger + audit, actor `rocky-teams`).
 `GET /api/admin/teams/status` · `POST /api/admin/teams/test` · `POST /api/admin/teams/dispatch` ·
 `GET /api/admin/teams/preview/:email` · `PUT|DELETE /api/admin/schedules/:email` ·
 `POST /api/admin/roster/import {text|rows, removeMissing, defaultSchedule}`
+
+## Card updates (optional flow branch)
+
+After an agent answers a card (or it expires after 3 h), Rocky sends the
+card's "done/expired" version in the same webhook call, under `updates`
+(`[{ deliveryId, email, card }]`). Teams can only replace a message by its
+ID, so the flow keeps a small SharePoint list **RockyCards** (Title =
+deliveryId, MessageId = text):
+
+1. Inside the `cards` loop, after "Post card in a chat or channel":
+   SharePoint **Create item** → Title = `item()?['deliveryId']`,
+   MessageId = the post action's *Message ID*.
+2. A second **Apply to each** over `triggerBody()?['updates']`:
+   SharePoint **Get items** (Filter Query `Title eq '@{item()?['deliveryId']}'`,
+   Top Count 1) → Microsoft Teams **Update an adaptive card in a chat or
+   channel** (Flow bot, Chat with Flow bot, Recipient `item()?['email']`,
+   Message ID `first(body('Get_items')?['value'])?['MessageId']`,
+   card `string(item()?['card'])`).
+
+Without the branch the updates are simply ignored by the flow.
+
+## Backups
+
+Nightly after 2 a.m. (and "Respaldar ahora" in Admin → Registros → Sistema)
+the whole SQLite database is snapshotted (`VACUUM INTO`), gzipped, sealed
+with `ROCKY_CHAT_BACKUP_KEY` and written to `<db dir>/db-backups/` (newest
+14) and the bucket (`db-backups/`, full history). Restore with
+`ROCKY_CHAT_BACKUP_KEY=… node tools/restore-db-backup.mjs <file> rocky.db`.
