@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { apiClient } from '../services/apiClient'
 import { startSession } from '../services/identityService'
-import { RockyAvatar } from './RockyAvatar'
+import welcomeRocky from '../assets/rocky/official/welcome-wave.webp'
 import styles from './Login.module.css'
 
 interface Props {
@@ -71,6 +71,10 @@ export function Login({ initialEmail = '', notice, onSignedIn }: Props) {
 
   return (
     <div className={styles.page}>
+      {/* Official Rocky artwork (approved by Marketing): shown exactly as delivered — never cropped, recoloured or deformed. */}
+      <figure className={styles.hero}>
+        <img src={welcomeRocky} alt="Rocky, the RLX mascot, waving hello" width={1136} height={1385} />
+      </figure>
       <div className={styles.card}>
         <div className={styles.brand}>
           <span className={styles.brandMark} aria-hidden="true">
@@ -78,7 +82,6 @@ export function Login({ initialEmail = '', notice, onSignedIn }: Props) {
           </span>
           Rocky <span className={styles.brandBy}>by RLX</span>
         </div>
-        <RockyAvatar mood="Happy" evolutionStage="Baby" size={150} bare />
 
         {step === 'email' ? (
           <form className={styles.form} onSubmit={submitEmail}>

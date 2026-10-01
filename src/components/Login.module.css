@@ -1,12 +1,63 @@
 .page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   padding: 24px 16px;
   background:
     radial-gradient(ellipse 70% 40% at 50% 100%, rgba(31, 191, 104, 0.22), transparent 70%),
     var(--navy);
+}
+
+/* The official welcome artwork, untouched, on a white card so its dark
+   outline reads as designed on the navy page. */
+.hero {
+  margin: 0;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 16px 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.hero img {
+  display: block;
+  height: 220px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  animation: heroIn 0.6s ease-out both;
+}
+
+@keyframes heroIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero img {
+    animation: none;
+  }
+}
+
+@media (min-width: 860px) {
+  .page {
+    flex-direction: row;
+    gap: 56px;
+  }
+
+  .hero img {
+    height: min(480px, 66vh);
+  }
 }
 
 .card {
