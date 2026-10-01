@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CALM_STICKER, REACTION_STICKERS, ROAST_LINES, voiceFor } from '../../engine/rockyVoice'
+import { CALM_STICKER, ROAST_LINES, stickerImage, voiceFor } from '../../engine/rockyVoice'
 import { STICKERS } from './Stickers'
 
 const ctx = { firstName: 'Ana', streak: 5, energy: 30, level: 7, checkedInToday: false }
@@ -29,8 +29,13 @@ describe('Rocky’s Teams voice', () => {
     for (const s of Object.values(CALM_STICKER)) expect(ids.has(s)).toBe(true)
   })
 
-  it('knows which stickers are drawn from a reaction (one image for all stages)', () => {
-    expect(new Set(STICKERS.filter((s) => 'reaction' in s.art).map((s) => s.id))).toEqual(REACTION_STICKERS)
+  const RENDERED = new Set(Object.keys(import.meta.glob('/public/teams/stickers/*.png')))
+
+  it('has one rendered Teams image per sticker (one official Rocky, no stages)', () => {
+    for (const s of STICKERS) {
+      expect(stickerImage(s.id, 'Elite')).toBe(`/teams/stickers/${s.id}.png`)
+      expect(RENDERED.has(`/public${stickerImage(s.id)}`)).toBe(true)
+    }
   })
 
   it('doesn’t repeat a line the agent got recently', () => {

@@ -140,10 +140,7 @@ export function voiceFor(
   return { text: fill(text, ctx), sticker }
 }
 
-/** Stickers drawn from a reaction illustration (one image for every stage); the rest follow the agent's stage. */
-export const REACTION_STICKERS = new Set(['yay', 'nice', 'levelup', 'fire', 'oops', 'gotit', 'congrats', 'rescue'])
-
-/** Path of a rendered sticker (public/teams/stickers, see tools/teams-app/render-stickers.mjs). */
-export function stickerImage(id: string, stage: string): string {
-  return REACTION_STICKERS.has(id) ? `/teams/stickers/${id}.png` : `/teams/stickers/${id}-${stage.toLowerCase()}.png`
+/** Path of a rendered sticker (public/teams/stickers, see tools/teams-app/render-stickers.mjs). One official Rocky for everyone — no per-stage art. */
+export function stickerImage(id: string, _stage?: string): string {
+  return `/teams/stickers/${id}.png`
 }

@@ -26,7 +26,7 @@ def color_icon() -> Image.Image:
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((0, 0, size - 1, size - 1), radius=40, fill=NAVY)
     d.ellipse((24, 110, 168, 186), fill=GREEN)
-    rocky = Image.open(ROOT / "public" / "teams" / "young-happy.png").convert("RGBA")
+    rocky = Image.open(ROOT / "src" / "assets" / "rocky" / "official" / "waving.png").convert("RGBA")
     rocky = rocky.crop(rocky.getbbox())
     rocky.thumbnail((176, 172), Image.LANCZOS)
     img.alpha_composite(rocky, ((size - rocky.width) // 2, size - rocky.height - 8))
@@ -35,7 +35,7 @@ def color_icon() -> Image.Image:
 
 def outline_icon() -> Image.Image:
     # 32x32, white on transparent: Rocky's silhouette.
-    rocky = Image.open(ROOT / "public" / "teams" / "young-happy.png").convert("RGBA")
+    rocky = Image.open(ROOT / "src" / "assets" / "rocky" / "official" / "waving.png").convert("RGBA")
     rocky = rocky.crop(rocky.getbbox())
     rocky.thumbnail((30, 30), Image.LANCZOS)
     img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))

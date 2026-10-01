@@ -6,7 +6,8 @@
 .body {
   display: block;
   width: 100%;
-  height: 100%;
+  /* Leave room under the pose for the label so the whole official art shows. */
+  height: 86%;
   transform-origin: 50% 90%;
 }
 

@@ -28,12 +28,32 @@ import eliteHappy from '../assets/rocky/elite/happy.png'
 import eliteMotivated from '../assets/rocky/elite/motivated.png'
 import eliteWorried from '../assets/rocky/elite/worried.png'
 import eliteRecovery from '../assets/rocky/elite/recovery.png'
-import reactionCheckIn from '../assets/rocky/reactions/check-in.png'
-import reactionQaPass from '../assets/rocky/reactions/qa-pass.png'
-import reactionAlert from '../assets/rocky/reactions/alert.png'
-import reactionLevelUp from '../assets/rocky/reactions/level-up.png'
-import reactionEvolution from '../assets/rocky/reactions/evolution.png'
-import reactionRecovery from '../assets/rocky/reactions/recovery.png'
+
+// Official Rocky poses delivered by the client (Marketing-approved). Shown
+// exactly as delivered — only cut out of the original sheet, never redrawn,
+// recoloured or deformed. Originals: docs/rocky-assets-source/official/.
+import poseThumbsUpBoth from '../assets/rocky/official/thumbs-up-both.png'
+import posePointingUp from '../assets/rocky/official/pointing-up.png'
+import poseThumbsUp from '../assets/rocky/official/thumbs-up.png'
+import poseArmsCrossed from '../assets/rocky/official/arms-crossed.png'
+import poseHandTruck from '../assets/rocky/official/hand-truck.png'
+import poseWaving from '../assets/rocky/official/waving.png'
+
+export type RockyPose = 'thumbs-up-both' | 'pointing-up' | 'thumbs-up' | 'arms-crossed' | 'hand-truck' | 'waving'
+
+const POSE_ASSETS: Record<RockyPose, string> = {
+  'thumbs-up-both': poseThumbsUpBoth,
+  'pointing-up': posePointingUp,
+  'thumbs-up': poseThumbsUp,
+  'arms-crossed': poseArmsCrossed,
+  'hand-truck': poseHandTruck,
+  waving: poseWaving,
+}
+
+/** An official Rocky pose. */
+export function getPoseAsset(pose: RockyPose): string {
+  return POSE_ASSETS[pose]
+}
 
 export interface RockyVisualConfig {
   label: string
@@ -65,13 +85,14 @@ export function getRockyAsset(evolutionStage: EvolutionStage, mood: Mood): strin
 
 export type RockyReactionKey = 'check-in' | 'qa-pass' | 'alert' | 'level-up' | 'evolution' | 'recovery'
 
+// Reactions use the official poses.
 const REACTION_ASSETS: Record<RockyReactionKey, string> = {
-  'check-in': reactionCheckIn,
-  'qa-pass': reactionQaPass,
-  alert: reactionAlert,
-  'level-up': reactionLevelUp,
-  evolution: reactionEvolution,
-  recovery: reactionRecovery,
+  'check-in': poseThumbsUp,
+  'qa-pass': poseThumbsUpBoth,
+  alert: posePointingUp,
+  'level-up': poseThumbsUpBoth,
+  evolution: poseThumbsUpBoth,
+  recovery: poseHandTruck,
 }
 
 /**

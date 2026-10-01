@@ -2,131 +2,146 @@
   {
     "id": "hi",
     "label": "Hi!",
-    "perStage": true
+    "pose": "waving"
   },
   {
     "id": "yay",
     "label": "Yay!",
-    "perStage": false
+    "pose": "thumbs-up-both"
   },
   {
     "id": "love",
     "label": "Love it",
-    "perStage": true
+    "pose": "thumbs-up-both"
   },
   {
     "id": "nice",
     "label": "Nice notes!",
-    "perStage": false
+    "pose": "thumbs-up"
   },
   {
     "id": "lol",
     "label": "LOL",
-    "perStage": true
+    "pose": "thumbs-up-both"
   },
   {
     "id": "hmm",
     "label": "Hmm…",
-    "perStage": true
+    "pose": "arms-crossed"
   },
   {
     "id": "levelup",
     "label": "Level up!",
-    "perStage": false
+    "pose": "thumbs-up-both"
   },
   {
     "id": "tired",
     "label": "Coffee time",
-    "perStage": true
+    "pose": "arms-crossed"
   },
   {
     "id": "fire",
     "label": "On fire!",
-    "perStage": false
+    "pose": "thumbs-up"
   },
   {
     "id": "oops",
     "label": "Oops",
-    "perStage": false
+    "pose": "pointing-up"
   },
   {
     "id": "thanks",
     "label": "Thank you!",
-    "perStage": true
+    "pose": "thumbs-up"
   },
   {
     "id": "gm",
     "label": "Good morning",
-    "perStage": true
+    "pose": "waving"
   },
   {
     "id": "gn",
     "label": "Good night",
-    "perStage": true
+    "pose": "waving"
   },
   {
     "id": "lunch",
     "label": "Lunch?",
-    "perStage": true
+    "pose": "pointing-up"
   },
   {
     "id": "omg",
     "label": "OMG",
-    "perStage": true
+    "pose": "pointing-up"
   },
   {
     "id": "boss",
     "label": "Like a boss",
-    "perStage": true
+    "pose": "arms-crossed"
   },
   {
     "id": "party",
     "label": "Party!",
-    "perStage": true
+    "pose": "thumbs-up-both"
   },
   {
     "id": "gotit",
     "label": "Got it!",
-    "perStage": false
+    "pose": "thumbs-up"
   },
   {
     "id": "help",
     "label": "Help!",
-    "perStage": true
+    "pose": "pointing-up"
   },
   {
     "id": "brb",
     "label": "BRB",
-    "perStage": true
+    "pose": "hand-truck"
   },
   {
     "id": "congrats",
     "label": "Congrats!",
-    "perStage": false
+    "pose": "thumbs-up-both"
   },
   {
     "id": "hug",
     "label": "Hug",
-    "perStage": true
+    "pose": "waving"
   },
   {
     "id": "friday",
     "label": "Friday!",
-    "perStage": true
+    "pose": "thumbs-up-both"
   },
   {
     "id": "monday",
     "label": "Monday…",
-    "perStage": true
+    "pose": "arms-crossed"
   },
   {
     "id": "focus",
     "label": "Focus mode",
-    "perStage": true
+    "pose": "arms-crossed"
   },
   {
     "id": "rescue",
     "label": "On my way",
-    "perStage": false
+    "pose": "hand-truck"
+  },
+  {
+    "id": "onit",
+    "label": "On it!",
+    "pose": "hand-truck"
+  },
+  {
+    "id": "tip",
+    "label": "Quick tip",
+    "pose": "pointing-up"
+  },
+  {
+    "id": "notes",
+    "label": "Notes first!",
+    "pose": "pointing-up"
   }
 ]
