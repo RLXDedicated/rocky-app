@@ -6,7 +6,7 @@ import styles from './Extras.module.css'
 /** Bronze / silver / gold for a best score: a quarter, half and 80% of the game's top score (Memory: 1–3 stars). */
 export function medalFor(game: ArcadeGame, best: number): '🥉' | '🥈' | '🥇' | null {
   const max = ARCADE_MAX_SCORE[game]
-  if (game === 'memory') return best >= 3 ? '🥇' : best >= 2 ? '🥈' : best >= 1 ? '🥉' : null
+  if (game === 'memory' || game === 'slide') return best >= 3 ? '🥇' : best >= 2 ? '🥈' : best >= 1 ? '🥉' : null
   if (best >= max * 0.8) return '🥇'
   if (best >= max * 0.5) return '🥈'
   if (best >= max * 0.25) return '🥉'

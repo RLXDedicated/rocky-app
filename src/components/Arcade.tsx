@@ -8,7 +8,8 @@ import {
 } from "react";
 import { calculateMood } from "../engine/gameEngine";
 import { ARCADE_CAP, arcadeReward, gameEnabled, type ArcadeGame } from "../game/pantry";
-import { BoxStack, BubblePop, MudSplat, RockyRun, RockySays } from "./arcade/MoreGames";
+import { BoxStack, BubblePop, MudSplat, RockyRun, RockySays, waveOf } from "./arcade/MoreGames";
+import { HoopShot, PackageSort, RockyCrush, SlidePuzzle } from "./arcade/NewGames";
 import { ArcadeBoard, medalFor } from "./extras/ArcadeBoard";
 import {
   loadPetCache,
@@ -72,6 +73,34 @@ const GAMES: {
     blurb: "Watch the pattern, then play it back. It grows every round!",
     icon: "🎵",
     howTo: "Watch the pads light up, then tap them in the same order.",
+  },
+  {
+    id: "crush",
+    name: "Rocky Crush",
+    blurb: "Match 3 or more snacks and supplies. Chain reactions multiply your points!",
+    icon: "🍬",
+    howTo: "Swipe (or tap two neighbours) to swap. Lines of 4 and 5 pay a bonus. 20 moves.",
+  },
+  {
+    id: "sort",
+    name: "Package Sort",
+    blurb: "Packages roll in fast. Send each one to the bin of its colour!",
+    icon: "🗃️",
+    howTo: "Tap the bin that matches the label (or press 1 2 3). Every 5 in a row is a bonus point. 40 seconds.",
+  },
+  {
+    id: "slide",
+    name: "Slide Puzzle",
+    blurb: "Rocky's picture got scrambled. Slide the tiles back into place.",
+    icon: "🧩",
+    howTo: "Tap a tile next to the gap to slide it. 3 stars for 40 moves or fewer.",
+  },
+  {
+    id: "hoop",
+    name: "Hoop Shot",
+    blurb: "Help Rocky shoot hoops: stop the power bar in the green zone.",
+    icon: "🏀",
+    howTo: "Tap (or press space) when the marker is in green — yellow is a swish (+2). 3 misses and it's over.",
   },
   {
     id: "typo",
@@ -152,7 +181,7 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
             <div>
               <strong>
                 {GAMES.find((g) => g.id === result.game)!.name}:{" "}
-                {result.game === "memory"
+                {result.game === "memory" || result.game === "slide"
                   ? "★".repeat(result.score) || "done"
                   : `${result.score} points`}
               </strong>
@@ -213,6 +242,18 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
             {playing === "stack" && (
               <BoxStack onDone={(s) => finish("stack", s)} />
             )}
+            {playing === "crush" && (
+              <RockyCrush onDone={(s) => finish("crush", s)} />
+            )}
+            {playing === "sort" && (
+              <PackageSort onDone={(s) => finish("sort", s)} />
+            )}
+            {playing === "slide" && (
+              <SlidePuzzle rocky={rocky} onDone={(s) => finish("slide", s)} />
+            )}
+            {playing === "hoop" && (
+              <HoopShot rocky={rocky} onDone={(s) => finish("hoop", s)} />
+            )}
           </section>
         ) : (
           <div className={styles.hub}>
@@ -229,7 +270,7 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
                     <span title="Your medal for this game">{medalFor(g.id, games.arcadeBest[g.id] ?? 0)} </span>
                   )}
                   Best:{" "}
-                  {g.id === "memory"
+                  {g.id === "memory" || g.id === "slide"
                     ? "★".repeat(games.arcadeBest[g.id] ?? 0) || "—"
                     : (games.arcadeBest[g.id] ?? "—")}{" "}
                   · up to {arcadeReward(g.id, 999)} coins a round
@@ -335,11 +376,11 @@ function TreatCatch({
       if (keys.current.left) s.x = Math.max(6, s.x - 70 * dt);
       if (keys.current.right) s.x = Math.min(94, s.x + 70 * dt);
       // Faster and busier as the round goes on.
-      const pace = 1 + elapsed / CATCH_MS;
+      const { pace, danger } = waveOf(elapsed, CATCH_MS);
       if (now > s.next) {
         const roll = Math.random();
         const kind: Falling["kind"] =
-          roll < 0.18 ? "mud" : roll < 0.26 ? "gold" : "good";
+          roll < 0.18 + danger ? "mud" : roll < 0.26 + danger ? "gold" : "good";
         const art =
           kind === "good"
             ? FOOD_ART[GOOD[Math.floor(Math.random() * GOOD.length)]!]!
@@ -354,7 +395,7 @@ function TreatCatch({
           kind,
           art,
         });
-        s.next = now + (720 - 280 * (pace - 1)) * (0.7 + Math.random() * 0.6);
+        s.next = now + Math.max(240, 720 - 280 * (pace - 1)) * (0.7 + Math.random() * 0.6);
       }
       for (const it of s.items) it.y += it.v * dt;
       // Rocky's mouth is around 78% down the field; a catch within ~9% sideways.
@@ -415,6 +456,7 @@ function TreatCatch({
     >
       <div className={styles.hud}>
         <span>⏱ {Math.ceil(s.left / 1000)}s</span>
+        <span>Wave {waveOf(CATCH_MS - s.left, CATCH_MS).wave}/4</span>
         <span>🍎 {s.score}</span>
       </div>
       {s.items.map((it) => (

@@ -248,6 +248,8 @@ const LITTER_LINES = [
 ];
 /** Longest a play session can run, even while the agent keeps the ball up (then Rocky takes the final shot). */
 const KEEPY_MAX_MS = 20_000;
+/** A second touch this soon after the last one is the same tap echoing (pointerdown, then click). */
+const TAP_ECHO_MS = 350;
 /** A tap this close (px) to the ball counts as a kick. */
 const NEAR_KICK_PX = 100;
 /** How much scrubbing a bath takes: pointer travel over Rocky, in multiples of his size. */
@@ -381,6 +383,9 @@ export function RockyWorld({
   // Keep-it-up: taps in a row without the ball touching the ground.
   const [touches, setTouches] = useState(0);
   const touchesRef = useRef(0);
+  // When the ball was last touched: the click that follows a tap on the ball
+  // lands on the stage (the ball has already flown off) and must not count again.
+  const lastTouchAt = useRef(0);
   const [rewards, setRewards] = useState<RewardPop[]>([]);
   // Litter the agent has just thrown away (hidden until the server agrees).
   const [binned, setBinned] = useState<string[]>([]);
@@ -737,6 +742,7 @@ export function RockyWorld({
       ballRef.current &&
       ballRef.current.distanceTo(e.clientX, e.clientY) < NEAR_KICK_PX
     ) {
+      if (performance.now() - lastTouchAt.current < TAP_ECHO_MS) return;
       ballRef.current.kick(e.clientX, e.clientY);
       countTouch();
       return;
@@ -952,6 +958,9 @@ export function RockyWorld({
 
   // ------------------------------------------------------------ keep-it-up
   function countTouch() {
+    const now = performance.now();
+    if (now - lastTouchAt.current < TAP_ECHO_MS) return;
+    lastTouchAt.current = now;
     touchesRef.current += 1;
     setTouches(touchesRef.current);
     playSfx(touchesRef.current % 5 === 0 ? "chime" : "kick");

@@ -18,6 +18,7 @@ import {
   STAFF_BACK_WIDTH,
 } from "./extraArt";
 import { THIRD_BACK, THIRD_BACK_WIDTH, THIRD_GLASSES, THIRD_NECK } from "./thirdArt";
+import { FOURTH_BACK, FOURTH_BACK_WIDTH, FOURTH_GLASSES, FOURTH_NECK, SPOOKY_GLASSES, SPOOKY_NECK } from "./fourthArt";
 
 const NAVY = "#0f2341";
 const GREEN = "#008c45";
@@ -243,6 +244,8 @@ export const GLASSES_ART: Record<string, ReactElement> = {
   ),
   ...EXTRA_GLASSES,
   ...THIRD_GLASSES,
+  ...FOURTH_GLASSES,
+  ...SPOOKY_GLASSES,
 };
 
 // ---------------------------------------------------------------------------
@@ -500,6 +503,8 @@ export const NECK_ART: Record<string, ReactElement> = {
   ),
   ...EXTRA_NECK,
   ...THIRD_NECK,
+  ...FOURTH_NECK,
+  ...SPOOKY_NECK,
 };
 
 // ---------------------------------------------------------------------------
@@ -626,6 +631,7 @@ export const BACK_ART: Record<string, ReactElement> = {
   ...EXTRA_BACK,
   ...STAFF_BACK,
   ...THIRD_BACK,
+  ...FOURTH_BACK,
 };
 
 /** How wide each back item is relative to the face (wings spread past the body). */
@@ -638,6 +644,7 @@ const BACK_WIDTH: Record<string, number> = {
   ...EXTRA_BACK_WIDTH,
   ...STAFF_BACK_WIDTH,
   ...THIRD_BACK_WIDTH,
+  ...FOURTH_BACK_WIDTH,
 };
 
 // ---------------------------------------------------------------------------

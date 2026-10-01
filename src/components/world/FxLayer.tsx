@@ -266,7 +266,50 @@ const star = (c: string) => (
   />
 );
 
+const sparkle = (c: string) => (
+  <path d="M10 1 L11.8 8.2 L19 10 L11.8 11.8 L10 19 L8.2 11.8 L1 10 L8.2 8.2 Z" fill={c} />
+);
+const plane = (c: string) => (
+  <g>
+    <path d="M1 10 L19 3 L12 18 L10 12 Z" fill={c} stroke="rgba(15,35,65,0.35)" strokeWidth="0.7" strokeLinejoin="round" />
+    <path d="M10 12 L19 3" stroke="rgba(15,35,65,0.35)" strokeWidth="0.7" />
+  </g>
+);
+const balloon = (c: string) => (
+  <g>
+    <ellipse cx="10" cy="8" rx="6.5" ry="7.5" fill={c} />
+    <path d="M10 15.5 L9 17 L11 17 Z" fill={c} />
+    <path d="M10 17 C8 18 12 19 10 20" stroke="#94a3b8" strokeWidth="0.6" fill="none" />
+    <ellipse cx="7.8" cy="5.5" rx="1.6" ry="2.6" fill="#ffffff" opacity="0.45" />
+  </g>
+);
+
 const FX: Record<string, ParticleFx | SpecialFx> = {
+  "fx-sparkles": {
+    kind: "particles",
+    count: 20,
+    motion: "sway",
+    shapes: ["#fff6c2", "#f5b82e", "#ffffff", "#bae6fd"].map(sparkle),
+    size: [8, 14],
+    dur: [6, 11],
+    depth: true,
+  },
+  "fx-paper-planes": {
+    kind: "particles",
+    count: 7,
+    motion: "float",
+    shapes: ["#ffffff", "#fde68a", "#bfdbfe"].map(plane),
+    size: [18, 26],
+    dur: [9, 15],
+  },
+  "fx-balloons": {
+    kind: "particles",
+    count: 10,
+    motion: "rise",
+    shapes: ["#e2445c", "#f5b82e", "#1fbf68", "#5b8cff", "#f472b6"].map(balloon),
+    size: [18, 28],
+    dur: [10, 16],
+  },
   // Rocky admins only: golden sparkles and crowns rising through light rays.
   "fx-royal-aura": {
     kind: "particles",
@@ -744,6 +787,7 @@ export function fxPreview(id: string): ReactElement | null {
       <>
         {fx.motion === "rain" ||
         id === "fx-stars" ||
+        id === "fx-sparkles" ||
         id === "fx-bats" ||
         id === "fx-ghosts" ||
         id === "fx-snow" ? (

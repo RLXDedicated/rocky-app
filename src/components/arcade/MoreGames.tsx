@@ -29,8 +29,20 @@ function useLoop(step: (dt: number, now: number) => boolean) {
   }, []);
 }
 
+/**
+ * Timed games run in 4 waves: each wave is clearly faster and more
+ * dangerous than the last (not a slow linear creep). `danger` is added to
+ * the chance of the bad things showing up.
+ */
+export function waveOf(elapsed: number, total: number): { wave: number; pace: number; danger: number } {
+  const wave = Math.min(4, 1 + Math.floor((elapsed / total) * 4));
+  return { wave, pace: 1 + (wave - 1) * 0.42 + (elapsed / total) * 0.25, danger: (wave - 1) * 0.05 };
+}
+
 // ---------------------------------------------------------------------------
-// Rocky Run: tap / space to jump over the boxes. One bump ends the run.
+// Rocky Run: tap / space to jump. Every 8 points is a new level: faster, and
+// new obstacles join — tall boxes (L2), double boxes (L3), drones you must
+// NOT jump into (L4), and tight combos (L5+). One bump ends the run.
 // ---------------------------------------------------------------------------
 const RUN_GROUND = 78; // % from the top where Rocky's feet are
 
@@ -39,7 +51,9 @@ export function RockyRun({ rocky, onDone }: { rocky: string; onDone: Done }) {
     y: 0, // height above the ground (%)
     vy: 0,
     speed: 38,
-    obstacles: [] as { id: number; x: number; w: number; h: number; kind: number }[],
+    obstacles: [] as { id: number; x: number; w: number; h: number; kind: number; air?: number }[],
+    level: 1,
+    banner: 0,
     next: 1.2,
     id: 0,
     score: 0,
@@ -72,15 +86,40 @@ export function RockyRun({ rocky, onDone }: { rocky: string; onDone: Done }) {
     const s = st.current;
     if (s.over) return false;
     s.t += dt;
-    s.speed = 38 + s.t * 1.6;
+    const level = 1 + Math.floor(s.score / 8);
+    if (level > s.level) {
+      s.level = level;
+      s.banner = 1.6;
+      playSfx("chime");
+    }
+    s.banner = Math.max(0, s.banner - dt);
+    // A clear step up every level, plus a little creep within it.
+    const target = 40 + (s.level - 1) * 8 + Math.min(6, s.t * 0.15);
+    s.speed += (target - s.speed) * Math.min(1, dt * 2);
     s.vy -= 330 * dt;
     s.y = Math.max(0, s.y + s.vy * dt);
     if (s.y === 0) s.vy = 0;
     s.next -= dt;
     if (s.next <= 0) {
-      const tall = Math.random() < 0.35;
-      s.obstacles.push({ id: ++s.id, x: 104, w: tall ? 6 : 8, h: tall ? 16 : 10, kind: Math.floor(Math.random() * 3) });
-      s.next = Math.max(0.55, 1.5 - s.t / 60) * (0.75 + Math.random() * 0.7);
+      const L = s.level;
+      const roll = Math.random();
+      const box = (x: number, tall: boolean) => ({ id: ++s.id, x, w: tall ? 6 : 8, h: tall ? 16 : 10, kind: Math.floor(Math.random() * 3) });
+      if (L >= 4 && roll < 0.22) {
+        // A drone at jump height: stay on the ground and let it pass over.
+        s.obstacles.push({ id: ++s.id, x: 104, w: 7, h: 9, kind: 9, air: 20 });
+      } else if (L >= 3 && roll < 0.45) {
+        // Two boxes back to back: one long jump.
+        s.obstacles.push(box(104, false), box(112, L >= 5 && Math.random() < 0.5));
+      } else if (L >= 5 && roll < 0.6) {
+        // A box, then a drone right after: jump, land, stay down.
+        // Far enough behind for Rocky to land first (a jump lasts ~0.72 s).
+        s.obstacles.push(box(104, false), { id: ++s.id, x: 104 + s.speed * 0.95, w: 7, h: 9, kind: 9, air: 20 });
+      } else {
+        s.obstacles.push(box(104, L >= 2 && Math.random() < 0.4));
+      }
+      // Gaps shrink with the level (never below what a jump needs).
+      const far = Math.max(...s.obstacles.map((o) => o.x));
+      s.next = Math.max(0.5, 1.45 - (L - 1) * 0.12) * (0.75 + Math.random() * 0.6) + Math.max(0, far - 104) / s.speed;
     }
     for (const o of s.obstacles) {
       const before = o.x;
@@ -92,7 +131,10 @@ export function RockyRun({ rocky, onDone }: { rocky: string; onDone: Done }) {
     }
     s.obstacles = s.obstacles.filter((o) => o.x > -12);
     // Rocky's box: x 12–22%, from his feet up ~18%.
-    const hit = s.obstacles.some((o) => o.x < 20 && o.x + o.w > 14 && s.y < o.h - 2);
+    // Ground obstacles hit when Rocky is too low; drones hit when he jumps into them.
+    const hit = s.obstacles.some(
+      (o) => o.x < 20 && o.x + o.w > 14 && (o.air ? s.y + 16 > o.air && s.y < o.air + o.h : s.y < o.h - 2),
+    );
     if (hit || s.score >= 60) {
       s.over = true;
       playSfx(hit ? "nope" : "fanfare");
@@ -110,8 +152,10 @@ export function RockyRun({ rocky, onDone }: { rocky: string; onDone: Done }) {
     <div className={`${styles.field} ${styles.runField}`} onPointerDown={jump} role="button" tabIndex={0} aria-label="Rocky Run — tap or press space to jump">
       <div className={styles.hud}>
         <span>📦 {s.score}</span>
+        <span>Level {s.level}</span>
         <span>{s.over ? "Bump!" : "Tap to jump"}</span>
       </div>
+      {s.banner > 0 && <p className={styles.levelBanner}>Level {s.level}!{s.level === 2 ? " Tall boxes!" : s.level === 3 ? " Double boxes!" : s.level === 4 ? " Drones — don’t jump into them!" : " Faster!"}</p>}
       <div className={styles.runHills} style={{ backgroundPositionX: `${-s.t * 20}px` }} />
       <div className={styles.runGround} style={{ backgroundPositionX: `${-s.t * s.speed * 6}px` }} />
       {s.obstacles.map((o) => (
@@ -119,7 +163,7 @@ export function RockyRun({ rocky, onDone }: { rocky: string; onDone: Done }) {
           key={o.id}
           className={styles.box}
           data-kind={o.kind}
-          style={{ left: `${o.x}%`, width: `${o.w}%`, height: `${o.h}%`, top: `${RUN_GROUND - o.h}%` }}
+          style={{ left: `${o.x}%`, width: `${o.w}%`, height: `${o.h}%`, top: `${RUN_GROUND - o.h - (o.air ?? 0)}%` }}
         />
       ))}
       <RetryImg
@@ -154,16 +198,16 @@ export function MudSplat({ rocky, onDone }: { rocky: string; onDone: Done }) {
     const s = st.current;
     const elapsed = now - s.start;
     s.left = Math.max(0, WHACK_MS - elapsed);
-    const pace = 1 + elapsed / WHACK_MS;
+    const { pace, danger } = waveOf(elapsed, WHACK_MS);
     for (const h of s.holes) if (h.kind && now > h.until) h.kind = null;
     if (now > s.next) {
       const free = s.holes.map((h, i) => (h.kind ? -1 : i)).filter((i) => i >= 0);
       if (free.length) {
         const i = free[Math.floor(Math.random() * free.length)]!;
         const roll = Math.random();
-        s.holes[i] = { kind: roll < 0.16 ? "rocky" : roll < 0.28 ? "gold" : "mud", until: now + (1100 - 400 * (pace - 1)) * (0.8 + Math.random() * 0.4), hit: 0 };
+        s.holes[i] = { kind: roll < 0.16 + danger ? "rocky" : roll < 0.28 + danger ? "gold" : "mud", until: now + Math.max(420, 1100 - 400 * (pace - 1)) * (0.8 + Math.random() * 0.4), hit: 0 };
       }
-      s.next = now + (620 - 260 * (pace - 1)) * (0.7 + Math.random() * 0.6);
+      s.next = now + Math.max(200, 620 - 260 * (pace - 1)) * (0.7 + Math.random() * 0.6);
     }
     s.pops = s.pops.slice(-6);
     if (s.left <= 0) {
@@ -192,6 +236,7 @@ export function MudSplat({ rocky, onDone }: { rocky: string; onDone: Done }) {
     <div className={`${styles.field} ${styles.whackField}`}>
       <div className={styles.hud}>
         <span>⏱ {Math.ceil(s.left / 1000)}s</span>
+        <span>Wave {waveOf(WHACK_MS - s.left, WHACK_MS).wave}/4</span>
         <span>💥 {s.score}</span>
       </div>
       <div className={styles.whackGrid}>
@@ -235,7 +280,7 @@ export function BubblePop({ onDone }: { onDone: Done }) {
     const s = st.current;
     const elapsed = now - s.start;
     s.left = Math.max(0, BUBBLE_MS - elapsed);
-    const pace = 1 + elapsed / BUBBLE_MS;
+    const { pace, danger } = waveOf(elapsed, BUBBLE_MS);
     if (now > s.next) {
       const roll = Math.random();
       s.bubbles.push({
@@ -244,10 +289,10 @@ export function BubblePop({ onDone }: { onDone: Done }) {
         y: 108,
         r: 5 + Math.random() * 4,
         v: (16 + Math.random() * 12) * pace,
-        kind: roll < 0.15 ? "spiky" : roll < 0.25 ? "gold" : "blue",
+        kind: roll < 0.15 + danger ? "spiky" : roll < 0.25 + danger ? "gold" : "blue",
         wob: Math.random() * 6,
       });
-      s.next = now + (430 - 150 * (pace - 1)) * (0.7 + Math.random() * 0.6);
+      s.next = now + Math.max(160, 430 - 150 * (pace - 1)) * (0.7 + Math.random() * 0.6);
     }
     for (const b of s.bubbles) {
       b.y -= b.v * dt;
@@ -281,6 +326,7 @@ export function BubblePop({ onDone }: { onDone: Done }) {
     <div className={`${styles.field} ${styles.bubbleField}`}>
       <div className={styles.hud}>
         <span>⏱ {Math.ceil(s.left / 1000)}s</span>
+        <span>Wave {waveOf(BUBBLE_MS - s.left, BUBBLE_MS).wave}/4</span>
         <span>🫧 {s.score}</span>
       </div>
       {s.bubbles.map((b) => (
@@ -323,7 +369,8 @@ export function RockySays({ rocky, onDone }: { rocky: string; onDone: Done }) {
 
   useEffect(() => {
     if (phase !== "show") return;
-    const gap = Math.max(260, 620 - seq.length * 25);
+    // The pattern plays faster every round.
+    const gap = Math.max(210, 600 - seq.length * 40);
     seq.forEach((p, i) => {
       timers.current.push(
         window.setTimeout(() => {
@@ -434,7 +481,7 @@ export function BoxStack({ onDone }: { onDone: Done }) {
     s.perfect = perfect ? s.perfect + 1 : 0;
     s.stack.push(placed);
     playSfx(perfect ? "chime" : "tap");
-    s.speed = Math.min(90, 34 + s.stack.length * 2.2);
+    s.speed = Math.min(130, 34 + s.stack.length * 3.2);
     s.cur = { x: s.stack.length % 2 ? 0 : 100 - placed.w, w: placed.w, dir: s.stack.length % 2 ? 1 : -1 };
     if (s.stack.length - 1 >= 40) {
       s.over = true;

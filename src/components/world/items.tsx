@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { EXTRA_FOOD_ART } from "./extraArt";
+import { FOURTH_FOOD_ART, FOURTH_SOAP_ART, SPOOKY_SOAP_ART } from "./fourthArt";
 
 // Small drawings (viewBox 0 0 40 40) for inventory items and the litter in
 // Rocky's world. Kept apart from art.tsx, which holds the big scene pieces.
@@ -218,6 +219,7 @@ export const FOOD_ART: Record<string, ReactElement> = {
     </>
   ),
   ...EXTRA_FOOD_ART,
+  ...FOURTH_FOOD_ART,
 };
 
 /** A soap bar in its own colour, with a little shine. */
@@ -298,6 +300,8 @@ export const SOAP_ART: Record<string, ReactElement> = {
       />
     </>
   ),
+  ...FOURTH_SOAP_ART,
+  ...SPOOKY_SOAP_ART,
 };
 
 export const LITTER_ART: Record<string, ReactElement> = {

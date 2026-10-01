@@ -56,10 +56,12 @@ function run(state: PetState, action: PetAction, facts = worker, now = NOW) {
 }
 
 describe("shop catalogue", () => {
-  it("starts with only the starter items unlocked", () => {
+  it("starts with only the starter items (and the open-to-everyone wave) unlocked", () => {
     const unlocked = CLOSET.filter(
-      (i) => !i.season && i.isUnlocked(newbie),
+      (i) => !i.season && i.requirement !== "Available to everyone" && i.isUnlocked(newbie),
     ).map((i) => i.id);
+    // The open wave is unlocked for everyone but still has to be bought.
+    expect(CLOSET.filter((i) => i.requirement === "Available to everyone").every((i) => i.isUnlocked(newbie) && i.price > 0)).toBe(true);
     expect(unlocked).toEqual([
       "hat-rlx-cap",
       "neck-lanyard",
@@ -352,6 +354,31 @@ describe("Note Check (notes quiz)", () => {
       tomorrow,
     );
     expect(zero.state.quiz.lastScore).toBeLessThanOrEqual(5);
+  });
+});
+
+describe("Note Check rotation", () => {
+  it("has a big bank, a different quiz every day and no repeats until the bank is used up", async () => {
+    const { dailyQuestions, QUIZ_BANK } = await import("./notesQuiz");
+    expect(QUIZ_BANK.length).toBeGreaterThanOrEqual(70);
+    expect(new Set(QUIZ_BANK.map((q) => q.id)).size).toBe(QUIZ_BANK.length);
+    for (const q of QUIZ_BANK) expect(q.answer).toBeLessThan(q.options.length);
+    const days = Math.floor(QUIZ_BANK.length / 5);
+    const seen = new Set<string>();
+    // A cycle starts on a day number divisible by `days` (days since 2024-01-01).
+    const start = new Date(2024, 0, 1 + days * 50, 12);
+    for (let d = 0; d < days; d++) {
+      const round = dailyQuestions(new Date(start.getTime() + d * 86_400_000));
+      for (const q of round) seen.add(q.id);
+    }
+    // Within a cycle no question repeats: every day is a new quiz.
+    expect(seen.size).toBe(days * 5);
+    // The right answer moves around, but always points at the same text.
+    const round = dailyQuestions(start);
+    for (const q of round) {
+      const original = QUIZ_BANK.find((b) => b.id === q.id)!;
+      expect(q.options[q.answer]).toBe(original.options[original.answer]);
+    }
   });
 });
 

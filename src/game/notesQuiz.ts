@@ -8,6 +8,7 @@
 // Questions are generic customer-service documentation practice. QA can
 // edit this bank to match RLX's exact note standard.
 import { todayKey } from '../engine/dateUtils'
+import { EXTRA_QUESTIONS } from './notesQuizBank'
 
 export interface QuizQuestion {
   id: string
@@ -18,7 +19,7 @@ export interface QuizQuestion {
   tip: string
 }
 
-export const QUIZ_BANK: QuizQuestion[] = [
+const BASE_QUESTIONS: QuizQuestion[] = [
   {
     id: 'q-must-have',
     prompt: 'What must every account note include?',
@@ -186,22 +187,60 @@ export const QUIZ_BANK: QuizQuestion[] = [
   },
 ]
 
+/** Every question (the original set plus the full-process bank). */
+export const QUIZ_BANK: QuizQuestion[] = [...BASE_QUESTIONS, ...EXTRA_QUESTIONS]
+
 export const QUIZ_ROUND_SIZE = 5
 /** Coins per correct answer, and the bonus for a perfect round (first round of the day only). */
 export const QUIZ_REWARD = { perCorrect: 4, perfectBonus: 10, perfectTreats: 1 } as const
 
-/** Today's five questions — the same for everyone on a given day. */
-export function dailyQuestions(now: Date = new Date(), bank: QuizQuestion[] = QUIZ_BANK): QuizQuestion[] {
-  const key = todayKey(now)
-  let seed = 0
-  for (const ch of key) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0
-  const pool = [...bank]
-  const picked: QuizQuestion[] = []
-  while (picked.length < Math.min(QUIZ_ROUND_SIZE, bank.length)) {
-    seed = (seed * 1103515245 + 12345) >>> 0
-    picked.push(pool.splice(seed % pool.length, 1)[0]!)
+/** A small seeded PRNG (mulberry32), so every device builds the same quiz for a day. */
+function rng(seed: number) {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = a
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
-  return picked
+}
+
+function shuffle<T>(list: T[], random: () => number): T[] {
+  const out = [...list]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[out[i], out[j]] = [out[j]!, out[i]!]
+  }
+  return out
+}
+
+/** Days since 2024-01-01 for a local day key (the same day for everyone). */
+function dayNumber(now: Date): number {
+  const [y, m, d] = todayKey(now).split('-').map(Number) as [number, number, number]
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(2024, 0, 1)) / 86_400_000)
+}
+
+/**
+ * Today's five questions — the same for everyone on a given day, and a
+ * different set every day: the bank is shuffled once per cycle and each day
+ * takes the next five, so no question comes back until the whole bank has
+ * been used (then a new shuffle starts). The options are shuffled per day
+ * too, so the right answer isn't always in the same place.
+ */
+export function dailyQuestions(now: Date = new Date(), bank: QuizQuestion[] = QUIZ_BANK): QuizQuestion[] {
+  const size = Math.min(QUIZ_ROUND_SIZE, bank.length)
+  const perCycle = Math.max(1, Math.floor(bank.length / size))
+  const day = dayNumber(now)
+  const cycle = Math.floor(day / perCycle)
+  const slot = ((day % perCycle) + perCycle) % perCycle
+  const order = shuffle(bank, rng(0x5eed + cycle * 7919))
+  const picked = order.slice(slot * size, slot * size + size)
+  const random = rng(day * 104729 + 17)
+  return picked.map((q) => {
+    const idx = shuffle(q.options.map((_, i) => i), random)
+    return { ...q, options: idx.map((i) => q.options[i]!), answer: idx.indexOf(q.answer) }
+  })
 }
 
 /** Scores answers (question id → chosen option) against today's round; unknown ids are ignored. */

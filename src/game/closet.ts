@@ -988,6 +988,36 @@ export const CLOSET: ClosetItem[] = [
     ] as const
   ).map(([id, slot, name, price, rule, n]): ClosetItem => ({ id, slot, name, price, ...unlockRule(rule, n) })),
 
+  // Fourth wave (coffee country & tropical): open to everyone from day one — bought, never gifted.
+  ...(
+    [
+      ["hat-straw", "hat", "Straw sun hat", 90],
+      ["hat-frog", "hat", "Froggy hat", 110],
+      ["hat-bee", "hat", "Bee antennae", 80],
+      ["glasses-sunset", "glasses", "Sunset shades", 90],
+      ["glasses-butterfly", "glasses", "Butterfly glasses", 110],
+      ["glasses-robot", "glasses", "Robot eyes", 140],
+      ["neck-coffee", "neck", "Coffee bean necklace", 100],
+      ["neck-knit-scarf", "neck", "Chunky knit scarf", 90],
+      ["neck-star-pendant", "neck", "Star pendant", 130],
+      ["back-guitar", "back", "Guitar on the back", 150],
+      ["back-surfboard", "back", "Surfboard", 140],
+      ["back-balloons", "back", "Balloon bunch", 120],
+      ["decor-hammock", "decor", "Hammock", 170],
+      ["decor-coffee-cart", "decor", "Coffee cart", 190],
+      ["decor-campfire", "decor", "Campfire", 150],
+      ["scene-coffee-farm", "scene", "Coffee farm", 220],
+      ["scene-caribbean", "scene", "Caribbean town", 240],
+      ["scene-star-camp", "scene", "Starry camp", 230],
+      ["fx-sparkles", "fx", "Sparkles", 120],
+      ["fx-paper-planes", "fx", "Paper planes", 110],
+      ["fx-balloons", "fx", "Floating balloons", 130],
+      ["bubble-coffee", "bubble", "Latte bubble", 70],
+      ["bubble-ocean", "bubble", "Ocean bubble", 90],
+      ["bubble-gold", "bubble", "Gold foil bubble", 180],
+    ] as const
+  ).map(([id, slot, name, price]): ClosetItem => ({ id, slot, name, price, requirement: "Available to everyone", isUnlocked: always })),
+
   // Gifts only: an admin hands these out (Admin → bulk actions or the agent's card).
   {
     id: "decor-arcade-trophy",
@@ -1064,6 +1094,12 @@ export const CLOSET: ClosetItem[] = [
     ["fx-spooky-leaves", "fx", "Spooky wind", 110],
     ["fx-pumpkins", "fx", "Pumpkin fall", 120],
     ["bubble-spooky", "bubble", "Spooky chat bubble", 60],
+    ["glasses-skull", "glasses", "Skull shades", 80],
+    ["glasses-bat", "glasses", "Bat mask", 90],
+    ["neck-bone", "neck", "Bone necklace", 60],
+    ["scene-graveyard", "scene", "Moonlit graveyard", 240],
+    ["bubble-pumpkin", "bubble", "Pumpkin chat bubble", 60],
+    ["bubble-web", "bubble", "Spider-web chat bubble", 70],
   ]),
   ...seasonal("holiday", [
     ["hat-elf", "hat", "Elf hat", 90],

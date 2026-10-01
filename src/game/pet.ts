@@ -58,6 +58,10 @@ const ARCADE_NAMES: Record<ArcadeGame, string> = {
   bubbles: "Bubble Pop",
   simon: "Rocky Says",
   stack: "Box Stack",
+  sort: "Package Sort",
+  slide: "Slide Puzzle",
+  hoop: "Hoop Shot",
+  crush: "Rocky Crush",
 };
 
 export const NEEDS_MAX = 100;

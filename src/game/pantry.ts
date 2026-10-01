@@ -205,6 +205,9 @@ export const FOODS: FoodItem[] = [
     happiness: 12,
     emoji: "🫓",
   },
+  { id: "food-empanada", name: "Empanada", price: 8, health: 12, happiness: 10, emoji: "🥟" },
+  { id: "food-mango", name: "Sweet mango", price: 7, health: 12, happiness: 8, emoji: "🥭" },
+  { id: "food-lulo-juice", name: "Lulo juice", price: 9, health: 10, happiness: 12, emoji: "🧃" },
 ];
 
 /** The treat earned by check-ins and clean audits (not bought here). */
@@ -268,6 +271,10 @@ export const SOAPS: SoapItem[] = [
     foam: "#eef7ff",
     season: "holiday",
   },
+  { id: "soap-midnight", name: "Midnight berry soap", price: 50, happiness: 6, foam: "#c4b5fd", season: "spooky" },
+  { id: "soap-coconut", name: "Coconut soap", price: 45, happiness: 5, foam: "#fbf6ec" },
+  { id: "soap-ocean", name: "Ocean breeze soap", price: 55, happiness: 6, foam: "#cdeefd" },
+  { id: "soap-honey", name: "Honey oat soap", price: 55, happiness: 6, foam: "#fde9a8" },
 ];
 
 export const STARTER_SOAP = "soap-basic";
@@ -359,7 +366,11 @@ export type ArcadeGame =
   | "whack"
   | "bubbles"
   | "simon"
-  | "stack";
+  | "stack"
+  | "sort"
+  | "slide"
+  | "hoop"
+  | "crush";
 export const ARCADE_GAMES: readonly ArcadeGame[] = [
   "catch",
   "typo",
@@ -369,6 +380,10 @@ export const ARCADE_GAMES: readonly ArcadeGame[] = [
   "bubbles",
   "simon",
   "stack",
+  "sort",
+  "slide",
+  "hoop",
+  "crush",
 ];
 
 /** Highest score each game can reach in one round (anything above is clamped). */
@@ -381,6 +396,10 @@ export const ARCADE_MAX_SCORE: Record<ArcadeGame, number> = {
   bubbles: 80,
   simon: 20,
   stack: 40,
+  sort: 60,
+  slide: 3,
+  hoop: 40,
+  crush: 200,
 };
 export const ARCADE_CAP = { coins: 50 } as const;
 
@@ -391,15 +410,20 @@ export function arcadeReward(game: ArcadeGame, score: number): number {
     case "catch":
     case "run":
     case "whack":
+    case "sort":
       return Math.min(10, Math.floor(s / 3));
     case "typo":
     case "simon":
       return Math.min(10, s);
     case "bubbles":
       return Math.min(10, Math.floor(s / 4));
+    case "crush":
+      return Math.min(10, Math.floor(s / 15));
     case "stack":
+    case "hoop":
       return Math.min(10, Math.floor(s / 2));
     case "memory":
+    case "slide":
       return [0, 4, 7, 10][s] ?? 0;
   }
 }
@@ -418,6 +442,10 @@ export const MINI_GAMES: { id: MiniGame; name: string; kind: string; defaultOn: 
   { id: "stack", name: "Box Stack", kind: "Precisión", defaultOn: true },
   { id: "simon", name: "Rocky Says", kind: "Memoria", defaultOn: true },
   { id: "memory", name: "Memory Match", kind: "Memoria", defaultOn: true },
+  { id: "sort", name: "Package Sort", kind: "Clasificar rápido", defaultOn: true },
+  { id: "slide", name: "Slide Puzzle", kind: "Puzzle", defaultOn: true },
+  { id: "hoop", name: "Hoop Shot", kind: "Timing", defaultOn: true },
+  { id: "crush", name: "Rocky Crush", kind: "Combinar 3 (tipo Candy Crush)", defaultOn: true },
   // Spelling and the notes quiz felt like homework to the testers: off by default.
   { id: "typo", name: "Typo Hunt", kind: "Ortografía", defaultOn: false },
   { id: "notes", name: "Note Check (quiz diario)", kind: "Quiz de notas", defaultOn: true },
