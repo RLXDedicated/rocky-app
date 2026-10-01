@@ -1093,6 +1093,9 @@ export const CLOSET: ClosetItem[] = [
       ["scene-cocora", "scene", "Valle de Cocora", 240],
       ["scene-cano-cristales", "scene", "Caño Cristales", 260],
       ["fx-mariposas", "fx", "Yellow butterflies", 130],
+      ["fx-condor", "fx", "Andean condors", 160],
+      ["fx-orquideas", "fx", "Orchid shower", 130],
+      ["fx-jaguar", "fx", "Prowling jaguar", 170],
       ["bubble-tricolor", "bubble", "Tricolor chat bubble", 70],
       ["bubble-wayuu", "bubble", "Wayuu chat bubble", 80],
     ] as const
@@ -1294,7 +1297,7 @@ export const COLOMBIA_ITEMS: readonly string[] = [
   "body-ruana", "body-poncho", "back-silleta",
   "decor-chiva", "decor-guacamaya", "decor-tejo", "decor-asador", "decor-coffee-cart", "decor-hammock",
   "scene-cocora", "scene-cano-cristales", "scene-coffee-farm", "scene-caribbean",
-  "fx-mariposas", "bubble-tricolor", "bubble-wayuu", "bubble-coffee",
+  "fx-mariposas", "fx-condor", "fx-orquideas", "fx-jaguar", "bubble-tricolor", "bubble-wayuu", "bubble-coffee",
 ];
 
 export const RETIRED_ITEMS: Record<string, number> = { "body-jr-jersey": 180 };

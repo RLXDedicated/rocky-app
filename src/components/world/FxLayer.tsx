@@ -15,7 +15,8 @@ type Motion =
   | "float"
   | "streak"
   | "drift"
-  | "haunt";
+  | "haunt"
+  | "prowl";
 
 /** Extra layers that give an effect weight: settled snow, a spooky tint. */
 type Overlay = "snow-ground" | "haunt" | "warm" | "royal";
@@ -31,6 +32,10 @@ interface ParticleFx {
   /** Depth of field: far particles are small, faint, blurred and slow;
    *  a few near ones are big and soft. Off for rain and streaks. */
   depth?: boolean;
+  /** Vertical band (% of the stage) they travel in; default 6–78. */
+  band?: [number, number];
+  /** How many to draw in the shop thumbnail (default 7). */
+  preview?: number;
 }
 
 interface SpecialFx {
@@ -71,6 +76,65 @@ const butterfly = (c: string) => (
       strokeWidth="1.4"
       strokeLinecap="round"
     />
+  </g>
+);
+// Colombia: the Andean condor of the coat of arms, the Cattleya orchid
+// (the national flower) and the jaguar of the Amazon and the Llanos.
+const condor = (
+  <g>
+    <path d="M10 9 C7 7.2 3.4 7 0 8.8 L1.6 9.6 L0.8 10.6 L2.6 10.4 L2 11.4 L4.6 10.8 C6.8 11 8.8 10.8 10 11 Z" fill="#1c1c1c" />
+    <path d="M10 9 C13 7.2 16.6 7 20 8.8 L18.4 9.6 L19.2 10.6 L17.4 10.4 L18 11.4 L15.4 10.8 C13.2 11 11.2 10.8 10 11 Z" fill="#1c1c1c" />
+    <path d="M3 9.4 C5 8.6 7 8.6 9 9.3 M17 9.4 C15 8.6 13 8.6 11 9.3" stroke="#f4f4f4" strokeWidth="0.7" fill="none" />
+    <path d="M9.2 10.8 L10 13 L10.8 10.8 Z" fill="#1c1c1c" />
+    <ellipse cx="10" cy="9.3" rx="1.5" ry="0.8" fill="#ffffff" />
+    <circle cx="10" cy="8.1" r="0.95" fill="#c98a7a" />
+  </g>
+);
+const orchid = (c: string) => (
+  <g>
+    {[0, 120, 240].map((a) => (
+      <ellipse key={a} cx="10" cy="5" rx="1.8" ry="4.2" fill={c} transform={`rotate(${a} 10 10)`} />
+    ))}
+    {[60, 300].map((a) => (
+      <ellipse key={a} cx="10" cy="5.4" rx="3.3" ry="4.3" fill={c} stroke="#c58bd8" strokeWidth="0.4" transform={`rotate(${a} 10 10)`} />
+    ))}
+    <path d="M7 10.6 C7 16.4 13 16.4 13 10.6 C12 12.2 8 12.2 7 10.6 Z" fill="#a3268f" />
+    <ellipse cx="10" cy="12.2" rx="1.2" ry="0.8" fill="#fcd116" />
+    <circle cx="10" cy="10" r="0.9" fill="#ffffff" />
+  </g>
+);
+const jaguar = (
+  <g>
+    <path d="M3.6 10 C1.2 10 0.4 7.4 1.4 5.6" stroke="#e0a034" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <circle cx="1.4" cy="5.6" r="0.75" fill="#2a1d12" />
+    {[4, 12].map((x) => (
+      <rect key={x} x={x} y="12" width="1.6" height="5.6" rx="0.8" fill="#c48526" />
+    ))}
+    {[6, 14].map((x) => (
+      <rect key={x} x={x} y="12" width="1.6" height="5.8" rx="0.8" fill="#e0a034" />
+    ))}
+    <ellipse cx="9" cy="10.4" rx="6.6" ry="3" fill="#e8a83a" />
+    <ellipse cx="9" cy="12.3" rx="5" ry="1.1" fill="#f6deb0" />
+    {[
+      [5, 9.4],
+      [7.5, 8.5],
+      [10, 9.1],
+      [12.5, 8.7],
+      [6.4, 11.1],
+      [9, 10.9],
+      [11.6, 10.9],
+      [14, 9.6],
+    ].map(([x, y]) => (
+      <circle key={`${x}-${y}`} cx={x} cy={y} r="0.72" fill="none" stroke="#3a2a1e" strokeWidth="0.45" />
+    ))}
+    <circle cx="14.9" cy="6.3" r="0.9" fill="#c48526" />
+    <circle cx="16.7" cy="6" r="0.9" fill="#c48526" />
+    <circle cx="16" cy="8.6" r="2.6" fill="#e8a83a" />
+    <ellipse cx="17.9" cy="9.7" rx="1.2" ry="0.9" fill="#f6deb0" />
+    <circle cx="19" cy="9.2" r="0.38" fill="#3a2a1e" />
+    <circle cx="16.9" cy="7.9" r="0.42" fill="#2a1d12" />
+    <circle cx="14.8" cy="8.4" r="0.3" fill="#3a2a1e" />
+    <circle cx="15.4" cy="9.8" r="0.3" fill="#3a2a1e" />
   </g>
 );
 const bubble = (
@@ -461,11 +525,39 @@ const FX: Record<string, ParticleFx | SpecialFx> = {
   },
   "fx-mariposas": {
     kind: "particles",
-    count: 9,
+    count: 14,
     motion: "flutter",
-    shapes: ["#fcd116", "#fde047", "#facc15"].map(butterfly),
-    size: [16, 24],
-    dur: [9, 15],
+    shapes: ["#fcd116", "#fde047", "#facc15", "#f5b82e"].map(butterfly),
+    size: [26, 38],
+    dur: [10, 17],
+  },
+  "fx-condor": {
+    kind: "particles",
+    count: 3,
+    motion: "float",
+    shapes: [condor],
+    size: [80, 120],
+    band: [3, 26],
+    dur: [20, 28],
+    preview: 3,
+  },
+  "fx-orquideas": {
+    kind: "particles",
+    count: 12,
+    motion: "sway",
+    shapes: ["#e7c3ef", "#f3d6f5", "#d6a8e8"].map(orchid),
+    size: [26, 38],
+    dur: [10, 16],
+    depth: true,
+  },
+  "fx-jaguar": {
+    kind: "particles",
+    count: 1,
+    motion: "prowl",
+    shapes: [jaguar],
+    size: [124, 124],
+    dur: [26, 26],
+    preview: 1,
   },
   "fx-stars": {
     kind: "particles",
@@ -647,7 +739,7 @@ export function FxLayer({ id }: { id: string | null }) {
             (fx.depth ? 1.45 - d * 0.6 : 1);
           const style = {
             "--x": `${rnd(i, 1) * 100}%`,
-            "--y": `${6 + rnd(i, 2) * 72}%`,
+            "--y": `${(fx.band?.[0] ?? 6) + rnd(i, 2) * ((fx.band?.[1] ?? 78) - (fx.band?.[0] ?? 6))}%`,
             "--dur": `${dur}s`,
             "--delay": `${-rnd(i, 4) * dur}s`,
             "--sway": `${(20 + rnd(i, 6) * 60) * (0.6 + d * 0.6)}px`,
@@ -664,6 +756,7 @@ export function FxLayer({ id }: { id: string | null }) {
               key={i}
               className={styles.fxP}
               data-motion={fx.motion}
+              data-fx={id}
               style={style}
             >
               <svg viewBox="0 0 20 20">{fx.shapes[i % fx.shapes.length]}</svg>
@@ -811,10 +904,11 @@ export function fxPreview(id: string): ReactElement | null {
             }
           />
         ) : null}
-        {Array.from({ length: 7 }, (_, i) => {
-          const x = 8 + rnd(i, 1) * 76;
-          const y = 6 + rnd(i, 2) * 52;
-          const k = 0.7 + rnd(i, 5) * 0.6;
+        {Array.from({ length: fx.preview ?? 7 }, (_, i) => {
+          const big = fx.preview !== undefined;
+          const x = big ? (fx.preview === 1 ? 31 : 6 + i * 30) : 8 + rnd(i, 1) * 76;
+          const y = fx.motion === "prowl" ? 36 : big ? 10 + (i % 2) * 18 : 6 + rnd(i, 2) * 52;
+          const k = big ? (fx.motion === "prowl" ? 1.9 : 1.4) : 0.7 + rnd(i, 5) * 0.6;
           return (
             <g
               key={i}

@@ -2247,6 +2247,36 @@
   animation: fxFlap 0.35s ease-in-out infinite alternate;
 }
 
+/* A jaguar prowling along the ground, left to right, with a soft step. */
+.fxP[data-motion="prowl"] {
+  top: auto;
+  bottom: 6%;
+  left: -140px;
+  animation-name: fxProwl;
+}
+
+.fxP[data-motion="prowl"] > svg {
+  animation: fxStep 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes fxProwl {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(100cqw + 280px));
+  }
+}
+
+@keyframes fxStep {
+  from {
+    transform: translateY(0) rotate(-1deg);
+  }
+  to {
+    transform: translateY(-3px) rotate(1deg);
+  }
+}
+
 .fxP[data-motion="streak"] {
   top: var(--y);
   left: var(--x);
@@ -2383,6 +2413,21 @@
   }
   100% {
     transform: translate(calc(100cqw + 120px), 0) rotate(0deg);
+  }
+}
+
+/* Yellow butterflies (Macondo): slower, softer wing beats, each its own rhythm. */
+.fxP[data-fx="fx-mariposas"] > svg {
+  animation: fxFlapSoft var(--wob) ease-in-out infinite alternate;
+  animation-duration: calc(var(--wob) / 4);
+}
+
+@keyframes fxFlapSoft {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0.55);
   }
 }
 
