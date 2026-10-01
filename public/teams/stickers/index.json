@@ -2,17 +2,17 @@
   {
     "id": "hi",
     "label": "Hi!",
-    "pose": "waving"
+    "pose": "hello"
   },
   {
     "id": "yay",
     "label": "Yay!",
-    "pose": "thumbs-up-both"
+    "pose": "cheering"
   },
   {
     "id": "love",
     "label": "Love it",
-    "pose": "thumbs-up-both"
+    "pose": "love"
   },
   {
     "id": "nice",
@@ -22,37 +22,37 @@
   {
     "id": "lol",
     "label": "LOL",
-    "pose": "thumbs-up-both"
+    "pose": "laughing"
   },
   {
     "id": "hmm",
     "label": "Hmm…",
-    "pose": "arms-crossed"
+    "pose": "thinking"
   },
   {
     "id": "levelup",
     "label": "Level up!",
-    "pose": "thumbs-up-both"
+    "pose": "celebrating"
   },
   {
     "id": "tired",
     "label": "Coffee time",
-    "pose": "arms-crossed"
+    "pose": "laptop"
   },
   {
     "id": "fire",
     "label": "On fire!",
-    "pose": "thumbs-up"
+    "pose": "determined"
   },
   {
     "id": "oops",
     "label": "Oops",
-    "pose": "pointing-up"
+    "pose": "nervous"
   },
   {
     "id": "thanks",
     "label": "Thank you!",
-    "pose": "thumbs-up"
+    "pose": "thumbs-up-both"
   },
   {
     "id": "gm",
@@ -62,7 +62,7 @@
   {
     "id": "gn",
     "label": "Good night",
-    "pose": "waving"
+    "pose": "hello"
   },
   {
     "id": "lunch",
@@ -72,27 +72,27 @@
   {
     "id": "omg",
     "label": "OMG",
-    "pose": "pointing-up"
+    "pose": "nervous"
   },
   {
     "id": "boss",
     "label": "Like a boss",
-    "pose": "arms-crossed"
+    "pose": "cool"
   },
   {
     "id": "party",
     "label": "Party!",
-    "pose": "thumbs-up-both"
+    "pose": "celebrating"
   },
   {
     "id": "gotit",
     "label": "Got it!",
-    "pose": "thumbs-up"
+    "pose": "thumbs-up-hip"
   },
   {
     "id": "help",
     "label": "Help!",
-    "pose": "pointing-up"
+    "pose": "thinking"
   },
   {
     "id": "brb",
@@ -102,17 +102,17 @@
   {
     "id": "congrats",
     "label": "Congrats!",
-    "pose": "thumbs-up-both"
+    "pose": "cheering"
   },
   {
     "id": "hug",
     "label": "Hug",
-    "pose": "waving"
+    "pose": "love"
   },
   {
     "id": "friday",
     "label": "Friday!",
-    "pose": "thumbs-up-both"
+    "pose": "celebrating"
   },
   {
     "id": "monday",
@@ -122,7 +122,7 @@
   {
     "id": "focus",
     "label": "Focus mode",
-    "pose": "arms-crossed"
+    "pose": "laptop"
   },
   {
     "id": "rescue",
@@ -137,11 +137,21 @@
   {
     "id": "tip",
     "label": "Quick tip",
-    "pose": "pointing-up"
+    "pose": "idea"
+  },
+  {
+    "id": "cool",
+    "label": "Too cool",
+    "pose": "cool"
+  },
+  {
+    "id": "pumped",
+    "label": "Let’s go!",
+    "pose": "determined"
   },
   {
     "id": "notes",
     "label": "Notes first!",
-    "pose": "pointing-up"
+    "pose": "laptop"
   }
 ]

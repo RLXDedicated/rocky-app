@@ -30,16 +30,50 @@ import eliteWorried from '../assets/rocky/elite/worried.png'
 import eliteRecovery from '../assets/rocky/elite/recovery.png'
 
 // Official Rocky poses delivered by the client (Marketing-approved). Shown
-// exactly as delivered — only cut out of the original sheet, never redrawn,
-// recoloured or deformed. Originals: docs/rocky-assets-source/official/.
-import poseThumbsUpBoth from '../assets/rocky/official/thumbs-up-both.png'
-import posePointingUp from '../assets/rocky/official/pointing-up.png'
-import poseThumbsUp from '../assets/rocky/official/thumbs-up.png'
-import poseArmsCrossed from '../assets/rocky/official/arms-crossed.png'
-import poseHandTruck from '../assets/rocky/official/hand-truck.png'
-import poseWaving from '../assets/rocky/official/waving.png'
+// exactly as delivered — only cut out of the original sheets (see
+// tools/slice-rocky-sheet.py), never redrawn, recoloured or deformed.
+// Catalogue: src/assets/rocky/official/README.md · sheets: docs/rocky-assets-source/official/sheets/.
+import poseThumbsUpBoth from '../assets/rocky/official/poses/thumbs-up-both.png'
+import posePointingUp from '../assets/rocky/official/poses/pointing-up.png'
+import poseThumbsUp from '../assets/rocky/official/poses/thumbs-up.png'
+import poseArmsCrossed from '../assets/rocky/official/poses/arms-crossed.png'
+import poseHandTruck from '../assets/rocky/official/poses/hand-truck.png'
+import poseWaving from '../assets/rocky/official/poses/waving.png'
+import poseHello from '../assets/rocky/official/poses/hello.png'
+import poseCheering from '../assets/rocky/official/poses/cheering.png'
+import poseThumbsUpHip from '../assets/rocky/official/poses/thumbs-up-hip.png'
+import poseThinking from '../assets/rocky/official/poses/thinking.png'
+import poseLaptop from '../assets/rocky/official/poses/laptop.png'
+import poseIdea from '../assets/rocky/official/poses/idea.png'
+import poseCelebrating from '../assets/rocky/official/poses/celebrating.png'
+import poseLove from '../assets/rocky/official/poses/love.png'
+import poseLaughing from '../assets/rocky/official/poses/laughing.png'
+import poseNervous from '../assets/rocky/official/poses/nervous.png'
+import poseDetermined from '../assets/rocky/official/poses/determined.png'
+import poseCool from '../assets/rocky/official/poses/cool.png'
 
-export type RockyPose = 'thumbs-up-both' | 'pointing-up' | 'thumbs-up' | 'arms-crossed' | 'hand-truck' | 'waving'
+export const ROCKY_POSES = [
+  'thumbs-up-both',
+  'pointing-up',
+  'thumbs-up',
+  'arms-crossed',
+  'hand-truck',
+  'waving',
+  'hello',
+  'cheering',
+  'thumbs-up-hip',
+  'thinking',
+  'laptop',
+  'idea',
+  'celebrating',
+  'love',
+  'laughing',
+  'nervous',
+  'determined',
+  'cool',
+] as const
+
+export type RockyPose = (typeof ROCKY_POSES)[number]
 
 const POSE_ASSETS: Record<RockyPose, string> = {
   'thumbs-up-both': poseThumbsUpBoth,
@@ -48,6 +82,18 @@ const POSE_ASSETS: Record<RockyPose, string> = {
   'arms-crossed': poseArmsCrossed,
   'hand-truck': poseHandTruck,
   waving: poseWaving,
+  hello: poseHello,
+  cheering: poseCheering,
+  'thumbs-up-hip': poseThumbsUpHip,
+  thinking: poseThinking,
+  laptop: poseLaptop,
+  idea: poseIdea,
+  celebrating: poseCelebrating,
+  love: poseLove,
+  laughing: poseLaughing,
+  nervous: poseNervous,
+  determined: poseDetermined,
+  cool: poseCool,
 }
 
 /** An official Rocky pose. */
@@ -88,11 +134,11 @@ export type RockyReactionKey = 'check-in' | 'qa-pass' | 'alert' | 'level-up' | '
 // Reactions use the official poses.
 const REACTION_ASSETS: Record<RockyReactionKey, string> = {
   'check-in': poseThumbsUp,
-  'qa-pass': poseThumbsUpBoth,
-  alert: posePointingUp,
-  'level-up': poseThumbsUpBoth,
-  evolution: poseThumbsUpBoth,
-  recovery: poseHandTruck,
+  'qa-pass': poseCheering,
+  alert: poseThinking,
+  'level-up': poseCelebrating,
+  evolution: poseCelebrating,
+  recovery: poseDetermined,
 }
 
 /**

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { apiClient } from '../services/apiClient'
 import { startSession } from '../services/identityService'
-import welcomeRocky from '../assets/rocky/official/welcome-wave.webp'
+import welcomeRocky from '../assets/rocky/official/welcome/welcome-wave.webp'
 import styles from './Login.module.css'
 
 interface Props {

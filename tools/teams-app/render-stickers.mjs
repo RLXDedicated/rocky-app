@@ -9,7 +9,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = process.env.ROCKY_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-const ART = path.join(ROOT, 'src/assets/rocky/official')
+const ART = path.join(ROOT, 'src/assets/rocky/official/poses')
 const OUT = path.join(ROOT, 'public/teams/stickers')
 
 const src = fs.readFileSync(path.join(ROOT, 'src/components/chat/Stickers.tsx'), 'utf8')
