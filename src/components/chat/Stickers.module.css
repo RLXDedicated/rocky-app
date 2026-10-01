@@ -6,8 +6,8 @@
 .body {
   display: block;
   width: 100%;
-  /* Leave room under the pose for the label so the whole official art shows. */
-  height: 86%;
+  /* A little room under the pose; the caption may overlap Rocky's feet. */
+  height: 92%;
   transform-origin: 50% 90%;
 }
 
@@ -26,19 +26,26 @@
   animation: pop 1.6s ease-in-out infinite;
 }
 
+/* Comic-style caption: bold white letters with a navy outline and an RLX-green
+   drop, tilted a little and allowed to overlap Rocky's feet. */
 .label {
   position: absolute;
   left: 50%;
-  bottom: 0;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 2px 6px rgba(15, 35, 65, 0.18);
-  color: #0f2341;
-  font-size: 0.7rem;
-  font-weight: 800;
+  bottom: 1%;
+  color: #ffffff;
+  font-family: var(--font-display, 'Poppins', 'Segoe UI', system-ui, sans-serif);
+  /* Long captions (Good morning, Proud of you!) shrink to fit. */
+  font-size: calc(var(--s, 110) * 0.135px * var(--k, 1));
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  word-spacing: 0.1em;
+  line-height: 1;
   white-space: nowrap;
-  transform: translateX(-50%);
+  text-shadow:
+    -2px -2px 0 #0f2341, 2px -2px 0 #0f2341, -2px 2px 0 #0f2341, 2px 2px 0 #0f2341,
+    0 -2px 0 #0f2341, 0 2px 0 #0f2341, -2px 0 0 #0f2341, 2px 0 0 #0f2341,
+    0 4px 0 #00a651;
+  transform: translateX(-50%) rotate(-5deg);
 }
 
 .wave {

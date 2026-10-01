@@ -51,8 +51,32 @@ import poseLaughing from '../assets/rocky/official/poses/laughing.png'
 import poseNervous from '../assets/rocky/official/poses/nervous.png'
 import poseDetermined from '../assets/rocky/official/poses/determined.png'
 import poseCool from '../assets/rocky/official/poses/cool.png'
+import poseJumpingJoy from '../assets/rocky/official/poses/jumping-joy.png'
+import poseThumbsUpSparkle from '../assets/rocky/official/poses/thumbs-up-sparkle.png'
+import poseWarning from '../assets/rocky/official/poses/warning.png'
+import poseConfused from '../assets/rocky/official/poses/confused.png'
+import poseProud from '../assets/rocky/official/poses/proud.png'
+import poseSleeping from '../assets/rocky/official/poses/sleeping.png'
+import poseFistPump from '../assets/rocky/official/poses/fist-pump.png'
+import poseOkWink from '../assets/rocky/official/poses/ok-wink.png'
+import poseTrophy from '../assets/rocky/official/poses/trophy.png'
+import posePanic from '../assets/rocky/official/poses/panic.png'
+import poseSittingLaptop from '../assets/rocky/official/poses/sitting-laptop.png'
+import poseYawning from '../assets/rocky/official/poses/yawning.png'
 
 export const ROCKY_POSES = [
+  'jumping-joy',
+  'thumbs-up-sparkle',
+  'warning',
+  'confused',
+  'proud',
+  'sleeping',
+  'fist-pump',
+  'ok-wink',
+  'trophy',
+  'panic',
+  'sitting-laptop',
+  'yawning',
   'thumbs-up-both',
   'pointing-up',
   'thumbs-up',
@@ -76,6 +100,18 @@ export const ROCKY_POSES = [
 export type RockyPose = (typeof ROCKY_POSES)[number]
 
 const POSE_ASSETS: Record<RockyPose, string> = {
+  'jumping-joy': poseJumpingJoy,
+  'thumbs-up-sparkle': poseThumbsUpSparkle,
+  'warning': poseWarning,
+  'confused': poseConfused,
+  'proud': poseProud,
+  'sleeping': poseSleeping,
+  'fist-pump': poseFistPump,
+  'ok-wink': poseOkWink,
+  'trophy': poseTrophy,
+  'panic': posePanic,
+  'sitting-laptop': poseSittingLaptop,
+  'yawning': poseYawning,
   'thumbs-up-both': poseThumbsUpBoth,
   'pointing-up': posePointingUp,
   'thumbs-up': poseThumbsUp,
@@ -134,8 +170,8 @@ export type RockyReactionKey = 'check-in' | 'qa-pass' | 'alert' | 'level-up' | '
 // Reactions use the official poses.
 const REACTION_ASSETS: Record<RockyReactionKey, string> = {
   'check-in': poseThumbsUp,
-  'qa-pass': poseCheering,
-  alert: poseThinking,
+  'qa-pass': poseThumbsUpSparkle,
+  alert: poseWarning,
   'level-up': poseCelebrating,
   evolution: poseCelebrating,
   recovery: poseDetermined,

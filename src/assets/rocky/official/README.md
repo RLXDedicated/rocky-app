@@ -20,19 +20,33 @@ then register the names in `src/components/rockyVisuals.ts` (`ROCKY_POSES`).
 |---|---|---|---|
 | `thumbs-up-both` | 1 · work | Half body, two thumbs up | Thank you! |
 | `pointing-up` | 1 · work | Index finger up | Lunch? |
-| `thumbs-up` | 1 · work | One thumb up, hand on hip | Check-in reaction, Nice notes! |
+| `thumbs-up` | 1 · work | One thumb up, hand on hip | **check-in reaction** |
 | `arms-crossed` | 1 · work | Arms crossed | Monday… |
 | `hand-truck` | 1 · work | Pushing a hand truck with boxes | BRB, On my way, On it! |
 | `waving` | 1 · work | Waving, hand on hip | Good morning |
-| `hello` | 2 · everyday | Big wave hello | Hi!, Good night |
-| `cheering` | 2 · everyday | Fist pump, eyes closed | QA pass reaction, Yay!, Congrats! |
-| `thumbs-up-hip` | 2 · everyday | Thumbs up toward you | Got it! |
-| `thinking` | 2 · everyday | Hand on chin, "?" | Alert reaction, Hmm…, Help! |
-| `laptop` | 2 · everyday | Typing on an RLX laptop | Notes first!, Focus mode, Coffee time |
+| `hello` | 2 · everyday | Big wave hello | Hi! |
+| `cheering` | 2 · everyday | Fist pump, eyes closed | — |
+| `thumbs-up-hip` | 2 · everyday | Thumbs up toward you | — |
+| `thinking` | 2 · everyday | Hand on chin, "?" | — |
+| `laptop` | 2 · everyday | Typing on an RLX laptop | Notes first! |
 | `idea` | 2 · everyday | Wink, finger up, light bulb | Quick tip |
-| `celebrating` | 3 · emotions | Jumping in confetti | Level-up reaction, Level up!, Party!, Friday! |
+| `celebrating` | 3 · emotions | Jumping in confetti | **level-up reaction**, **evolution reaction**, Level up!, Party! |
 | `love` | 3 · emotions | Hugging a big heart | Love it, Hug |
 | `laughing` | 3 · emotions | Laughing and pointing | LOL |
-| `nervous` | 3 · emotions | Sweat drop, worried | Oops, OMG |
-| `determined` | 3 · emotions | Fists up, fired up | Recovery reaction, On fire!, Let’s go! |
+| `nervous` | 3 · emotions | Sweat drop, worried | Oops |
+| `determined` | 3 · emotions | Fists up, fired up | **recovery reaction**, On fire!, Let’s go! |
 | `cool` | 3 · emotions | Sunglasses, thumbs up | Like a boss, Too cool |
+| `jumping-joy` | 4 · moments | Jumping, both fists up | Yay! |
+| `thumbs-up-sparkle` | 4 · moments | Two thumbs up with sparkles | **qa-pass reaction**, Nice notes! |
+| `warning` | 4 · moments | Stop hand, warning sign | **alert reaction**, Wait! |
+| `confused` | 4 · moments | Scratching head, blue "?" | Hmm… |
+| `proud` | 4 · moments | Hands on hips, sparkles | Proud of you! |
+| `sleeping` | 4 · moments | Asleep on the floor, Zzz | Good night |
+| `fist-pump` | 5 · wins | Jumping fist pump | Friday! |
+| `ok-wink` | 5 · wins | OK sign, wink, star | Got it! |
+| `trophy` | 5 · wins | Holding a trophy in confetti | Congrats!, Winner! |
+| `panic` | 5 · wins | Panicking, sweat drops | OMG, Help! |
+| `sitting-laptop` | 5 · wins | Sitting with the RLX laptop | Focus mode |
+| `yawning` | 5 · wins | Sitting, yawning | Coffee time |
+
+Stickers' captions are drawn on top in a comic style (allowed by Marketing: letters and emoji may overlap Rocky).

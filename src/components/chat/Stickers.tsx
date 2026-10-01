@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { getPoseAsset, type RockyPose } from '../rockyVisuals'
 import { RetryImg } from '../assetRecovery'
 import styles from './Stickers.module.css'
@@ -9,35 +10,38 @@ import styles from './Stickers.module.css'
  */
 export const STICKERS: { id: string; label: string; art: RockyPose; motion: string; extra: string }[] = [
   { id: 'hi', label: 'Hi!', art: 'hello', motion: 'wave', extra: '👋' },
-  { id: 'yay', label: 'Yay!', art: 'cheering', motion: 'jump', extra: '🎉' },
+  { id: 'yay', label: 'Yay!', art: 'jumping-joy', motion: 'jump', extra: '🎉' },
   { id: 'love', label: 'Love it', art: 'love', motion: 'beat', extra: '😍' },
-  { id: 'nice', label: 'Nice notes!', art: 'thumbs-up', motion: 'shine', extra: '⭐' },
+  { id: 'nice', label: 'Nice notes!', art: 'thumbs-up-sparkle', motion: 'shine', extra: '📝' },
   { id: 'lol', label: 'LOL', art: 'laughing', motion: 'shake', extra: '😂' },
-  { id: 'hmm', label: 'Hmm…', art: 'thinking', motion: 'tilt', extra: '🤔' },
+  { id: 'hmm', label: 'Hmm…', art: 'confused', motion: 'tilt', extra: '🤔' },
   { id: 'levelup', label: 'Level up!', art: 'celebrating', motion: 'jump', extra: '⬆️' },
-  { id: 'tired', label: 'Coffee time', art: 'laptop', motion: 'sway', extra: '☕' },
+  { id: 'tired', label: 'Coffee time', art: 'yawning', motion: 'sway', extra: '☕' },
   { id: 'fire', label: 'On fire!', art: 'determined', motion: 'shine', extra: '🔥' },
   { id: 'oops', label: 'Oops', art: 'nervous', motion: 'shake', extra: '😅' },
   { id: 'thanks', label: 'Thank you!', art: 'thumbs-up-both', motion: 'bow', extra: '🙏' },
   { id: 'gm', label: 'Good morning', art: 'waving', motion: 'rise', extra: '☀️' },
-  { id: 'gn', label: 'Good night', art: 'hello', motion: 'sway', extra: '🌙' },
+  { id: 'gn', label: 'Good night', art: 'sleeping', motion: 'sway', extra: '🌙' },
   { id: 'lunch', label: 'Lunch?', art: 'pointing-up', motion: 'jump', extra: '🍕' },
-  { id: 'omg', label: 'OMG', art: 'nervous', motion: 'zoom', extra: '😱' },
+  { id: 'omg', label: 'OMG', art: 'panic', motion: 'zoom', extra: '😱' },
   { id: 'boss', label: 'Like a boss', art: 'cool', motion: 'shine', extra: '😎' },
   { id: 'party', label: 'Party!', art: 'celebrating', motion: 'spin', extra: '🥳' },
-  { id: 'gotit', label: 'Got it!', art: 'thumbs-up-hip', motion: 'bow', extra: '👍' },
-  { id: 'help', label: 'Help!', art: 'thinking', motion: 'shake', extra: '🆘' },
+  { id: 'gotit', label: 'Got it!', art: 'ok-wink', motion: 'bow', extra: '👍' },
+  { id: 'help', label: 'Help!', art: 'panic', motion: 'shake', extra: '🆘' },
   { id: 'brb', label: 'BRB', art: 'hand-truck', motion: 'tilt', extra: '🏃' },
-  { id: 'congrats', label: 'Congrats!', art: 'cheering', motion: 'spin', extra: '🏆' },
+  { id: 'congrats', label: 'Congrats!', art: 'trophy', motion: 'spin', extra: '🎉' },
   { id: 'hug', label: 'Hug', art: 'love', motion: 'beat', extra: '🤗' },
-  { id: 'friday', label: 'Friday!', art: 'celebrating', motion: 'wave', extra: '🎊' },
+  { id: 'friday', label: 'Friday!', art: 'fist-pump', motion: 'wave', extra: '🎊' },
   { id: 'monday', label: 'Monday…', art: 'arms-crossed', motion: 'sway', extra: '😩' },
-  { id: 'focus', label: 'Focus mode', art: 'laptop', motion: 'zoom', extra: '🎧' },
+  { id: 'focus', label: 'Focus mode', art: 'sitting-laptop', motion: 'zoom', extra: '🎧' },
   { id: 'rescue', label: 'On my way', art: 'hand-truck', motion: 'rise', extra: '🚚' },
   { id: 'onit', label: 'On it!', art: 'hand-truck', motion: 'jump', extra: '📦' },
   { id: 'tip', label: 'Quick tip', art: 'idea', motion: 'bow', extra: '📌' },
   { id: 'cool', label: 'Too cool', art: 'cool', motion: 'shine', extra: '👌' },
   { id: 'pumped', label: 'Let’s go!', art: 'determined', motion: 'shake', extra: '💪' },
+  { id: 'wait', label: 'Wait!', art: 'warning', motion: 'shake', extra: '✋' },
+  { id: 'proud', label: 'Proud of you!', art: 'proud', motion: 'shine', extra: '🌟' },
+  { id: 'winner', label: 'Winner!', art: 'trophy', motion: 'jump', extra: '🥇' },
   { id: 'notes', label: 'Notes first!', art: 'laptop', motion: 'shine', extra: '📝' },
 ]
 
@@ -54,7 +58,7 @@ export function Sticker({ id, size = 110 }: { id: string; size?: number }) {
   if (!s) return null
   const src = getPoseAsset(s.art)
   return (
-    <span className={styles.sticker} style={{ width: size, height: size }} role="img" aria-label={`Sticker: ${s.label}`}>
+    <span className={styles.sticker} style={{ width: size, height: size, '--s': size, '--k': s.label.length > 10 ? 0.8 : 1 } as CSSProperties} role="img" aria-label={`Sticker: ${s.label}`}>
       <span className={`${styles.body} ${styles[s.motion] ?? ''}`}>
         <RetryImg src={src} alt="" draggable={false} />
       </span>

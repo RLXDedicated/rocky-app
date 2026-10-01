@@ -3,7 +3,7 @@ into one PNG per pose — crop only: every pixel is copied as delivered, never
 redrawn, recoloured or resized.
 
 Each pose is the solid art in one grid cell; pieces that float on their own
-(confetti, hearts, a light bulb, a "?") go with the cell they sit in, and the
+(confetti, hearts, a light bulb, a "?") go with the nearest pose, and the
 faint anti-aliased edge pixels go to the pose they touch.
 
     python3 tools/slice-rocky-sheet.py SHEET COLS ROWS OUT_DIR name1 name2 ...
@@ -53,13 +53,29 @@ def main() -> None:
     # spans cells about evenly (two poses touching) is split along the grid.
     owner = np.full((h, w), -1, np.int32)
     lab, n = components(alpha > 160)
-    for k in range(1, n + 1):
+    sizes = np.bincount(lab.ravel(), minlength=n + 1)
+    big = [k for k in range(1, n + 1) if sizes[k] >= 0.15 * sizes[1:].max()]
+    for k in big:
         sel = lab == k
         counts = np.bincount(pixel_cell[sel], minlength=cols * rows)
         if counts.max() >= 0.9 * counts.sum():
             owner[sel] = counts.argmax()
         else:
             owner[sel] = pixel_cell[sel]
+    # Floating pieces (sparkles, a "?", sweat drops) go to the nearest pose,
+    # even when they sit across a grid line.
+    boxes = {}
+    for c in range(cols * rows):
+        ys, xs = np.nonzero(owner == c)
+        if len(ys):
+            boxes[c] = (xs.min(), xs.max(), ys.min(), ys.max())
+    for k in range(1, n + 1):
+        if k in big or sizes[k] == 0:
+            continue
+        ys, xs = np.nonzero(lab == k)
+        cy, cx = ys.mean(), xs.mean()
+        dist = lambda b: max(b[0] - cx, 0, cx - b[1]) + max(b[2] - cy, 0, cy - b[3])  # noqa: E731
+        owner[lab == k] = min(boxes, key=lambda c: dist(boxes[c]))
 
     # Faint edge pixels: grow each pose outward through the visible pixels.
     visible = alpha > 0

@@ -7,7 +7,7 @@
   {
     "id": "yay",
     "label": "Yay!",
-    "pose": "cheering"
+    "pose": "jumping-joy"
   },
   {
     "id": "love",
@@ -17,7 +17,7 @@
   {
     "id": "nice",
     "label": "Nice notes!",
-    "pose": "thumbs-up"
+    "pose": "thumbs-up-sparkle"
   },
   {
     "id": "lol",
@@ -27,7 +27,7 @@
   {
     "id": "hmm",
     "label": "Hmm…",
-    "pose": "thinking"
+    "pose": "confused"
   },
   {
     "id": "levelup",
@@ -37,7 +37,7 @@
   {
     "id": "tired",
     "label": "Coffee time",
-    "pose": "laptop"
+    "pose": "yawning"
   },
   {
     "id": "fire",
@@ -62,7 +62,7 @@
   {
     "id": "gn",
     "label": "Good night",
-    "pose": "hello"
+    "pose": "sleeping"
   },
   {
     "id": "lunch",
@@ -72,7 +72,7 @@
   {
     "id": "omg",
     "label": "OMG",
-    "pose": "nervous"
+    "pose": "panic"
   },
   {
     "id": "boss",
@@ -87,12 +87,12 @@
   {
     "id": "gotit",
     "label": "Got it!",
-    "pose": "thumbs-up-hip"
+    "pose": "ok-wink"
   },
   {
     "id": "help",
     "label": "Help!",
-    "pose": "thinking"
+    "pose": "panic"
   },
   {
     "id": "brb",
@@ -102,7 +102,7 @@
   {
     "id": "congrats",
     "label": "Congrats!",
-    "pose": "cheering"
+    "pose": "trophy"
   },
   {
     "id": "hug",
@@ -112,7 +112,7 @@
   {
     "id": "friday",
     "label": "Friday!",
-    "pose": "celebrating"
+    "pose": "fist-pump"
   },
   {
     "id": "monday",
@@ -122,7 +122,7 @@
   {
     "id": "focus",
     "label": "Focus mode",
-    "pose": "laptop"
+    "pose": "sitting-laptop"
   },
   {
     "id": "rescue",
@@ -148,6 +148,21 @@
     "id": "pumped",
     "label": "Let’s go!",
     "pose": "determined"
+  },
+  {
+    "id": "wait",
+    "label": "Wait!",
+    "pose": "warning"
+  },
+  {
+    "id": "proud",
+    "label": "Proud of you!",
+    "pose": "proud"
+  },
+  {
+    "id": "winner",
+    "label": "Winner!",
+    "pose": "trophy"
   },
   {
     "id": "notes",
