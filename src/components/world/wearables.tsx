@@ -19,6 +19,7 @@ import {
 } from "./extraArt";
 import { THIRD_BACK, THIRD_BACK_WIDTH, THIRD_GLASSES, THIRD_NECK } from "./thirdArt";
 import { FOURTH_BACK, FOURTH_BACK_WIDTH, FOURTH_GLASSES, FOURTH_NECK, SPOOKY_GLASSES, SPOOKY_NECK } from "./fourthArt";
+import { COLOMBIA_BACK, COLOMBIA_BACK_WIDTH, COLOMBIA_BODY, COLOMBIA_GLASSES, COLOMBIA_NECK } from "./colombiaArt";
 
 const NAVY = "#0f2341";
 const GREEN = "#008c45";
@@ -246,6 +247,7 @@ export const GLASSES_ART: Record<string, ReactElement> = {
   ...THIRD_GLASSES,
   ...FOURTH_GLASSES,
   ...SPOOKY_GLASSES,
+  ...COLOMBIA_GLASSES,
 };
 
 // ---------------------------------------------------------------------------
@@ -505,6 +507,7 @@ export const NECK_ART: Record<string, ReactElement> = {
   ...THIRD_NECK,
   ...FOURTH_NECK,
   ...SPOOKY_NECK,
+  ...COLOMBIA_NECK,
 };
 
 // ---------------------------------------------------------------------------
@@ -632,6 +635,7 @@ export const BACK_ART: Record<string, ReactElement> = {
   ...STAFF_BACK,
   ...THIRD_BACK,
   ...FOURTH_BACK,
+  ...COLOMBIA_BACK,
 };
 
 /** How wide each back item is relative to the face (wings spread past the body). */
@@ -645,13 +649,14 @@ const BACK_WIDTH: Record<string, number> = {
   ...STAFF_BACK_WIDTH,
   ...THIRD_BACK_WIDTH,
   ...FOURTH_BACK_WIDTH,
+  ...COLOMBIA_BACK_WIDTH,
 };
 
 // ---------------------------------------------------------------------------
 // Body: 100x110 box from the collar (top) down to the hips (bottom); worn
 // over the vest. The shoulders reach the box's top corners.
 // ---------------------------------------------------------------------------
-export const BODY_ART: Record<string, ReactElement> = {};
+export const BODY_ART: Record<string, ReactElement> = { ...COLOMBIA_BODY };
 
 /** Body items: from the collar to just below the hips, across the chest (the SVG stretches to this box). */
 export function bodyPlacement(

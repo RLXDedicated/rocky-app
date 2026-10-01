@@ -11,20 +11,21 @@ import {
   type ItemSlot,
   type Outfit,
   type ProgressFacts,
+  COLOMBIA_ITEMS,
 } from '../../game/closet'
 import { WEAR_ART, WEAR_VIEWBOX, type WearSlot } from './wearables'
 import { TREAT_BAG } from '../../game/economy'
-import { FOODS, SOAPS, STARTER_SOAP, type Season } from '../../game/pantry'
+import { COLOMBIA_FOODS, FOODS, SOAPS, STARTER_SOAP, type Season } from '../../game/pantry'
 import { DECOR_ART, FX_ART, HAT_ART, SceneArt } from './art'
 import { FOOD_ART, SOAP_ART } from './items'
 import { fxPreview } from './FxLayer'
 import { Coin } from './Coin'
 import styles from './Shop.module.css'
 
-type Tab = Exclude<ItemSlot, 'body' | 'aura'> | 'style' | 'treats' | 'food' | 'soap' | 'spooky' | 'holiday'
+type Tab = Exclude<ItemSlot, 'body' | 'aura'> | 'style' | 'treats' | 'food' | 'soap' | 'spooky' | 'holiday' | 'colombia'
 export type ShopTab = Tab
 
-type Section = 'rocky' | 'world' | 'chat' | 'pantry' | 'seasonal'
+type Section = 'rocky' | 'world' | 'chat' | 'pantry' | 'colombia' | 'seasonal'
 
 /** Five shops in one, each split by kind so everything is easy to find. */
 const SECTIONS: { id: Section; label: string; hint: string; tabs: { id: Tab; label: string }[] }[] = [
@@ -65,6 +66,12 @@ const SECTIONS: { id: Section; label: string; hint: string; tabs: { id: Tab; lab
       { id: 'soap', label: '🧼 Soaps' },
       { id: 'treats', label: '🎁 Treat bags' },
     ],
+  },
+  {
+    id: 'colombia',
+    label: '🇨🇴 Colombia',
+    hint: 'Ruanas, ponchos, sombreros, Carnaval and coffee country — a little Colombia for Rocky.',
+    tabs: [{ id: 'colombia', label: '🇨🇴 Colombia' }],
   },
   {
     id: 'seasonal',
@@ -175,6 +182,7 @@ export function ShopPanel({
   const closetFor = (t: Tab): ClosetItem[] => {
     if (t === 'style') return [...itemsFor('body', catalog, granted), ...itemsFor('aura', catalog, granted)]
     if (t === 'spooky' || t === 'holiday') return catalog.filter((i) => i.season === t)
+    if (t === 'colombia') return COLOMBIA_ITEMS.map((id) => catalog.find((i) => i.id === id)).filter((i): i is ClosetItem => !!i)
     if (t === 'hat' || t === 'glasses' || t === 'neck' || t === 'back' || t === 'scene' || t === 'decor' || t === 'fx' || t === 'bubble')
       return itemsFor(t, catalog, granted)
     return []
@@ -189,8 +197,41 @@ export function ShopPanel({
   const onSale = (x: { id: string; season?: Season }) =>
     pantryOverrides[x.id]?.enabled !== false && (!x.season || collectionOpen(pantryOverrides, x.season))
   const seasonOpen = season !== null && collectionOpen(pantryOverrides, season)
-  const foods = FOODS.filter((f) => onSale(f) && (tab === 'food' ? true : season !== null && f.season === season))
+  const foods = FOODS.filter((f) => onSale(f) && (tab === 'food' ? true : tab === 'colombia' ? COLOMBIA_FOODS.includes(f.id) : season !== null && f.season === season))
   const soaps = SOAPS.filter((s) => s.price > 0 && onSale(s) && (tab === 'soap' ? true : season !== null && s.season === season))
+
+  const pantryBlock = (foods.length > 0 || soaps.length > 0) && (tab === 'food' || tab === 'soap' || tab === 'colombia' || season) && (
+            <>
+              {(season || tab === 'colombia') && <h3 className={styles.groupTitle}>{tab === 'colombia' ? 'Colombian food' : 'Pantry specials'}</h3>}
+              <ul className={styles.grid}>
+                {foods.map((f) => (
+                  <PantryCard
+                    key={f.id}
+                    name={f.name}
+                    art={FOOD_ART[f.id]}
+                    price={pantryPrice(f.id, f.price)}
+                    coins={coins}
+                    status={inventory[f.id] ? `You have ${inventory[f.id]}` : `+${f.health} health · +${f.happiness} happy`}
+                    onBuy={() => onBuyFood?.(f.id)}
+                  />
+                ))}
+                {soaps.map((s) => (
+                  <PantryCard
+                    key={s.id}
+                    name={s.name}
+                    art={SOAP_ART[s.id] ?? SOAP_ART[STARTER_SOAP]}
+                    price={pantryPrice(s.id, s.price)}
+                    coins={coins}
+                    owned={Boolean(inventory[s.id])}
+                    status={inventory[s.id] ? 'In your bag' : `Bath +${s.happiness} happiness`}
+                    onBuy={() => onBuySoap?.(s.id)}
+                  />
+                ))}
+              </ul>
+              {tab === 'food' && <p className={styles.count}>Food goes into Rocky's bag — open it with the Food button and drag a snack onto him.</p>}
+              {tab === 'soap' && <p className={styles.count}>Soaps are yours for good. Open the bag with the Bath button and scrub away!</p>}
+            </>
+          )
 
   return (
     <div className={styles.backdrop} onClick={onClose}>
@@ -281,42 +322,11 @@ export function ShopPanel({
           </div>
         )}
 
-        {(foods.length > 0 || soaps.length > 0) && (tab === 'food' || tab === 'soap' || season) && (
-          <>
-            {season && <h3 className={styles.groupTitle}>Pantry specials</h3>}
-            <ul className={styles.grid}>
-              {foods.map((f) => (
-                <PantryCard
-                  key={f.id}
-                  name={f.name}
-                  art={FOOD_ART[f.id]}
-                  price={pantryPrice(f.id, f.price)}
-                  coins={coins}
-                  status={inventory[f.id] ? `You have ${inventory[f.id]}` : `+${f.health} health · +${f.happiness} happy`}
-                  onBuy={() => onBuyFood?.(f.id)}
-                />
-              ))}
-              {soaps.map((s) => (
-                <PantryCard
-                  key={s.id}
-                  name={s.name}
-                  art={SOAP_ART[s.id] ?? SOAP_ART[STARTER_SOAP]}
-                  price={pantryPrice(s.id, s.price)}
-                  coins={coins}
-                  owned={Boolean(inventory[s.id])}
-                  status={inventory[s.id] ? 'In your bag' : `Bath +${s.happiness} happiness`}
-                  onBuy={() => onBuySoap?.(s.id)}
-                />
-              ))}
-            </ul>
-            {tab === 'food' && <p className={styles.count}>Food goes into Rocky's bag — open it with the Food button and drag a snack onto him.</p>}
-            {tab === 'soap' && <p className={styles.count}>Soaps are yours for good. Open the bag with the Bath button and scrub away!</p>}
-          </>
-        )}
+        {tab !== 'colombia' && pantryBlock}
 
         {items.length > 0 && (
           <>
-            {season && <h3 className={styles.groupTitle}>Looks and world</h3>}
+            {(season || tab === 'colombia') && <h3 className={styles.groupTitle}>Looks and world</h3>}
             <p className={styles.count}>
               {items.filter((i) => isUsable(i, facts, owned, granted, unlocks)).length} of {items.length} owned
               {tab === 'decor' ? ` · ${outfit.decor.length}/${MAX_DECOR} placed · tap them in the world and Rocky plays with them` : ''}
@@ -380,6 +390,7 @@ export function ShopPanel({
             </ul>
           </>
         )}
+        {tab === 'colombia' && pantryBlock}
       </aside>
     </div>
   )

@@ -459,6 +459,14 @@ const FX: Record<string, ParticleFx | SpecialFx> = {
     size: [18, 26],
     dur: [10, 16],
   },
+  "fx-mariposas": {
+    kind: "particles",
+    count: 9,
+    motion: "flutter",
+    shapes: ["#fcd116", "#fde047", "#facc15"].map(butterfly),
+    size: [16, 24],
+    dur: [9, 15],
+  },
   "fx-stars": {
     kind: "particles",
     count: 6,

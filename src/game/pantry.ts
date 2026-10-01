@@ -208,6 +208,20 @@ export const FOODS: FoodItem[] = [
   { id: "food-empanada", name: "Empanada", price: 8, health: 12, happiness: 10, emoji: "🥟" },
   { id: "food-mango", name: "Sweet mango", price: 7, health: 12, happiness: 8, emoji: "🥭" },
   { id: "food-lulo-juice", name: "Lulo juice", price: 9, health: 10, happiness: 12, emoji: "🧃" },
+  { id: "food-pandebono", name: "Pandebono", price: 8, health: 10, happiness: 12, emoji: "🥯" },
+  { id: "food-oblea", name: "Oblea con arequipe", price: 9, health: 8, happiness: 15, emoji: "🧇" },
+  { id: "food-tinto", name: "Tinto", price: 6, health: 6, happiness: 12, emoji: "☕" },
+];
+
+/** Colombian foods (also listed in the shop's 🇨🇴 Colombia section). */
+export const COLOMBIA_FOODS: readonly string[] = [
+  "food-arepa-huevo",
+  "food-empanada",
+  "food-mango",
+  "food-lulo-juice",
+  "food-pandebono",
+  "food-oblea",
+  "food-tinto",
 ];
 
 /** The treat earned by check-ins and clean audits (not bought here). */

@@ -1070,6 +1070,33 @@ export const CLOSET: ClosetItem[] = [
   ),
 
   // Seasonal specials — exclusive: buyable only while an admin has the collection open.
+  // Colombia: ruana, poncho, aguadeño and llanero hats, Carnaval and Wayuu
+  // pieces, a chiva and more — open to everyone, bought (never gifted).
+  ...(
+    [
+      ["hat-aguadeno", "hat", "Sombrero aguadeño", 120],
+      ["hat-llanero", "hat", "Llanero hat", 110],
+      ["hat-congo", "hat", "Carnaval Congo headdress", 160],
+      ["glasses-tricolor", "glasses", "Tricolor shades", 90],
+      ["glasses-marimonda", "glasses", "Marimonda mask", 120],
+      ["glasses-esmeralda", "glasses", "Emerald glasses", 150],
+      ["neck-carriel", "neck", "Carriel bag", 110],
+      ["neck-wayuu", "neck", "Wayuu mochila", 120],
+      ["neck-tricolor", "neck", "Tricolor scarf", 70],
+      ["body-ruana", "body", "Wool ruana", 160],
+      ["body-poncho", "body", "Poncho", 140],
+      ["back-silleta", "back", "Flower silleta", 180],
+      ["decor-chiva", "decor", "Chiva bus", 200],
+      ["decor-guacamaya", "decor", "Guacamaya", 110],
+      ["decor-tejo", "decor", "Tejo board", 90],
+      ["decor-asador", "decor", "Arepa grill", 100],
+      ["scene-cocora", "scene", "Valle de Cocora", 240],
+      ["scene-cano-cristales", "scene", "Caño Cristales", 260],
+      ["fx-mariposas", "fx", "Yellow butterflies", 130],
+      ["bubble-tricolor", "bubble", "Tricolor chat bubble", 70],
+      ["bubble-wayuu", "bubble", "Wayuu chat bubble", 80],
+    ] as const
+  ).map(([id, slot, name, price]): ClosetItem => ({ id, slot, name, price, requirement: "Available to everyone", isUnlocked: always })),
   ...seasonal("spooky", [
     ["hat-witch", "hat", "Witch hat", 90],
     ["hat-pumpkin", "hat", "Pumpkin hat", 110],
@@ -1258,6 +1285,17 @@ export function withStaffPerks<
     },
   };
 }
+
+/** The 🇨🇴 Colombia shop section: the Colombia wave plus earlier Colombian pieces. */
+export const COLOMBIA_ITEMS: readonly string[] = [
+  "hat-aguadeno", "hat-llanero", "hat-congo", "hat-vueltiao",
+  "glasses-tricolor", "glasses-marimonda", "glasses-esmeralda",
+  "neck-carriel", "neck-wayuu", "neck-tricolor", "neck-coffee",
+  "body-ruana", "body-poncho", "back-silleta",
+  "decor-chiva", "decor-guacamaya", "decor-tejo", "decor-asador", "decor-coffee-cart", "decor-hammock",
+  "scene-cocora", "scene-cano-cristales", "scene-coffee-farm", "scene-caribbean",
+  "fx-mariposas", "bubble-tricolor", "bubble-wayuu", "bubble-coffee",
+];
 
 export const RETIRED_ITEMS: Record<string, number> = { "body-jr-jersey": 180 };
 

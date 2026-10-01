@@ -138,3 +138,21 @@
     animation: none;
   }
 }
+
+.chat-bubble-bubble-tricolor {
+  background: linear-gradient(180deg, #fff6c7 0 50%, #e3ecff 50% 75%, #ffe3e6 75%) !important;
+  color: #1b1b24 !important;
+  box-shadow:
+    inset 0 -4px 0 #ce1126,
+    inset 0 -8px 0 #003893,
+    inset 0 3px 0 #fcd116 !important;
+}
+
+.chat-bubble-bubble-wayuu {
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0 4px, transparent 4px 10px),
+    linear-gradient(90deg, #d9324a, #f28c28 35%, #f5c518 55%, #2f9e8f 80%, #6a3fa0) !important;
+  color: #fff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18) !important;
+}

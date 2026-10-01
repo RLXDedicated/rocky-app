@@ -83,6 +83,7 @@ export const COLLECTION_SETS: CollectionSet[] = [
   { id: "set-camp", name: "Camp night", emoji: "🏕️", items: ["decor-campfire", "scene-star-camp", "back-guitar", "neck-knit-scarf", "neck-star-pendant"], coins: 100 },
   { id: "set-party", name: "Party time", emoji: "🎉", items: ["back-balloons", "fx-balloons", "fx-sparkles", "bubble-gold", "glasses-butterfly"], coins: 120 },
   { id: "set-office", name: "Office pro", emoji: "💼", items: ["hat-headset", "glasses-reading", "neck-tie", "decor-computer", "scene-office"], coins: 100 },
+  { id: "set-colombia", name: "Colombia", emoji: "🇨🇴", items: ["hat-aguadeno", "body-ruana", "neck-carriel", "decor-chiva", "scene-cocora"], coins: 150 },
   { id: "set-spooky", name: "Spooky night", emoji: "🎃", items: ["hat-witch", "glasses-bat", "neck-bone", "back-bat-wings", "scene-graveyard"], coins: 120 },
 ];
 
