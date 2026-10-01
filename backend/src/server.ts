@@ -42,6 +42,7 @@ const houseJobs = () => {
   try {
     live.challenges.settle()
     live.pet.awardArcadeChampions()
+    live.engagement.awardAll()
   } catch (err) {
     console.error('[rocky-backend] house jobs failed:', err)
   }

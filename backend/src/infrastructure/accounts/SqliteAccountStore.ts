@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord, KudosRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord, KudosRecord, DuelRecord } from './AccountStore'
 
 interface LedgerDbRow {
   entry_id: number
@@ -96,6 +96,20 @@ function toDelivery(r: Record<string, unknown>): DeliveryRecord {
     cardUpdatedAt: (r.card_updated_at as string | null) ?? null,
     voice: (r.voice as string | null) ?? null,
     lesson: (r.lesson as string | null) ?? null,
+  }
+}
+
+function toDuel(r: Record<string, unknown>): DuelRecord {
+  return {
+    id: Number(r.duel_id),
+    fromId: r.from_id as string,
+    toId: r.to_id as string,
+    game: r.game as string,
+    fromScore: Number(r.from_score),
+    toScore: r.to_score === null || r.to_score === undefined ? null : Number(r.to_score),
+    status: r.status as DuelRecord['status'],
+    createdAt: r.created_at as string,
+    answeredAt: (r.answered_at as string | null) ?? null,
   }
 }
 
@@ -393,6 +407,36 @@ export class SqliteAccountStore implements AccountStore {
   markKudosDelivered(ids: number[], at: string): void {
     const stmt = this.db.prepare('UPDATE kudos SET delivered_at = ? WHERE kudos_id = ? AND delivered_at IS NULL')
     for (const id of ids) stmt.run(at, id)
+  }
+
+  addDuel(d: Omit<DuelRecord, 'id' | 'toScore' | 'status' | 'answeredAt'>): DuelRecord {
+    const r = this.db
+      .prepare("INSERT INTO arcade_duels (from_id, to_id, game, from_score, status, created_at) VALUES (?, ?, ?, ?, 'open', ?)")
+      .run(d.fromId, d.toId, d.game, d.fromScore, d.createdAt)
+    return { ...d, id: Number(r.lastInsertRowid), toScore: null, status: 'open', answeredAt: null }
+  }
+  getDuel(id: number): DuelRecord | null {
+    const r = this.db.prepare('SELECT * FROM arcade_duels WHERE duel_id = ?').get(id) as Record<string, unknown> | undefined
+    return r ? toDuel(r) : null
+  }
+  updateDuel(id: number, patch: Pick<DuelRecord, 'status'> & Partial<Pick<DuelRecord, 'toScore' | 'answeredAt'>>): void {
+    this.db
+      .prepare('UPDATE arcade_duels SET status = ?, to_score = COALESCE(?, to_score), answered_at = COALESCE(?, answered_at) WHERE duel_id = ?')
+      .run(patch.status, patch.toScore ?? null, patch.answeredAt ?? null, id)
+  }
+  listDuels(q: { agentId: string; since?: string; limit?: number }): DuelRecord[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM arcade_duels WHERE (from_id = ? OR to_id = ?) ${q.since ? 'AND created_at >= ?' : ''} ORDER BY created_at DESC, duel_id DESC LIMIT ?`)
+      .all(...([q.agentId, q.agentId, ...(q.since ? [q.since] : []), q.limit ?? 50] as (string | number)[])) as Record<string, unknown>[]
+    return rows.map(toDuel)
+  }
+  setVote(week: string, voterId: string, targetId: string, at: string): void {
+    this.db
+      .prepare('INSERT INTO rocky_votes (week, voter_id, target_id, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(week, voter_id) DO UPDATE SET target_id = excluded.target_id, created_at = excluded.created_at')
+      .run(week, voterId, targetId, at)
+  }
+  listVotes(week: string): { voterId: string; targetId: string }[] {
+    return (this.db.prepare('SELECT voter_id, target_id FROM rocky_votes WHERE week = ?').all(week) as Record<string, string>[]).map((r) => ({ voterId: r.voter_id!, targetId: r.target_id! }))
   }
 
   listChallenges(): ChallengeRecord[] {

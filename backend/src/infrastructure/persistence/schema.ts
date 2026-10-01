@@ -285,6 +285,30 @@ export const MIGRATION_016_CHAT_GROUPS = `
   ALTER TABLE teams_deliveries ADD COLUMN voice TEXT;
 `
 
+/** Arcade duels between friends, and the weekly "Rocky of the week" vote. */
+export const MIGRATION_019_ENGAGEMENT = `
+  CREATE TABLE arcade_duels (
+    duel_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_id     TEXT NOT NULL,
+    to_id       TEXT NOT NULL,
+    game        TEXT NOT NULL,
+    from_score  INTEGER NOT NULL,
+    to_score    INTEGER,
+    status      TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    answered_at TEXT
+  );
+  CREATE INDEX idx_duels_to ON arcade_duels(to_id, status);
+  CREATE INDEX idx_duels_from ON arcade_duels(from_id, created_at);
+  CREATE TABLE rocky_votes (
+    week       TEXT NOT NULL,
+    voter_id   TEXT NOT NULL,
+    target_id  TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (week, voter_id)
+  );
+`
+
 /** Notes-only Teams rollout: everyone on the roster gets the note reminders. */
 export const MIGRATION_018_TEAMS_FOR_ALL = `
   UPDATE agent_schedules SET teams_enabled = 1;

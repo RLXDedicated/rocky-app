@@ -14,6 +14,7 @@ import { LivePanel } from './chat/LivePanel'
 import { NameBadges } from './TitleBadge'
 import { getAgentRole } from '../services/identityService'
 import { KudosDialog, KudosPanel, useKudos } from './extras/Kudos'
+import { RotwPanel, useRotw, VoteStar } from './extras/Engagement'
 import styles from './Friends.module.css'
 
 const FEELING: Record<FriendSummary['feeling'], string> = {
@@ -52,6 +53,7 @@ export function Friends({
   focusKudos,
 }: { onChat?: (friendId: string) => void; openVisit?: string | null; onVisitOpened?: () => void; focusKudos?: boolean } = {}) {
   const kudos = useKudos()
+  const rotw = useRotw()
   const [kudosFor, setKudosFor] = useState<FriendSummary | null>(null)
   const [friends, setFriends] = useState<FriendSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -141,6 +143,7 @@ export function Friends({
         </header>
         {error && <p className={styles.error}>{error}</p>}
         {isRemoteModeEnabled() && <KudosPanel mine={kudos.mine} wall={kudos.wall} focus={focusKudos} />}
+        {isRemoteModeEnabled() && <RotwPanel data={rotw.data} />}
         {kudosFor && kudos.mine && (
           <KudosDialog
             to={kudosFor.id}
@@ -165,7 +168,7 @@ export function Friends({
               <div className={styles.info}>
                 <strong>{f.rockyName}</strong>
                 <span>
-                  {f.name} <NameBadges staff={f.staff} title={f.title} tester={f.tester} />
+                  {f.name} <NameBadges staff={f.staff} title={f.title} tester={f.tester} honors={f.honors} />
                 </span>
                 <small>
                   Level {f.level} · {f.stage} · 🔥 {f.streak}
@@ -183,6 +186,7 @@ export function Friends({
                     💬
                   </button>
                 )}
+                {rotw.data && <VoteStar id={f.id} name={f.name} myVote={rotw.data.myVote} onVote={(id) => void rotw.vote(id)} className={styles.chatBtn} />}
                 {kudos.mine && (
                   <button
                     type="button"
@@ -302,7 +306,7 @@ function Visit({ friend, onBack }: { friend: FriendDetail; onBack: () => void })
               </button>
               <div className={styles.visitTag}>
                 <strong>
-                  {friend.rockyName} <NameBadges staff={friend.staff} title={friend.title} tester={friend.tester} />
+                  {friend.rockyName} <NameBadges staff={friend.staff} title={friend.title} tester={friend.tester} honors={friend.honors} />
                 </strong>
                 <span>
                   {friend.name} · Level {friend.level} {friend.stage} · 🔥 {friend.streak} · 🏅 {friend.badges}

@@ -357,6 +357,36 @@ describe("Note Check (notes quiz)", () => {
   });
 });
 
+describe("daily missions and collections", () => {
+  it("opens the chest once when all three missions are done, and pays a complete set once", async () => {
+    const { dailyMissions, chestReward } = await import("./engagement");
+    const today = NOW.toISOString().slice(0, 10);
+    void today;
+    const base = initialPetState(NOW);
+    const day = base.day.date;
+    const done = {
+      ...base,
+      day: { ...base.day, pets: 3, plays: 1, baths: 1, feeds: 1, litter: 1 },
+      games: { ...base.games, arcadeRounds: 4 },
+      quiz: { ...base.quiz, date: day },
+      social: { ...base.social, visited: ["a", "b"] },
+    };
+    expect(dailyMissions(NOW)).toHaveLength(3);
+    expect(run(base, { type: "claimChest" }).ok).toBe(false);
+    const opened = run(done, { type: "claimChest" });
+    expect(opened.ok).toBe(true);
+    expect(opened.state.gameCoins).toBe(done.gameCoins + chestReward(NOW, 0).coins);
+    expect(run(opened.state, { type: "claimChest" }).ok).toBe(false);
+
+    const set = { ...base, owned: ["hat-straw", "neck-coffee", "decor-coffee-cart", "scene-coffee-farm", "bubble-coffee"] };
+    const paid = run(set, { type: "claimSet", setId: "set-coffee" });
+    expect(paid.ok).toBe(true);
+    expect(paid.state.gameCoins).toBe(100);
+    expect(run(paid.state, { type: "claimSet", setId: "set-coffee" }).ok).toBe(false);
+    expect(run(base, { type: "claimSet", setId: "set-coffee" }).ok).toBe(false);
+  });
+});
+
 describe("Note Check rotation", () => {
   it("has a big bank, a different quiz every day and no repeats until the bank is used up", async () => {
     const { dailyQuestions, QUIZ_BANK } = await import("./notesQuiz");

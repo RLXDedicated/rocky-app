@@ -104,6 +104,8 @@ export interface PetApplicationServiceDeps {
   /** Titles shown next to names (QA analyst, team leader). */
   titleOf?: (agentId: string) => string | null;
   testerOf?: (agentId: string) => boolean;
+  /** Temporary honors (Arcade champion 🏆, Rocky of the week 👑). */
+  honorsOf?: (agentId: string) => { arcade: string[]; rotw: boolean } | undefined;
   /** A leader's Rocky mirrors her team's spirit (see peopleApplicationService). */
   teamMood?: (agentId: string) => import("../../../src/types/domain").Mood | null;
 }
@@ -172,6 +174,7 @@ export function createPetApplicationService({
   isStaff = () => false,
   titleOf = () => null,
   testerOf = () => false,
+  honorsOf = () => undefined,
   teamMood = () => null,
 }: PetApplicationServiceDeps) {
   const accounts = persistence.accounts;
@@ -751,6 +754,7 @@ export function createPetApplicationService({
             staff: isStaff(id),
             title: titleOf(id),
             tester: testerOf(id),
+            honors: honorsOf(id),
             level: game.level,
             stage: game.evolutionStage,
             mood: teamMood(id) ?? game.mood,
@@ -876,6 +880,7 @@ export function createPetApplicationService({
         staff: isStaff(agentId),
         title: titleOf(agentId),
         tester: testerOf(agentId),
+        honors: honorsOf(agentId),
         level: game.level,
         stage: game.evolutionStage,
         mood: teamMood(agentId) ?? game.mood,

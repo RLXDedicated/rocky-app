@@ -54,6 +54,8 @@
 .side {
   position: sticky;
   top: 16px;
+  display: grid;
+  gap: 14px;
 }
 
 .side > * {
@@ -392,4 +394,11 @@
     animation: none;
     transition: none;
   }
+}
+
+.hubMain {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
 }

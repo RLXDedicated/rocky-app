@@ -30,6 +30,7 @@ import {
 } from "./closet";
 import { coinsEarned, TREAT_BAG } from "./economy";
 import { QUIZ_REWARD, scoreQuiz } from "./notesQuiz";
+import { chestReward, COLLECTION_SETS, missionStatus, monthOf, setProgress } from "./engagement";
 import {
   findFood,
   findSoap,
@@ -110,7 +111,7 @@ export interface PetState {
   unlocks: string[];
   needs: Needs;
   /** Daily counters. */
-  day: { date: string; pets: number; plays: number; baths: number };
+  day: { date: string; pets: number; plays: number; baths: number; feeds?: number; litter?: number };
   treatsUsed: number;
   bonusTreats: number;
   coinsSpent: number;
@@ -133,6 +134,10 @@ export interface PetState {
   inboxReadAt: string | null;
   /** Friends visited today (the first visit per friend earns a few coins). */
   social: { date: string; visited: string[] };
+  /** Daily missions: whether today's chest was opened, and how many chests so far. */
+  missions: { date: string; claimed: boolean; chests: number };
+  /** Collection sets whose bonus was claimed. */
+  sets: string[];
 }
 
 export interface GameStats {
@@ -148,6 +153,8 @@ export interface GameStats {
   arcadeBest: Record<string, number>;
   /** Best scores per week (keyed by the week's Monday; this week and last) — the weekly Arcade ranking. */
   arcadeWeeks: Record<string, Record<string, number>>;
+  /** Best scores per month (this month and last) — the monthly Arcade tournament. */
+  arcadeMonths?: Record<string, Record<string, number>>;
 }
 
 export interface LitterState {
@@ -205,7 +212,9 @@ export type PetAction =
   | { type: "buy"; itemId: string }
   | { type: "buyTreats" }
   | { type: "equip"; outfit: Outfit }
-  | { type: "quiz"; answers: Record<string, number> };
+  | { type: "quiz"; answers: Record<string, number> }
+  | { type: "claimChest" }
+  | { type: "claimSet"; setId: string };
 
 export const PET_ACTION_TYPES = [
   "pet",
@@ -222,6 +231,8 @@ export const PET_ACTION_TYPES = [
   "litter",
   "readInbox",
   "arcade",
+  "claimChest",
+  "claimSet",
 ] as const;
 
 export interface PetContext {
@@ -242,7 +253,10 @@ export type PetFailure =
   | "unknown-item"
   | "unavailable"
   | "invalid"
-  | "gone";
+  | "gone"
+  | "already-claimed"
+  | "missions-not-done"
+  | "set-incomplete";
 
 /** A coin movement to record in the ledger. */
 export interface LedgerEntry {
@@ -336,6 +350,8 @@ export function initialPetState(now: Date = new Date()): PetState {
     inbox: [],
     inboxReadAt: null,
     social: { date: todayKey(now), visited: [] },
+    missions: { date: todayKey(now), claimed: false, chests: 0 },
+    sets: [],
   };
 }
 
@@ -351,6 +367,7 @@ function emptyGames(date: string, prev?: GameStats): GameStats {
     arcadeRounds: 0,
     arcadeBest: { ...(prev?.arcadeBest ?? {}) },
     arcadeWeeks: { ...(prev?.arcadeWeeks ?? {}) },
+    arcadeMonths: { ...(prev?.arcadeMonths ?? {}) },
   };
 }
 
@@ -428,6 +445,8 @@ export function normalizePetState(
       pets: Math.max(0, num(day.pets, 0)),
       plays: Math.max(0, num(day.plays, 0)),
       baths: Math.max(0, num(day.baths, 0)),
+      feeds: Math.max(0, num(day.feeds, 0)),
+      litter: Math.max(0, num(day.litter, 0)),
     },
     treatsUsed: Math.max(0, num(r.treatsUsed, 0)),
     bonusTreats: Math.max(0, num(r.bonusTreats, 0)),
@@ -457,6 +476,15 @@ export function normalizePetState(
       : [],
     inboxReadAt: typeof r.inboxReadAt === "string" ? r.inboxReadAt : null,
     social: normalizeSocial(r.social, base.social.date),
+    missions: (() => {
+      const m = (r.missions && typeof r.missions === "object" ? r.missions : {}) as Record<string, unknown>;
+      return {
+        date: typeof m.date === "string" ? m.date : base.missions.date,
+        claimed: m.claimed === true,
+        chests: Math.max(0, num(m.chests, 0)),
+      };
+    })(),
+    sets: ids(r.sets).filter((id) => COLLECTION_SETS.some((c) => c.id === id)),
   };
 }
 
@@ -505,6 +533,18 @@ function normalizeGames(raw: unknown, today: string): GameStats {
     arcadeWeeks: Object.fromEntries(
       Object.entries(g.arcadeWeeks && typeof g.arcadeWeeks === "object" ? g.arcadeWeeks : {})
         .filter(([w, v]) => /^\d{4}-\d{2}-\d{2}$/.test(w) && v && typeof v === "object")
+        .map(([w, v]) => [
+          w,
+          Object.fromEntries(
+            Object.entries(v as Record<string, unknown>).filter(
+              ([k, n]) => (ARCADE_GAMES as readonly string[]).includes(k) && typeof n === "number" && Number.isFinite(n),
+            ),
+          ) as Record<string, number>,
+        ]),
+    ),
+    arcadeMonths: Object.fromEntries(
+      Object.entries(g.arcadeMonths && typeof g.arcadeMonths === "object" ? g.arcadeMonths : {})
+        .filter(([w, v]) => /^\d{4}-\d{2}$/.test(w) && v && typeof v === "object")
         .map(([w, v]) => [
           w,
           Object.fromEntries(
@@ -622,7 +662,9 @@ export function refreshPetState(state: PetState, now: Date): PetState {
     day:
       state.day.date === today
         ? state.day
-        : { date: today, pets: 0, plays: 0, baths: 0 },
+        : { date: today, pets: 0, plays: 0, baths: 0, feeds: 0, litter: 0 },
+    missions:
+      state.missions.date === today ? state.missions : { date: today, claimed: false, chests: state.missions.chests },
     games:
       state.games.date === today ? state.games : emptyGames(today, state.games),
     social:
@@ -744,6 +786,7 @@ export function applyPetAction(
           state: {
             ...state,
             inventory,
+            day: { ...state.day, feeds: (state.day.feeds ?? 0) + 1 },
             needs: bump(state.needs, {
               health: food.health,
               happiness: food.happiness,
@@ -757,6 +800,7 @@ export function applyPetAction(
         state: {
           ...state,
           treatsUsed: state.treatsUsed + 1,
+          day: { ...state.day, feeds: (state.day.feeds ?? 0) + 1 },
           needs: bump(state.needs, CARE_EFFECTS.feed),
         },
       };
@@ -875,6 +919,7 @@ export function applyPetAction(
           items: paid.state.litter.items.filter((i) => i.id !== piece.id),
         },
         needs: bump(paid.state.needs, { happiness: 2 }),
+        day: { ...paid.state.day, litter: (paid.state.day.litter ?? 0) + 1 },
         games: {
           ...paid.state.games,
           litterCleaned: paid.state.games.litterCleaned + 1,
@@ -914,6 +959,12 @@ export function applyPetAction(
       // Keep this week and last week only.
       const lastWeek = arcadeWeekOf(new Date(ctx.now.getTime() - 7 * 86_400_000));
       const keep = Object.fromEntries(Object.entries(state.games.arcadeWeeks).filter(([w]) => w === lastWeek));
+      // The monthly tournament: best per game this month (and last month, for the results).
+      const month = monthOf(ctx.now);
+      const lastMonth = monthOf(new Date(ctx.now.getFullYear(), ctx.now.getMonth() - 1, 15));
+      const months = state.games.arcadeMonths ?? {};
+      const monthBest = months[month] ?? {};
+      const keepMonths = Object.fromEntries(Object.entries(months).filter(([m]) => m === lastMonth));
       const next: PetState = {
         ...state,
         gameCoins: state.gameCoins + coins,
@@ -924,6 +975,7 @@ export function applyPetAction(
           arcadeRounds: state.games.arcadeRounds + 1,
           arcadeBest: { ...state.games.arcadeBest, [action.game]: best },
           arcadeWeeks: { ...keep, [week]: { ...weekBest, [action.game]: Math.max(weekBest[action.game] ?? 0, clamped) } },
+          arcadeMonths: { ...keepMonths, [month]: { ...monthBest, [action.game]: Math.max(monthBest[action.game] ?? 0, clamped) } },
         },
       };
       return {
@@ -981,6 +1033,34 @@ export function applyPetAction(
           kind: "treat-bag",
           itemId: TREAT_BAG.id,
         },
+      };
+    }
+    case "claimChest": {
+      if (state.missions.claimed) return fail("already-claimed");
+      if (!missionStatus(state, ctx.now).every((m) => m.done)) return fail("missions-not-done");
+      const prize = chestReward(ctx.now, state.missions.chests);
+      return {
+        ok: true,
+        state: {
+          ...state,
+          gameCoins: state.gameCoins + prize.coins,
+          bonusTreats: state.bonusTreats + prize.treats,
+          missions: { ...state.missions, claimed: true, chests: state.missions.chests + 1 },
+        },
+        reward: { coins: prize.coins, xp: 0 },
+        ledger: { delta: prize.coins, kind: "game", note: "Daily missions chest" },
+      };
+    }
+    case "claimSet": {
+      const set = COLLECTION_SETS.find((c) => c.id === action.setId);
+      if (!set) return fail("invalid");
+      if (state.sets.includes(set.id)) return fail("already-claimed");
+      if (!setProgress(new Set([...state.owned, ...state.granted]), set).complete) return fail("set-incomplete");
+      return {
+        ok: true,
+        state: { ...state, gameCoins: state.gameCoins + set.coins, sets: [...state.sets, set.id] },
+        reward: { coins: set.coins, xp: 0 },
+        ledger: { delta: set.coins, kind: "game", note: `Collection complete: ${set.name}` },
       };
     }
     case "quiz": {

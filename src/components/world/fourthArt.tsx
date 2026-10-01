@@ -237,6 +237,63 @@ export const FOURTH_BACK_WIDTH: Record<string, number> = {
 const shadow = (cx: number, cy: number, rx: number) => <ellipse cx={cx} cy={cy} rx={rx} ry="4" fill="#000" opacity="0.08" />;
 
 export const FOURTH_DECOR: Record<string, DecorArt> = {
+  "decor-cup-gold": {
+    play: "cheer",
+    viewBox: "0 0 100 120",
+    left: 60,
+    width: 7,
+    svg: (
+      <>
+        {shadow(50, 116, 34)}
+        <rect x="26" y="96" width="48" height="16" rx="3" fill="#4a3322" />
+        <rect x="32" y="100" width="36" height="6" rx="2" fill="#a16207" />
+        <rect x="44" y="72" width="12" height="26" fill="#f5b82e" />
+        <path d="M18 10 L82 10 L76 52 C72 68 60 76 50 76 C40 76 28 68 24 52 Z" fill="#f5b82e" stroke="#a16207" strokeWidth="2.5" />
+        <path d="M18 18 C4 18 4 46 26 48 M82 18 C96 18 96 46 74 48" stroke="#f5b82e" strokeWidth="5" fill="none" />
+        <path d="M32 18 L36 50" stroke="#fff" strokeWidth="4" opacity="0.45" strokeLinecap="round" />
+        <text x="50" y="44" textAnchor="middle" fontFamily="Poppins, sans-serif" fontWeight="900" fontSize="20" fill="#a16207">1</text>
+        <path className="rocky-twinkle" d="M70 6 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 Z" fill="#fff" />
+      </>
+    ),
+  },
+  "decor-cup-silver": {
+    play: "cheer",
+    viewBox: "0 0 100 120",
+    left: 64,
+    width: 7,
+    svg: (
+      <>
+        {shadow(50, 116, 34)}
+        <rect x="26" y="96" width="48" height="16" rx="3" fill="#4a3322" />
+        <rect x="32" y="100" width="36" height="6" rx="2" fill="#64748b" />
+        <rect x="44" y="72" width="12" height="26" fill="#cbd5e1" />
+        <path d="M18 10 L82 10 L76 52 C72 68 60 76 50 76 C40 76 28 68 24 52 Z" fill="#cbd5e1" stroke="#64748b" strokeWidth="2.5" />
+        <path d="M18 18 C4 18 4 46 26 48 M82 18 C96 18 96 46 74 48" stroke="#cbd5e1" strokeWidth="5" fill="none" />
+        <path d="M32 18 L36 50" stroke="#fff" strokeWidth="4" opacity="0.45" strokeLinecap="round" />
+        <text x="50" y="44" textAnchor="middle" fontFamily="Poppins, sans-serif" fontWeight="900" fontSize="20" fill="#64748b">2</text>
+        <path className="rocky-twinkle" d="M70 6 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 Z" fill="#fff" />
+      </>
+    ),
+  },
+  "decor-cup-bronze": {
+    play: "cheer",
+    viewBox: "0 0 100 120",
+    left: 68,
+    width: 7,
+    svg: (
+      <>
+        {shadow(50, 116, 34)}
+        <rect x="26" y="96" width="48" height="16" rx="3" fill="#4a3322" />
+        <rect x="32" y="100" width="36" height="6" rx="2" fill="#7c3f12" />
+        <rect x="44" y="72" width="12" height="26" fill="#d6904f" />
+        <path d="M18 10 L82 10 L76 52 C72 68 60 76 50 76 C40 76 28 68 24 52 Z" fill="#d6904f" stroke="#7c3f12" strokeWidth="2.5" />
+        <path d="M18 18 C4 18 4 46 26 48 M82 18 C96 18 96 46 74 48" stroke="#d6904f" strokeWidth="5" fill="none" />
+        <path d="M32 18 L36 50" stroke="#fff" strokeWidth="4" opacity="0.45" strokeLinecap="round" />
+        <text x="50" y="44" textAnchor="middle" fontFamily="Poppins, sans-serif" fontWeight="900" fontSize="20" fill="#7c3f12">3</text>
+        <path className="rocky-twinkle" d="M70 6 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 Z" fill="#fff" />
+      </>
+    ),
+  },
   "decor-hammock": {
     play: "nap",
     viewBox: "0 0 200 100",

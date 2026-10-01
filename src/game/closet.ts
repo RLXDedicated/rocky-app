@@ -1018,6 +1018,15 @@ export const CLOSET: ClosetItem[] = [
     ] as const
   ).map(([id, slot, name, price]): ClosetItem => ({ id, slot, name, price, requirement: "Available to everyone", isUnlocked: always })),
 
+  // Monthly Arcade tournament cups (top 3): gift-only, awarded by the server.
+  ...(
+    [
+      ["decor-cup-gold", "Gold tournament cup", "Finish #1 in a monthly Arcade tournament"],
+      ["decor-cup-silver", "Silver tournament cup", "Finish #2 in a monthly Arcade tournament"],
+      ["decor-cup-bronze", "Bronze tournament cup", "Finish #3 in a monthly Arcade tournament"],
+    ] as const
+  ).map(([id, name, requirement]): ClosetItem => ({ id, slot: "decor", name, requirement, isUnlocked: () => false, price: 0, gift: true })),
+
   // Gifts only: an admin hands these out (Admin → bulk actions or the agent's card).
   {
     id: "decor-arcade-trophy",

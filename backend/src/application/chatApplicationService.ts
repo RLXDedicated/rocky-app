@@ -86,6 +86,10 @@ export const previewText = (body: string) => {
   return p ? `📊 Poll: ${p.q}` : body
 }
 const POLL_VOTE = /^poll:(\d)$/
+/** "@all", "@todos" or "@everyone": everyone in the conversation is mentioned. */
+export const MENTION_ALL = /(^|\s)@(all|todos|everyone)(?![\p{L}\p{N}])/iu
+/** In General, @all reaches the whole pilot: once an hour per agent (Rocky admins: no limit). */
+const MENTION_ALL_EVERY_MS = 60 * 60_000
 
 export interface ChatActor {
   id: string
@@ -122,6 +126,7 @@ export interface ChatDeps {
   isStaff?: (agentId: string) => boolean
   titleOf?: (agentId: string) => string | null
   testerOf?: (agentId: string) => boolean
+  honorsOf?: (agentId: string) => { arcade: string[]; rotw: boolean } | undefined
   /** The author's chat bubble style (a shop item). */
   bubbleOf?: (agentId: string) => string | null
   /** GIPHY key for the GIF search (ROCKY_GIPHY_API_KEY); without it only Rocky's own stickers and uploads are offered. */
@@ -129,12 +134,13 @@ export interface ChatDeps {
   fetchFn?: typeof fetch
 }
 
-export function createChatApplicationService({ persistence, bus, clock = systemClock, isStaff = () => false, titleOf = () => null, testerOf = () => false, bubbleOf = () => null, giphyKey = null, fetchFn = fetch }: ChatDeps) {
+export function createChatApplicationService({ persistence, bus, clock = systemClock, isStaff = () => false, titleOf = () => null, testerOf = () => false, honorsOf = () => undefined, bubbleOf = () => null, giphyKey = null, fetchFn = fetch }: ChatDeps) {
   const store = persistence.chat
   const repo = persistence.repoStore
   const sent = new Map<string, number[]>()
   // GIPHY's free key allows ~100 searches an hour for the whole pilot, so
   // results are shared and kept for an hour (trending and common words hit it constantly).
+  const lastMentionAll = new Map<string, number>()
   const gifCache = new Map<string, { at: number; gifs: { id: string; title: string; preview: string }[] }>()
   const GIF_CACHE_MS = 60 * 60_000
   const GIF_CACHE_MAX = 300
@@ -237,6 +243,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       staff: isStaff(m.authorId),
       title: titleOf(m.authorId),
       tester: testerOf(m.authorId),
+      honors: honorsOf(m.authorId),
       style: bubbleOf(m.authorId),
       mine: m.authorId === viewerId,
       body: m.hiddenAt ? '' : m.body,
@@ -253,9 +260,10 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
     }
   }
 
-  /** "@Ana Perez" in a message (case-insensitive, whole name). */
+  /** "@Ana Perez" in a message (case-insensitive, whole name), or "@all" / "@todos" / "@everyone". */
   function mentions(body: string, agentId: string): boolean {
     if (!body.includes('@')) return false
+    if (MENTION_ALL.test(body)) return true
     const name = nameOf(agentId).toLowerCase()
     const text = body.toLowerCase()
     let i = text.indexOf('@' + name)
@@ -605,6 +613,11 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       const gif = /^\[\[gif:([^\]]*)\]\]$/.exec(body)
       if (gif && !GIF_ID.test(gif[1]!)) throw ApiError.validation('That GIF could not be sent.')
       const { channel, now, recent } = gate(agentId, channelId)
+      if (channel.kind === 'general' && MENTION_ALL.test(body) && !isStaff(agentId)) {
+        const last = lastMentionAll.get(agentId) ?? 0
+        if (now.getTime() - last < MENTION_ALL_EVERY_MS)
+          throw ApiError.validation('@all in General notifies the whole pilot — you can use it once an hour.')
+      }
       const kinds = sensitiveKinds(body)
       if (kinds.length && !confirm)
         throw new ApiError(
@@ -615,6 +628,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       recent.push(now.getTime())
       sent.set(agentId, recent)
       const saved = post(channel, agentId, body, kinds.length > 0, now)
+      if (channel.kind === 'general' && MENTION_ALL.test(body)) lastMentionAll.set(agentId, now.getTime())
       if (saved.flagged) audit(actor, agentId, 'chat.message.flagged', { channel: channel.id, message: saved.id, kinds })
       return toClient(saved, agentId)
     },

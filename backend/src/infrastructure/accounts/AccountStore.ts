@@ -135,6 +135,20 @@ export interface DeliveryRecord {
   lesson?: string | null
 }
 
+/** An Arcade duel: one agent's score, and the friend's answer. */
+export interface DuelRecord {
+  id: number
+  fromId: string
+  toId: string
+  game: string
+  fromScore: number
+  toScore: number | null
+  /** open → won | lost | tied (from the challenger's side), or expired. */
+  status: 'open' | 'won' | 'lost' | 'tied' | 'expired'
+  createdAt: string
+  answeredAt: string | null
+}
+
 /** A thank-you from one agent to another. */
 export interface KudosRecord {
   id: number
@@ -202,6 +216,16 @@ export interface AccountStore {
   /** Newest first. */
   listKudos(q: { toId?: string; fromId?: string; since?: string; undelivered?: boolean; limit?: number }): KudosRecord[]
   markKudosDelivered(ids: number[], at: string): void
+
+  addDuel(d: Omit<DuelRecord, 'id' | 'toScore' | 'status' | 'answeredAt'>): DuelRecord
+  getDuel(id: number): DuelRecord | null
+  updateDuel(id: number, patch: Pick<DuelRecord, 'status'> & Partial<Pick<DuelRecord, 'toScore' | 'answeredAt'>>): void
+  /** Newest first: duels the agent sent or received. */
+  listDuels(q: { agentId: string; since?: string; limit?: number }): DuelRecord[]
+
+  /** One vote per agent per week (a new vote replaces the old one). */
+  setVote(week: string, voterId: string, targetId: string, at: string): void
+  listVotes(week: string): { voterId: string; targetId: string }[]
 
   listChallenges(): ChallengeRecord[]
   addChallenge(c: Omit<ChallengeRecord, 'id' | 'settledAt' | 'result' | 'finalScore'>): ChallengeRecord

@@ -93,6 +93,8 @@ function parsePetAction(body: Record<string, unknown>): PetAction {
       throw ApiError.validation('"score" must be a number.');
     return { type, game, score: body.score };
   }
+  if (type === "claimChest") return { type };
+  if (type === "claimSet") return { type, setId: requireNonEmptyString(body.setId, "setId") };
   if (type === "keepy") {
     if (typeof body.touches !== "number" || !Number.isFinite(body.touches))
       throw ApiError.validation('"touches" must be a number.');

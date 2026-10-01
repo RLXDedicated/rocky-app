@@ -301,7 +301,7 @@ function App() {
         {isBackendConfigured() && getAgentEmail() && (
           <div className={styles.account}>
             <span className={styles.accountBadges}>
-              <NameBadges staff={getAgentRole() === "ADMIN"} title={myRole?.title} tester={myRole?.tester} />
+              <NameBadges staff={getAgentRole() === "ADMIN"} title={myRole?.title} tester={myRole?.tester} honors={myRole?.honors} />
             </span>
             <span className={styles.accountEmail} title={getAgentEmail() ?? ""}>
               {getAgentEmail()}

@@ -11,6 +11,8 @@ import { ARCADE_CAP, arcadeReward, gameEnabled, type ArcadeGame } from "../game/
 import { BoxStack, BubblePop, MudSplat, RockyRun, RockySays, waveOf } from "./arcade/MoreGames";
 import { HoopShot, PackageSort, RockyCrush, SlidePuzzle } from "./arcade/NewGames";
 import { ArcadeBoard, medalFor } from "./extras/ArcadeBoard";
+import { ChallengeFriend, DuelsPanel, TournamentPanel, useDuels } from "./extras/Engagement";
+import { engagementApi, type Duel } from "../services/apiClient";
 import {
   loadPetCache,
   performPetAction,
@@ -130,7 +132,11 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
     game: ArcadeGame;
     score: number;
     coins: number;
+    duel?: Duel;
   } | null>(null);
+  // Playing to answer a friend's duel.
+  const [duel, setDuel] = useState<Duel | null>(null);
+  const { duels, reload: reloadDuels } = useDuels();
   const snapshot = gameService.getSnapshot();
   const mood = calculateMood(snapshot.gameState);
   const rocky = getRockyAsset(snapshot.gameState.evolutionStage, mood);
@@ -151,8 +157,19 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
       playSfx(coins > 0 ? "coin" : "chime");
       setResult({ game, score, coins });
       setPlaying(null);
+      if (duel && duel.game === game) {
+        void engagementApi
+          .answer(duel.id, score)
+          .then((d) => {
+            setResult({ game, score, coins, duel: d });
+            playSfx(d.result === "won" ? "fanfare" : "chime");
+            reloadDuels();
+          })
+          .catch(() => reloadDuels());
+        setDuel(null);
+      }
     },
-    [pet],
+    [pet, duel, reloadDuels],
   );
 
   const info = playing ? GAMES.find((g) => g.id === playing)! : null;
@@ -185,6 +202,17 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
                   ? "★".repeat(result.score) || "done"
                   : `${result.score} points`}
               </strong>
+              {result.duel && (
+                <p>
+                  <b>
+                    {result.duel.result === "won"
+                      ? `⚔️ You beat ${result.duel.with}! +15 coins`
+                      : result.duel.result === "tied"
+                        ? `🤝 Tie with ${result.duel.with}! +5 coins each`
+                        : `${result.duel.with} keeps the win (${result.duel.theirScore}). Rematch?`}
+                  </b>
+                </p>
+              )}
               <p>
                 {result.coins > 0
                   ? `+${result.coins} coins for Rocky!`
@@ -200,6 +228,7 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
             >
               Play again
             </button>
+            {!result.duel && <ChallengeFriend game={result.game} score={result.score} left={duels?.left ?? 3} />}
           </div>
         )}
 
@@ -208,6 +237,7 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
             <div className={styles.stageHead}>
               <h2>
                 {info.icon} {info.name}
+                {duel && duel.game === playing ? ` · ⚔️ beat ${duel.theirScore} (${duel.with})` : ""}
               </h2>
               <p>{info.howTo}</p>
               <button
@@ -257,6 +287,15 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
           </section>
         ) : (
           <div className={styles.hub}>
+          <div className={styles.hubMain}>
+          <DuelsPanel
+            duels={duels}
+            onPlay={(d) => {
+              setResult(null);
+              setDuel(d);
+              setPlaying(d.game as ArcadeGame);
+            }}
+          />
           <ul className={styles.grid}>
             {GAMES.filter((g) => gameEnabled(pet.overrides, g.id)).map((g) => (
               <li key={g.id} className={styles.card}>
@@ -305,8 +344,10 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
               </li>
             )}
           </ul>
+          </div>
           {/* The week's top players sit beside the games, always in view. */}
           <aside className={styles.side}>
+            <TournamentPanel refreshKey={games.arcadeRounds} />
             <ArcadeBoard
               games={GAMES.filter((g) => gameEnabled(pet.overrides, g.id)).map((g) => g.id)}
               names={Object.fromEntries(GAMES.map((g) => [g.id, g.name]))}

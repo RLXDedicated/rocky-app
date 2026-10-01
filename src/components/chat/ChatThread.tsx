@@ -12,7 +12,9 @@ import { ChatMedia, GifPicker, mediaOf, prepareImage, ReactionBar, ReactPicker }
 const MAX = 1000
 
 /** "@Ana Perez" tokens in a message, drawn as mention chips. */
-const MENTION_RE = /(@\p{Lu}[\p{L}'-]*(?: \p{Lu}[\p{L}'-]*)?)/u
+const MENTION_RE = /(@(?:all|All|ALL|todos|Todos|TODOS|everyone|Everyone)(?![\p{L}\p{N}])|@\p{Lu}[\p{L}'-]*(?: \p{Lu}[\p{L}'-]*)?)/u
+/** Mention everyone in the conversation. */
+const EVERYONE = ['todos', 'all']
 
 function MessageText({ body }: { body: string }) {
   if (!body.includes('@')) return <>{body}</>
@@ -306,7 +308,12 @@ export function ChatThread({
   }
 
   const suggestions =
-    mentionQuery === null ? [] : (people ?? []).filter((n) => n.toLowerCase().startsWith(mentionQuery) || n.toLowerCase().includes(` ${mentionQuery}`)).slice(0, 6)
+    mentionQuery === null
+      ? []
+      : [
+          ...EVERYONE.filter((n) => n.startsWith(mentionQuery)),
+          ...(people ?? []).filter((n) => n.toLowerCase().startsWith(mentionQuery) || n.toLowerCase().includes(` ${mentionQuery}`)),
+        ].slice(0, 7)
 
   // ---- Rocky admins moderate right here ----
   async function adminAct(m: ChatMessage, action: 'pin' | 'unpin' | 'hide' | 'pause') {
@@ -428,7 +435,7 @@ export function ChatThread({
             <div key={m.id} data-msg-id={m.id} className={`${styles.msg} ${m.mine ? styles.mine : ''} ${grouped ? styles.grouped : ''} ${m.staff && !m.hidden ? styles.vip : ''} ${m.mentionsMe ? styles.mentioned : ''}`}>
               {!grouped && (!m.mine || m.staff || m.title || m.tester) && (
                 <span className={styles.author}>
-                  {m.mine ? 'You' : m.name} <NameBadges staff={m.staff} title={m.title} tester={m.tester} />
+                  {m.mine ? 'You' : m.name} <NameBadges staff={m.staff} title={m.title} tester={m.tester} honors={m.honors} />
                 </span>
               )}
               <div className={styles.bubbleRow}>
@@ -559,6 +566,7 @@ export function ChatThread({
                 <li key={n}>
                   <button type="button" role="option" aria-selected={i === 0} onMouseDown={(e) => (e.preventDefault(), pickMention(n))}>
                     @{n}
+                    {EVERYONE.includes(n) && <small> · everyone in this chat</small>}
                   </button>
                 </li>
               ))}

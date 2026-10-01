@@ -14,6 +14,7 @@ import { PhotoStudio } from './extras/PhotoStudio'
 import { LoadingRocky } from './LoadingRocky'
 import { Celebration, type CelebrationData } from './pet/Celebration'
 import { NameTag } from './pet/NameTag'
+import { MissionsChip } from './extras/Engagement'
 import { type RockyReactionKey } from './rockyVisuals'
 import { Coin } from './world/Coin'
 import { RockyWorld } from './world/RockyWorld'
@@ -388,7 +389,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
           hud={
             <>
               <div className={styles.hudLeft}>
-                <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} vip={vip} title={myRole?.title} tester={myRole?.tester} />
+                <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} vip={vip} title={myRole?.title} tester={myRole?.tester} honors={myRole?.honors} />
                 {team && (
                   <button type="button" className={styles.notesChip} onClick={onOpenTeam} title="Your Rocky's mood follows your team">
                     <span aria-hidden="true">🤝</span> Team spirit
@@ -396,6 +397,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
                   </button>
                 )}
                 <ChallengeChip />
+                {isRemoteModeEnabled() && <MissionsChip />}
                 {onOpenNotes && !(pet.state.quiz.date === todayKey() && pet.state.quiz.rewarded) && (
                   <button type="button" className={styles.notesChip} onClick={onOpenNotes}>
                     <span aria-hidden="true">📝</span> Today’s Note Check

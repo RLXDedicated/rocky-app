@@ -130,6 +130,8 @@ export interface FriendSummary {
   /** QA analyst or team leader badge. */
   title?: 'qa' | 'leader' | null
   tester?: boolean
+  /** Temporary honors: 🏆 last week's Arcade champion, 👑 Rocky of the week. */
+  honors?: Honors
   level: number
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -147,6 +149,8 @@ export interface FriendDetail {
   staff?: boolean
   title?: 'qa' | 'leader' | null
   tester?: boolean
+  /** Temporary honors: 🏆 last week's Arcade champion, 👑 Rocky of the week. */
+  honors?: Honors
   level: number
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -383,6 +387,8 @@ export interface ChatPerson {
   staff?: boolean
   title?: 'qa' | 'leader' | null
   tester?: boolean
+  /** Temporary honors: 🏆 last week's Arcade champion, 👑 Rocky of the week. */
+  honors?: Honors
   rockyName: string
   stage: import('../types/domain').EvolutionStage
   mood: import('../types/domain').Mood
@@ -418,6 +424,8 @@ export interface ChatMessage {
   staff?: boolean
   title?: 'qa' | 'leader' | null
   tester?: boolean
+  /** Temporary honors: 🏆 last week's Arcade champion, 👑 Rocky of the week. */
+  honors?: Honors
   /** The author's chat bubble style (shop item id). */
   style?: string | null
   mine: boolean
@@ -688,6 +696,58 @@ export const kudosApi = {
   give: (to: string, tag: string, message?: string) => request<Kudos>('/api/kudos', post({ to, tag, message })),
 }
 
+// ---- Engagement: Arcade tournament, duels, Rocky of the week ----
+export interface Duel {
+  id: number
+  game: string
+  gameName: string
+  sent: boolean
+  with: string
+  withKey: string
+  myScore: number | null
+  theirScore: number | null
+  result: 'open' | 'won' | 'lost' | 'tied' | 'expired'
+  createdAt: string
+  expiresAt: string
+}
+export interface TournamentRow {
+  rank: number
+  id: string
+  name: string
+  points: number
+  games: number
+  me: boolean
+}
+export interface RotwEntry {
+  id: string
+  name: string
+  rockyName: string
+  stage: import('../types/domain').EvolutionStage
+  mood: import('../types/domain').Mood
+  votes: number
+  rank?: number
+}
+export const engagementApi = {
+  tournament: (last = false) =>
+    request<{ month: string; top: TournamentRow[]; me: TournamentRow | null; players: number; prizes: { rank: number; coins: number; item: string }[] }>(
+      `/api/arcade/tournament${last ? '?month=last' : ''}`,
+    ),
+  duels: () => request<{ incoming: Duel[]; outgoing: Duel[]; recent: Duel[]; left: number }>('/api/duels'),
+  challenge: (to: string, game: string, score: number) => request<Duel>('/api/duels', post({ to, game, score })),
+  answer: (id: number, score: number) => request<Duel>(`/api/duels/${id}/answer`, post({ score })),
+  rotw: () => request<{ week: string; top: RotwEntry[]; voters: number; myVote: string | null; lastWinner: RotwEntry | null; prize: number }>('/api/rotw'),
+  vote: (to: string) =>
+    request<{ week: string; top: RotwEntry[]; voters: number; myVote: string | null; lastWinner: RotwEntry | null; prize: number }>('/api/rotw/vote', {
+      method: 'PUT',
+      body: JSON.stringify({ to }),
+    }),
+}
+
+export interface Honors {
+  arcade: string[]
+  rotw: boolean
+}
+
 export const chatApi = {
   rules: () => request<ChatRules>('/api/chat/rules'),
   acceptRules: (version: string) => request<ChatRules>('/api/chat/rules', post({ version })),
@@ -765,6 +825,8 @@ export interface TeamSpirit {
 export interface MyRole {
   title: 'qa' | 'leader' | null
   tester?: boolean
+  /** Temporary honors: 🏆 last week's Arcade champion, 👑 Rocky of the week. */
+  honors?: Honors
   admin: boolean
   team: TeamSpirit | null
   leader: { id: string; name: string } | null
@@ -796,6 +858,8 @@ export interface AdminPerson {
   name: string
   title: 'qa' | 'leader' | null
   tester?: boolean
+  /** Temporary honors: 🏆 last week's Arcade champion, 👑 Rocky of the week. */
+  honors?: Honors
   leader: string | null
   signedUp: boolean
 }

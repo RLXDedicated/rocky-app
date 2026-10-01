@@ -130,3 +130,23 @@
     animation: none;
   }
 }
+
+/* Temporary honors: 🏆 Arcade champion of the week, 👑 Rocky of the week. */
+.champ,
+.rotw {
+  padding-inline: 5px;
+  font-size: 0.78em;
+  letter-spacing: 0;
+}
+
+.champ {
+  background: linear-gradient(135deg, #fff3c4, #f5b82e);
+  color: #5c3d00;
+  box-shadow: 0 0 0 1px #d99a12, 0 0 8px rgba(245, 184, 46, 0.55);
+}
+
+.rotw {
+  background: linear-gradient(135deg, #fbe7ff, #c084fc);
+  color: #3b0764;
+  box-shadow: 0 0 0 1px #a855f7, 0 0 8px rgba(168, 85, 247, 0.45);
+}

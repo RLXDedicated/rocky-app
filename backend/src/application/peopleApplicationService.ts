@@ -19,6 +19,7 @@ export interface PeopleDeps {
   pet: PetApplicationService
   isStaff: (agentId: string) => boolean
   isOnline?: (agentId: string) => boolean
+  honorsOf?: (agentId: string) => { arcade: string[]; rotw: boolean } | undefined
   clock?: Clock
 }
 
@@ -41,7 +42,7 @@ export function moodForScore(score: number): Mood {
   return 'Recovery'
 }
 
-export function createPeopleApplicationService({ persistence, pet, isStaff, isOnline = () => false, clock = systemClock }: PeopleDeps) {
+export function createPeopleApplicationService({ persistence, pet, isStaff, isOnline = () => false, honorsOf, clock = systemClock }: PeopleDeps) {
   const accounts = persistence.accounts
   const repo = persistence.repoStore
 
@@ -97,6 +98,7 @@ export function createPeopleApplicationService({ persistence, pet, isStaff, isOn
       return {
         title,
         tester: accounts.getTesters().includes(agentId),
+        honors: honorsOf?.(agentId),
         admin: isStaff(agentId),
         team: title === 'leader' ? spirit(agentId) : null,
         leader: leader ? { id: friendKey(leader), name: nameOf(leader) } : null,

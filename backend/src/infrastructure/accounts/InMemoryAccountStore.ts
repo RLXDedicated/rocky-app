@@ -1,5 +1,5 @@
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord, KudosRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord, KudosRecord, DuelRecord } from './AccountStore'
 
 const clone = <T>(v: T): T => (v === undefined || v === null ? v : (JSON.parse(JSON.stringify(v)) as T))
 const newest = <T extends { id: number }>(rows: T[], limit: number) => [...rows].sort((a, b) => b.id - a.id).slice(0, limit)
@@ -197,6 +197,38 @@ export class InMemoryAccountStore implements AccountStore {
   }
   markKudosDelivered(ids: number[], at: string) {
     for (const k of this.kudos) if (ids.includes(k.id) && !k.deliveredAt) k.deliveredAt = at
+  }
+
+  private duels: DuelRecord[] = []
+  addDuel(d: Omit<DuelRecord, 'id' | 'toScore' | 'status' | 'answeredAt'>) {
+    const row: DuelRecord = { ...d, id: this.duels.length + 1, toScore: null, status: 'open', answeredAt: null }
+    this.duels.push(row)
+    return { ...row }
+  }
+  getDuel(id: number) {
+    const d = this.duels.find((x) => x.id === id)
+    return d ? { ...d } : null
+  }
+  updateDuel(id: number, patch: Pick<DuelRecord, 'status'> & Partial<Pick<DuelRecord, 'toScore' | 'answeredAt'>>) {
+    const d = this.duels.find((x) => x.id === id)
+    if (!d) return
+    d.status = patch.status
+    if (patch.toScore !== undefined) d.toScore = patch.toScore
+    if (patch.answeredAt !== undefined) d.answeredAt = patch.answeredAt
+  }
+  listDuels(q: { agentId: string; since?: string; limit?: number }) {
+    return this.duels
+      .filter((d) => (d.fromId === q.agentId || d.toId === q.agentId) && (!q.since || d.createdAt >= q.since))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id - a.id)
+      .slice(0, q.limit ?? 50)
+      .map((d) => ({ ...d }))
+  }
+  private votes = new Map<string, string>()
+  setVote(week: string, voterId: string, targetId: string) {
+    this.votes.set(`${week}|${voterId}`, targetId)
+  }
+  listVotes(week: string) {
+    return [...this.votes].filter(([k]) => k.startsWith(`${week}|`)).map(([k, targetId]) => ({ voterId: k.split('|')[1]!, targetId }))
   }
 
   private challenges: ChallengeRecord[] = []

@@ -42,14 +42,54 @@ export function TesterBadge({ size = 'sm' }: { size?: 'sm' | 'md' }) {
   )
 }
 
-/** Everything that goes next to someone's name: their title, TESTER, and DEV for the Rocky admins. */
-export function NameBadges({ staff, title, tester, size = 'sm' }: { staff?: boolean; title?: Title; tester?: boolean; size?: 'sm' | 'md' }) {
-  if (!staff && !tester) return <TitleBadge title={title} size={size} />
+/**
+ * Temporary honors, worn until someone else takes them: 🏆 for last week's
+ * #1 in an Arcade game, 👑 for the Rocky of the week.
+ */
+export function HonorBadges({ honors, size = 'sm' }: { honors?: { arcade: string[]; rotw: boolean }; size?: 'sm' | 'md' }) {
+  if (!honors || (!honors.arcade.length && !honors.rotw)) return null
+  return (
+    <>
+      {honors.arcade.length > 0 && (
+        <span
+          className={`${styles.badge} ${styles.champ} ${styles[size]}`}
+          title={`Arcade champion of the week: ${honors.arcade.join(', ')}`}
+          aria-label={`Arcade champion: ${honors.arcade.join(', ')}`}
+        >
+          🏆{honors.arcade.length > 1 ? `×${honors.arcade.length}` : ''}
+        </span>
+      )}
+      {honors.rotw && (
+        <span className={`${styles.badge} ${styles.rotw} ${styles[size]}`} title="Rocky of the week" aria-label="Rocky of the week">
+          👑
+        </span>
+      )}
+    </>
+  )
+}
+
+/** Everything that goes next to someone's name: their title, TESTER, DEV for the Rocky admins, and honors. */
+export function NameBadges({
+  staff,
+  title,
+  tester,
+  honors,
+  size = 'sm',
+}: {
+  staff?: boolean
+  title?: Title
+  tester?: boolean
+  honors?: { arcade: string[]; rotw: boolean }
+  size?: 'sm' | 'md'
+}) {
+  const hasHonors = !!honors && (honors.arcade.length > 0 || honors.rotw)
+  if (!staff && !tester && !hasHonors) return <TitleBadge title={title} size={size} />
   return (
     <span className={styles.group}>
       <TitleBadge title={title} size={size} />
       {tester && <TesterBadge size={size} />}
       {staff && <DevBadge size={size} />}
+      <HonorBadges honors={honors} size={size} />
     </span>
   )
 }
