@@ -11,16 +11,16 @@
     var(--navy);
 }
 
-/* The official welcome artwork, untouched, on a white card so its dark
-   outline reads as designed on the navy page. */
+/* The official welcome artwork, untouched: a white sticker-style contour
+   (drawn around it, not into it) and a soft aura keep its dark outline
+   readable on the navy page. */
 .hero {
   margin: 0;
   display: grid;
   place-items: center;
-  background: #ffffff;
-  border-radius: 28px;
-  padding: 16px 20px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+  /* A soft aura behind Rocky. */
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.22), rgba(31, 191, 104, 0.14) 55%, transparent 100%);
 }
 
 .hero img {
@@ -29,6 +29,8 @@
   width: auto;
   max-width: 100%;
   object-fit: contain;
+  filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff)
+    drop-shadow(0 0 22px rgba(255, 255, 255, 0.35));
   animation: heroIn 0.6s ease-out both;
 }
 
