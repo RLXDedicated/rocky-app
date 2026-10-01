@@ -370,16 +370,12 @@ describe('Teams integration', () => {
       expect(text).not.toMatch(/Rocky|sticker|Level|⚡/)
       expect(text.toLowerCase()).toContain('note')
     }
-    expect(reminder.card.actions.map((a) => a.title)).toEqual(['✅ My notes are done'])
-    const before = (await request(app).get('/api/pet').set(as(ANA))).body.state.gameCoins
-    const go = await request(app).get(`/api/teams/go?t=${token(reminder.card.actions[0]!.url)}`)
-    expect(go.status).toBe(200)
-    expect(go.text).toContain('Thanks')
-    expect((await request(app).get('/api/pet').set(as(ANA))).body.state.gameCoins).toBe(before)
-    await new Promise((r) => setTimeout(r, 20))
-    const update = posted.find((p) => p.updates?.length)!
-    expect(JSON.stringify(update.updates![0]!.card)).toContain('Notes confirmed')
-    expect(JSON.stringify(update.updates![0]!.card)).not.toContain('Rocky')
+    // A QA tip with no button (nothing to open and close), and it never "expires" into another card.
+    expect(JSON.stringify(reminder.card)).toContain('QA Tip')
+    expect(reminder.card.actions).toEqual([])
+    t.set('2026-09-08T13:00:00')
+    await live.teams.dispatch()
+    expect(posted.some((p) => p.updates?.length)).toBe(false)
     // No leader summary, kudos or streak cards; at most 3 reminders a day.
     for (const at of ['2026-09-08T11:00:00', '2026-09-08T13:00:00', '2026-09-08T15:00:00', '2026-09-08T16:30:00']) {
       t.set(at)

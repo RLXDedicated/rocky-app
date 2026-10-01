@@ -21,9 +21,9 @@ registration, no Graph. Rules live in Rocky; the flow only delivers
 Admin → Teams y horarios → "📝 Solo notas". While on, cards never mention
 Rocky or the pet and never link to the app: a shift-start notes focus
 (`notes-start`, extra) and 5 note reminders a day (`notes`, spread evenly
-over the shift, at least 60 min apart), each with a lesson. "My notes are done" records the
-answer and shows a thank-you page; answered/expired cards are replaced by a
-plain version. No pet effects, no streak/kudos/leader cards. Migration 018
+over the shift, at least 60 min apart), each with a lesson, titled "QA Tip" (from the
+quality team). No buttons: nothing to open or close, and cards are never
+replaced afterwards. No pet effects, no streak/kudos/leader cards. Migration 018
 turned Teams on for the whole roster. Turn the mode off to get the full
 Rocky cards below.
 

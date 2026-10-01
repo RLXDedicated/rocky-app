@@ -257,12 +257,13 @@ export function createTeamsApplicationService({
   function notesReminderCard(agentId: string, deliveryId: string, text: string, lesson: NoteLesson) {
     return adaptive(
       [
-        notesHeader('📝', 'Notes check', 'RLX Quality · note reminder'),
+        notesHeader('💡', 'QA Tip', 'RLX Quality Team · notes reminder'),
         { type: 'TextBlock', text, wrap: true, spacing: 'Medium' },
-        lessonBlock(lesson, `Note tip · ${THEME_LABEL[lesson.theme]}`),
+        lessonBlock(lesson, THEME_LABEL[lesson.theme]),
         notesFooter(),
       ],
-      [doneAction(deliveryId, agentId)],
+      // No button: answering meant opening (and closing) a page — the reminder is enough.
+      [],
     )
   }
 
@@ -271,7 +272,7 @@ export function createTeamsApplicationService({
     const theme = weekTheme(clock.now())
     return adaptive(
       [
-        notesHeader(weekly ? '📅' : '☀️', weekly ? 'New week — notes focus' : 'Shift start — notes focus', 'RLX Quality · today’s tip'),
+        notesHeader(weekly ? '📅' : '☀️', weekly ? 'QA Focus · New week' : 'QA Focus · Shift start', 'RLX Quality Team · today’s notes focus'),
         { type: 'TextBlock', text, wrap: true, spacing: 'Medium' },
         ...(weekly
           ? [{ type: 'TextBlock', text: `This week’s focus: ${THEME_ICON[theme]} ${THEME_LABEL[theme]} — one tip a day in these messages.`, wrap: true, spacing: 'Small' }]
@@ -588,7 +589,7 @@ export function createTeamsApplicationService({
     const today = todayKey(now)
     const recent = accounts.listDeliveries({ since: new Date(now.getTime() - 86_400_000).toISOString(), limit: 5000 })
     for (const d of recent) {
-      if ((d.kind !== 'reminder' && d.kind !== 'streakrisk' && d.kind !== 'notes') || !d.ok || d.openedAt || d.actedAt || d.ignoredAt || d.sentAt > cutoff) continue
+      if ((d.kind !== 'reminder' && d.kind !== 'streakrisk') || !d.ok || d.openedAt || d.actedAt || d.ignoredAt || d.sentAt > cutoff) continue
       accounts.updateDelivery(d.id, { ignoredAt: now.toISOString() })
       // The streak card only expires (its own consequence is the streak); notes-only cards never touch Rocky.
       if (d.kind !== 'reminder' || notesOnlyOn()) continue
