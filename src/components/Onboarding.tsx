@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { finishOnboarding } from '../services/agentProfile'
 import styles from './Onboarding.module.css'
-import { RockyAvatar } from './RockyAvatar'
+import { getPoseAsset } from './rockyVisuals'
 
 interface OnboardingProps {
   onComplete: () => void
@@ -32,7 +32,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           Rocky <span className={styles.brandBy}>by RLX</span>
         </div>
         <div className={styles.avatarRow}>
-          <RockyAvatar mood="Happy" evolutionStage="Baby" size={200} bare />
+          <img src={getPoseAsset('hello')} alt="Rocky waving hello" style={{ height: 200, width: 'auto', display: 'block' }} />
         </div>
 
         {step === 'meet' ? (
