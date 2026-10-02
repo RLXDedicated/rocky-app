@@ -223,8 +223,6 @@ const FLOOR = 15; // default floor, % from the bottom of the stage
 /** The litter bin: by default at the far right edge, out of Rocky's way. */
 const BIN_KEY = "rocky.bin";
 const BIN_DEFAULT = { x: 96, rise: 0 };
-/** Space kept between the top of the care panel and the floor Rocky walks on. */
-const FLOOR_GAP = 20;
 const PET_LINES = [
   "Hehe, that tickles!",
   "Right behind the horns!",
@@ -241,8 +239,8 @@ const PLAY_START = "Ball! Let’s play!";
 /** How long Rocky plays with the ball before the final kick. */
 const PLAY_MS = 6000;
 /** Rocky's walkable band, % of the stage width. */
-const WALK_MIN = 12;
-const WALK_MAX = 88;
+const WALK_MIN = 8;
+const WALK_MAX = 90;
 const BATH_LINES = ["Squeaky clean!", "Ahh, bubbles!", "Fresh as a daisy."];
 const LITTER_LINES = [
   "Thanks for keeping our place tidy!",
@@ -429,7 +427,7 @@ export function RockyWorld({
   const floorPxRef = useRef(0);
   const sizeRef = useRef(200);
   const worldRef = useRef<HTMLDivElement>(null);
-  const [worldSize, setWorldSize] = useState({ w: 900, h: 420, dock: 0 });
+  const [worldSize, setWorldSize] = useState({ w: 900, h: 420 });
   const dockRef = useRef<HTMLDivElement>(null);
   const worldSizeRef = useRef(worldSize);
   worldSizeRef.current = worldSize;
@@ -462,23 +460,15 @@ export function RockyWorld({
   useEffect(() => {
     const el = worldRef.current;
     if (!el) return;
-    // `dock`: how much of the stage's bottom the care panel covers (0 on
-    // phones, where the panel sits below the stage instead of over it).
+    // The care controls live in a bar under the stage, so the floor is always
+    // the same share of the stage — where every scene draws its ground.
     const measure = () => {
-      const stage = el.getBoundingClientRect();
-      const dock = dockRef.current?.getBoundingClientRect();
-      const covered = dock ? Math.max(0, stage.bottom - dock.top) : 0;
-      setWorldSize({
-        w: el.clientWidth || 900,
-        h: el.clientHeight || 420,
-        dock: covered,
-      });
+      setWorldSize({ w: el.clientWidth || 900, h: el.clientHeight || 420 });
     };
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    if (dockRef.current) ro.observe(dockRef.current);
     return () => ro.disconnect();
   }, []);
 
@@ -522,7 +512,7 @@ export function RockyWorld({
   const walkTimer = useRef(0);
   const walkTo = useCallback((target: number, run = false): Promise<void> => {
     const from = xRef.current;
-    // Never behind the care panel (bottom-left) or off the right edge.
+    // Keep a little margin from the stage edges.
     const clamped = Math.max(WALK_MIN, Math.min(WALK_MAX, target));
     const ms = prefersReducedMotion()
       ? 0
@@ -1218,10 +1208,7 @@ export function RockyWorld({
   // Rocky's size follows the world's height.
   // The floor sits above the care panel, so nothing Rocky plays with ever
   // ends up hidden (or unclickable) behind it.
-  const floorPx = Math.max(
-    (FLOOR / 100) * worldSize.h,
-    worldSize.dock > 0 ? worldSize.dock + FLOOR_GAP : 0,
-  );
+  const floorPx = (FLOOR / 100) * worldSize.h;
   const size = Math.round(
     Math.min(
       340,

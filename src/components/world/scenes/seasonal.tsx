@@ -31,7 +31,7 @@ import {
 /** Bats flapping across the moon. */
 function Bats({ y, speed = 30, n = 4, delay = 0 }: { y: number; speed?: number; n?: number; delay?: number }) {
   return (
-    <g className="rocky-drift" style={{ ["--t" as string]: `${speed}s`, ["--dl" as string]: `${-delay}s`, ["--x" as string]: "420px" }}>
+    <g className="rocky-glide" style={{ ["--t" as string]: `${speed}s`, ["--dl" as string]: `${-delay}s`, ["--x" as string]: "420px" }}>
       {Array.from({ length: n }, (_, i) => (
         <g key={i} transform={`translate(${-160 + i * 26} ${y + (i % 2) * 12 - i * 3})`}>
           <path d="M0 0 Q-6 -8 -14 -4 Q-10 -2 -8 2 Q-4 -1 0 2 Q4 -1 8 2 Q10 -2 14 -4 Q6 -8 0 0 Z" fill="#1a1028" className="rocky-flap" />
@@ -155,7 +155,8 @@ export function PumpkinPatchScene({ live = false }: SceneProps) {
     const r = rng(19);
     const out: { X: number; Z: number; s: number }[] = [];
     for (let row = 0; row < 9; row++) {
-      const Z = 1.25 + row * row * 0.12 + row * 0.35;
+      // Rows start behind the floor band so nothing grows under Rocky's feet.
+      const Z = 1.75 + row * row * 0.12 + row * 0.35;
       for (let k = 0; k < 14; k++) if (r() < 0.55) out.push({ X: -2200 + k * 340 + (r() - 0.5) * 120, Z, s: 0.8 + r() * 0.5 });
     }
     return out.sort((a, b) => b.Z - a.Z);

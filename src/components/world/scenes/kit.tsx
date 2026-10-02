@@ -291,7 +291,7 @@ export function CloudDrift({ seed, n, y: [ya, yb], s: [sa, sb], speed, tint, lig
       {clouds.map((c, i) => (
         <g
           key={i}
-          className="rocky-drift"
+          className="rocky-glide"
           style={{ ["--t" as string]: `${speed}s`, ["--dl" as string]: `${-c.start * speed}s`, ["--x" as string]: `${(c.start * 1440).toFixed(0)}px` }}
         >
           <Cloud x={-160} y={c.y} s={c.s} tint={tint} light={light} opacity={opacity} />
@@ -362,7 +362,7 @@ function MotesInner({ seed, n, x: [xa, xb], y: [ya, yb], r: [ra, rb] = [1, 2.2],
 /** A small flock of birds gliding across. */
 export function Birds({ y, speed = 40, n = 3, color = "#3b4a5c", delay = 0 }: { y: number; speed?: number; n?: number; color?: string; delay?: number }) {
   return (
-    <g className="rocky-drift" style={{ ["--t" as string]: `${speed}s`, ["--dl" as string]: `${-delay}s`, ["--x" as string]: "300px" }}>
+    <g className="rocky-glide" style={{ ["--t" as string]: `${speed}s`, ["--dl" as string]: `${-delay}s`, ["--x" as string]: "300px" }}>
       {Array.from({ length: n }, (_, i) => (
         <g key={i} transform={`translate(${-160 + i * 22 - (i % 2) * 8} ${y + (i % 2) * 9 - i * 2})`}>
           <path d="M-7 0 Q-3.5 -4 0 0 Q3.5 -4 7 0" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" className="rocky-flap" />
@@ -725,7 +725,7 @@ export function FogBank({ seed, n, y: [ya, yb], color = "#ffffff", opacity = 0.7
         <Radial id={id("f")} stops={[[0, color, opacity], [0.55, color, opacity * 0.55], [1, color, 0]]} />
       </defs>
       {banks.map((b, i) => (
-        <g key={i} className="rocky-drift" style={{ ["--t" as string]: `${speed}s`, ["--dl" as string]: `${(-b.at * speed).toFixed(1)}s`, ["--x" as string]: `${(b.at * 1440).toFixed(0)}px` }}>
+        <g key={i} className="rocky-glide" style={{ ["--t" as string]: `${speed}s`, ["--dl" as string]: `${(-b.at * speed).toFixed(1)}s`, ["--x" as string]: `${(b.at * 1440).toFixed(0)}px` }}>
           <ellipse cx={-200} cy={b.y.toFixed(1)} rx={b.rx.toFixed(1)} ry={b.ry.toFixed(1)} fill={`url(#${id("f")})`} />
         </g>
       ))}

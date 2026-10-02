@@ -1,6 +1,11 @@
+/* The world is a stage (the scene, Rocky, his things) over a control bar
+   (needs, care actions, check-in). The bar never covers the stage, so the
+   floor sits where every scene draws it and Play has the whole stage. */
 .world {
   position: relative;
-  height: clamp(440px, calc(100vh - 150px), 720px);
+  display: flex;
+  flex-direction: column;
+  height: clamp(540px, calc(100vh - 110px), 820px);
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: #f2f6f8;
@@ -9,8 +14,9 @@
 }
 
 .stage {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
   cursor: pointer;
 }
@@ -541,19 +547,20 @@
   }
 }
 
-/* Bottom dock: care actions and the primary check-in. */
+/* Control bar under the stage: needs and care actions, then the check-in. */
 .dock {
-  position: absolute;
+  position: relative;
   z-index: 5;
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
+  flex: none;
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
   flex-wrap: wrap;
-  pointer-events: none;
+  padding: 10px 18px;
+  background: #ffffff;
+  border-top: 1px solid rgba(15, 35, 65, 0.1);
+  box-shadow: 0 -10px 24px rgba(15, 35, 65, 0.08);
 }
 
 .dock > * {
@@ -562,15 +569,9 @@
 
 .care {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px 12px;
-  border-radius: 22px;
-  border: 1px solid rgba(15, 35, 65, 0.1);
-  background: #ffffff;
-  box-shadow:
-    0 14px 34px rgba(15, 35, 65, 0.22),
-    0 2px 0 rgba(15, 35, 65, 0.06);
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
 }
 
 .meters {
@@ -821,6 +822,7 @@
   .stage {
     position: relative;
     inset: auto;
+    flex: none;
     height: 330px;
   }
 
@@ -838,8 +840,11 @@
   }
 
   .care {
+    flex-direction: column;
     align-items: stretch;
-    box-shadow: none;
+    gap: 12px;
+    padding: 14px 16px 12px;
+    border-radius: 22px;
     background: var(--bg);
   }
 
@@ -1029,11 +1034,11 @@
   transition: transform var(--cam-ms, 1200ms) linear;
 }
 
-:global(.rocky-drift) {
+:global(.rocky-glide) {
   transform: translateX(var(--x, 0px));
 }
 
-:global(.rocky-live) :global(.rocky-drift) {
+:global(.rocky-live) :global(.rocky-glide) {
   /* Stepped: slow drifters only need a few updates a second, and each update repaints what's under them. */
   animation: sceneDrift var(--t, 60s) steps(900) infinite;
   animation-delay: var(--dl, 0s);

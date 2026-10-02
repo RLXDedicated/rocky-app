@@ -155,24 +155,24 @@ export function CoffeeFarmScene({ live = false }: SceneProps) {
           </g>
         </g>
       </g>
-      {/* Terrace where Rocky stands, with coffee bushes in front. */}
+      {/* A row of coffee bushes between the road and the terrace, then the open terrace where Rocky stands. */}
       <rect x="-120" y="300" width="1240" height="110" fill={`url(#${id("terrace")})`} />
       <g>
         {Array.from({ length: 18 }, (_, i) => {
           const x = -100 + i * 70;
           return (
             <g key={i}>
-              <ellipse cx={x} cy="332" rx="34" ry="24" fill="#3f7a32" />
-              <ellipse cx={x + 6} cy="322" rx="24" ry="14" fill="#56a046" />
+              <ellipse cx={x} cy="308" rx="30" ry="15" fill="#3f7a32" />
+              <ellipse cx={x + 6} cy="302" rx="21" ry="9" fill="#56a046" />
             </g>
           );
         })}
         {cherries.map((c, i) => (
-          <circle key={i} cx={c.x.toFixed(1)} cy={(c.y - 6).toFixed(1)} r="2.6" fill={i % 5 ? "#c8102e" : "#f5b82e"} />
+          <circle key={i} cx={c.x.toFixed(1)} cy={(300 + (c.y - 312) * 0.25).toFixed(1)} r="2.2" fill={i % 5 ? "#c8102e" : "#f5b82e"} />
         ))}
       </g>
-      <rect x="-120" y="352" width="1240" height="58" fill="#a87a4a" />
-      <GrassTufts seed={7} n={30} y={[356, 405]} color="#6b8a3a" sway={live} />
+      <rect x="-120" y="318" width="1240" height="6" fill="#8a5f36" opacity="0.5" />
+      <GrassTufts seed={7} n={22} y={[330, 405]} color="#6b8a3a" sway={live} />
       <Plantain x={70} y={410} s={1.1} sway={live} />
       <Plantain x={940} y={410} s={1.2} flip sway={live} />
       <Birds y={100} speed={50} n={3} color="#4a5a3a" />
@@ -356,14 +356,15 @@ export function CocoraScene({ live = false }: SceneProps) {
       </Depth>
       {/* Near meadow, a river and a little wooden bridge. */}
       <path d="M-120 252 Q300 244 520 252 T1120 248 L1120 410 L-120 410 Z" fill={`url(#${id("meadow")})`} />
-      <path d="M560 252 C540 280 600 300 560 330 C520 360 600 380 580 410 L660 410 C680 380 620 360 660 330 C700 300 640 280 640 252 Z" fill="#6fa8c8" />
-      <path d="M580 270 c10 6 30 6 40 0 M570 320 c14 6 36 6 50 0 M590 370 c12 6 34 6 46 0" stroke="#ffffff" strokeWidth="1.6" fill="none" opacity="0.6" className="rocky-shimmer" />
-      <g>
-        <path d="M530 316 Q600 296 690 316 L690 324 Q600 304 530 324 Z" fill="#8a6239" />
-        {[540, 570, 600, 630, 660, 684].map((x) => (
-          <line key={x} x1={x} y1={318 - Math.sin(((x - 530) / 160) * Math.PI) * 18} x2={x} y2={302 - Math.sin(((x - 530) / 160) * Math.PI) * 18} stroke="#6b4a2a" strokeWidth="2" />
+      {/* The stream comes down from the hills and bends away to the right, behind Rocky's meadow. */}
+      <path d="M560 252 C548 268 572 278 600 284 C680 300 820 296 1120 300 L1120 316 C820 314 660 318 590 300 C548 290 536 270 540 252 Z" fill="#6fa8c8" />
+      <path d="M560 262 c10 4 20 4 30 0 M680 300 c20 4 46 4 66 0 M880 306 c20 3 46 3 66 0" stroke="#ffffff" strokeWidth="1.6" fill="none" opacity="0.6" className="rocky-shimmer" />
+      <g transform="translate(760 0)">
+        <path d="M-60 304 Q0 290 60 304 L60 309 Q0 295 -60 309 Z" fill="#8a6239" />
+        {[-52, -26, 0, 26, 52].map((x) => (
+          <line key={x} x1={x} y1={305 - Math.cos((x / 60) * (Math.PI / 2)) * 12} x2={x} y2={294 - Math.cos((x / 60) * (Math.PI / 2)) * 12} stroke="#6b4a2a" strokeWidth="2" />
         ))}
-        <path d="M530 300 Q600 282 690 300" stroke="#6b4a2a" strokeWidth="2" fill="none" />
+        <path d="M-60 294 Q0 280 60 294" stroke="#6b4a2a" strokeWidth="2" fill="none" />
       </g>
       <WaxPalm x={130} y={360} h={300} s={1} sway={live} />
       <WaxPalm x={860} y={350} h={280} s={0.95} sway={live} />
@@ -387,7 +388,7 @@ export function CanoCristalesScene({ live = false }: SceneProps) {
     const L: [number, number][] = [];
     const R: [number, number][] = [];
     for (let i = 0; i <= 40; i++) {
-      const Z = 0.9 + i * 0.25;
+      const Z = 1.75 + i * 0.25;
       L.push([center(Z) - half(Z), Z]);
       R.push([center(Z) + half(Z), Z]);
     }
@@ -397,7 +398,7 @@ export function CanoCristalesScene({ live = false }: SceneProps) {
   const plants = useMemo(() => {
     const r = rng(33);
     return Array.from({ length: 260 }, () => {
-      const Z = 0.95 + r() * r() * 8;
+      const Z = 1.8 + r() * r() * 8;
       const X = center(Z) + (r() - 0.5) * 1.8 * half(Z);
       const k = r();
       const c = k < 0.66 ? ["#ff1f3d", "#ff3d5e", "#e0102e", "#ff2a6a"][Math.floor(r() * 4)]! : k < 0.82 ? "#ffd23a" : k < 0.94 ? "#2fbf5a" : "#1b1a22";
@@ -445,6 +446,9 @@ export function CanoCristalesScene({ live = false }: SceneProps) {
         ))}
       </g>
       {live && <Motes seed={5} n={26} x={[260, 760]} y={[230, 400]} r={[0.8, 1.6]} color="#ffffff" drift={[30, 6]} dur={[3, 6]} />}
+      {/* The lip of the rock shelf Rocky stands on, with the river starting just behind it. */}
+      <path d={g.poly([[-3000, 1.7], [3000, 1.7], [3000, 1.76], [-3000, 1.76]])} fill="#7a6248" opacity="0.55" />
+      <path d={g.poly([[-3000, 1.64], [3000, 1.64], [3000, 1.7], [-3000, 1.7]])} fill="#d9c09a" opacity="0.5" />
       {/* A small cascade over a ledge in the middle distance. */}
       <g transform={`translate(${g.gx(center(4.2), 4.2).toFixed(1)} ${g.gy(4.2).toFixed(1)})`}>
         <rect x="-60" y="-4" width="120" height="10" fill="#6b5a44" />
@@ -457,7 +461,7 @@ export function CanoCristalesScene({ live = false }: SceneProps) {
         <ellipse cx="0" cy="14" rx="70" ry="5" fill="#ffffff" opacity="0.5" />
       </g>
       {/* Black boulders on the banks. */}
-      {[[-560, 1.5], [520, 1.7], [-380, 3.2], [420, 3.6], [-260, 5.4]].map(([X, Z], i) => {
+      {[[-640, 1.4], [600, 1.5], [-380, 3.2], [420, 3.6], [-260, 5.4]].map(([X, Z], i) => {
         const x = g.gx(X!, Z!);
         const y = g.gy(Z!);
         const s = 1 / Z!;
