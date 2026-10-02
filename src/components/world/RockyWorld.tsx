@@ -2,7 +2,6 @@ import {
   Fragment,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type ReactElement,
@@ -13,8 +12,9 @@ import type { EvolutionStage, Mood } from "../../types/domain";
 import type { Outfit } from "../../game/closet";
 import { needsSummary, type Needs } from "../../game/pet";
 import { isMuted, play as playSfx, setMuted } from "../../game/sfx";
-import { ROCKY_HEAD_ANCHORS } from "../rockyAnchors";
+import { EMOTE_POSE, worldAnchor, worldRig, type RockyEmote } from "../rockyWorldRig";
 import {
+  getPoseAsset,
   getReactionAsset,
   getRockyAsset,
   ROCKY_VISUALS,
@@ -61,15 +61,10 @@ import {
   neckPlacement,
 } from "./wearables";
 import { NeedsDock } from "./NeedsDock";
-import { Rocky3D, type ClipRequest } from "./Rocky3D";
-import { RockyRig, type RigAction } from "./RockyRig";
-import { ROCKY_RIG } from "../rockyRig";
-import { ROCKY_3D_MODELS, rocky3dEnabled } from "./rocky3dModels";
-import type { RockyClip } from "./rocky3dRuntime";
 import styles from "./World.module.css";
 import { GuestRocky, type Guest } from "./GuestRocky";
 import { VipAura } from "./VipAura";
-import { RetryImg, useNetworkRecovery } from "../assetRecovery";
+import { RetryImg } from "../assetRecovery";
 
 type Pose = "idle" | "walk" | "run" | "pet" | "eat" | "hop" | "bath";
 
@@ -268,23 +263,13 @@ const NEED_LINES = {
   unwell: "I’m not feeling great. A treat and a bath would help.",
 } as const;
 
-// 3D: which clip expresses each mood, and each check-in reaction.
-const MOOD_CLIP: Record<Mood, RockyClip> = {
+// Short official-pose moments: which one expresses each mood now and then.
+const MOOD_CLIP: Record<Mood, RockyEmote> = {
   Happy: "Happy",
   Motivated: "Motivated",
   Worried: "Worried",
   Recovery: "Recovery",
 };
-const REACTION_CLIP: Record<RockyReactionKey, RockyClip> = {
-  "check-in": "Celebrate",
-  "qa-pass": "Happy",
-  alert: "Worried",
-  "level-up": "Celebrate",
-  evolution: "Celebrate",
-  recovery: "Recovery",
-};
-/** In the 3D camera framing, Rocky's feet sit at this fraction of the canvas height. */
-const FEET_3D = 0.945;
 const BATH_MS = 2600;
 
 function pick<T>(list: readonly T[]): T {
@@ -425,57 +410,30 @@ export function RockyWorld({
   const dockRef = useRef<HTMLDivElement>(null);
   const worldSizeRef = useRef(worldSize);
   worldSizeRef.current = worldSize;
-  const model3d = ROCKY_3D_MODELS[stage];
-  const [mode3d, setMode3d] = useState<"loading" | "ready" | "off">(() =>
-    model3d && rocky3dEnabled() ? "loading" : "off",
-  );
-  const [clipRequest, setClipRequest] = useState<ClipRequest | null>(null);
-  const nonceRef = useRef(0);
-  const is3d = mode3d === "ready";
-  const is3dRef = useRef(false);
-  is3dRef.current = is3d;
-  // 2.5D animated rig (the default): 'loading' until the art is on the canvas.
-  const [rigMode, setRigMode] = useState<"loading" | "ready" | "off">(() =>
-    import.meta.env.MODE === "test" ? "off" : "loading",
-  );
-  // Back online after a blip: try the animated rig again (it gives up while offline).
-  const recovered = useNetworkRecovery();
-  useEffect(() => {
-    if (recovered > 0 && import.meta.env.MODE !== "test")
-      setRigMode((m) => (m === "off" ? "loading" : m));
-  }, [recovered]);
+  // A short official pose (a cheer, a bite, a celebration) shown over his mood pose.
+  const [emote, setEmote] = useState<RockyEmote | null>(null);
+  const emoteTimer = useRef<number | undefined>(undefined);
   const hatRef = useRef<SVGSVGElement>(null);
   const glassesRef = useRef<SVGSVGElement>(null);
-  const headRefs = useMemo(() => [glassesRef], []);
   const neckRef = useRef<SVGSVGElement>(null);
   const backRef = useRef<SVGSVGElement>(null);
   const shirtRef = useRef<SVGSVGElement>(null);
-  const bodyRefs = useMemo(() => [neckRef, backRef, shirtRef], []);
   const animate = !prefersReducedMotion();
 
-  // Evolving into a stage with (or without) a 3D model switches renderer.
-  // Only on a real change: on mount this must not undo a failure Rocky3D
-  // already reported (child effects run before the parent's).
-  const lastModelRef = useRef(model3d);
-  useEffect(() => {
-    if (lastModelRef.current === model3d) return;
-    lastModelRef.current = model3d;
-    setMode3d(model3d && rocky3dEnabled() ? "loading" : "off");
-  }, [model3d]);
-
-  const playClip = useCallback((clip: RockyClip) => {
-    if (!is3dRef.current) return;
-    setClipRequest({ clip, nonce: ++nonceRef.current });
+  const playClip = useCallback((clip: RockyEmote) => {
+    window.clearTimeout(emoteTimer.current);
+    setEmote(clip);
+    emoteTimer.current = window.setTimeout(() => setEmote(null), 1800);
   }, []);
+  useEffect(() => () => window.clearTimeout(emoteTimer.current), []);
 
-  // Check-in reactions become animations in 3D, and a little tune.
+  // Check-in reactions show their official pose, with a little tune.
   useEffect(() => {
     if (!reaction) return;
-    playClip(REACTION_CLIP[reaction]);
     playSfx(
       reaction === "level-up" || reaction === "evolution" ? "fanfare" : "chime",
     );
-  }, [reaction, playClip]);
+  }, [reaction]);
 
   useEffect(() => {
     const el = worldRef.current;
@@ -598,12 +556,12 @@ export function RockyWorld({
 
   // Every so often Rocky acts out his mood (3D only).
   useEffect(() => {
-    if (!is3d || !animate) return;
+    if (!animate) return;
     const timer = window.setInterval(() => {
       if (!busyRef.current) playClip(MOOD_CLIP[mood]);
     }, 11000);
     return () => window.clearInterval(timer);
-  }, [is3d, mood, playClip, animate]);
+  }, [mood, playClip, animate]);
 
   function handlePet() {
     if (busyRef.current || !onPet()) return;
@@ -644,7 +602,7 @@ export function RockyWorld({
           setPose("idle");
           setBusy(false);
         },
-        is3dRef.current ? 2100 : 1400,
+        1400,
       );
     };
     if (dropped) {
@@ -1243,25 +1201,27 @@ export function RockyWorld({
     spots: outfit.spots,
     sizes: outfit.sizes ?? {},
   };
-  const anchor = ROCKY_HEAD_ANCHORS[stage][mood];
+  const anchor = worldAnchor(mood);
   const src = reaction
     ? getReactionAsset(reaction)
-    : getRockyAsset(stage, mood);
+    : emote
+      ? getPoseAsset(EMOTE_POSE[emote])
+      : getRockyAsset(stage, mood);
+  // Worn items sit on poses whose head, eyes and hips are measured; they come
+  // off for a reaction or a short emote (different poses) and for poses like
+  // sitting, where they wouldn't fit.
+  const rigPoints = !reaction && !emote ? worldRig(mood) : null;
   const equippedHat = outfit.hat ? HAT_ART[outfit.hat] : undefined;
-  // 2.5D: reaction art has different poses, so the hat comes off for it.
-  const hat = !reaction ? equippedHat : undefined;
+  const hat = rigPoints ? equippedHat : undefined;
   const hatBox = hat ? hatPlacement(anchor, hat, size) : null;
-  // Clothes follow the same rule as hats: off for the reaction art's different poses.
-  const rigPoints = ROCKY_RIG[stage][mood];
   const glasses =
-    !reaction && outfit.glasses ? GLASSES_ART[outfit.glasses] : undefined;
-  const neckItem = !reaction && outfit.neck ? NECK_ART[outfit.neck] : undefined;
-  const backItem = !reaction && outfit.back ? BACK_ART[outfit.back] : undefined;
+    rigPoints && outfit.glasses ? GLASSES_ART[outfit.glasses] : undefined;
+  const neckItem = rigPoints && outfit.neck ? NECK_ART[outfit.neck] : undefined;
+  const backItem = rigPoints && outfit.back ? BACK_ART[outfit.back] : undefined;
   const shirtItem =
-    !reaction && outfit.body ? BODY_ART[outfit.body] : undefined;
-  const feetGap = (1 - (is3d ? FEET_3D : anchor.figureBottom)) * size;
+    rigPoints && outfit.body ? BODY_ART[outfit.body] : undefined;
+  const feetGap = (1 - anchor.figureBottom) * size;
   const moving = pose === "walk" || pose === "run";
-  const facing: -1 | 0 | 1 = moving ? (facingLeft ? -1 : 1) : 0;
   const summary = needsSummary(needs);
   const needLine =
     !reaction && summary in NEED_LINES
@@ -1275,7 +1235,6 @@ export function RockyWorld({
     bathing || foam.length > 20
       ? 0
       : Math.max(0, Math.min(1, (needs.dirt - 40) / 60));
-  const rigAction: RigAction = pose === "bath" ? "pet" : pose;
 
   return (
     <section className={styles.world} aria-label="Rocky's world">
@@ -1528,13 +1487,13 @@ export function RockyWorld({
           />
           <button
             type="button"
-            className={`${styles.body} ${is3d ? styles.body3d : (styles[`pose-${pose}`] ?? "")} ${!is3d && rigMode === "ready" && pose === "idle" ? styles.bodyRig : ""}`}
+            className={`${styles.body} ${styles[`pose-${pose}`] ?? ""}`}
             onClick={handlePet}
             aria-label={`Pet ${ROCKY_VISUALS[stage].label}`}
           >
             <span
               className={
-                is3d || !moving
+                !moving
                   ? ""
                   : facingLeft
                     ? pose === "run"
@@ -1545,91 +1504,62 @@ export function RockyWorld({
                       : styles.leanRight
               }
             >
-              {!is3d && backItem && (
+              {backItem && (
                 <svg
                   ref={backRef}
                   className={`${styles.wearBack} rocky-live`}
                   viewBox={WEAR_VIEWBOX.back}
                   preserveAspectRatio="none"
-                  style={backPlacement(rigPoints, anchor, size, outfit.back!)}
+                  style={backPlacement(rigPoints!, anchor, size, outfit.back!)}
                   aria-hidden="true"
                 >
                   {backItem}
                 </svg>
               )}
-              {mode3d !== "off" && model3d && (
-                <Rocky3D
-                  url={model3d}
-                  size={size}
-                  walking={moving}
-                  facing={facing}
-                  request={clipRequest}
-                  hat={equippedHat}
-                  animate={animate}
-                  onReady={() => setMode3d("ready")}
-                  onFail={() => setMode3d("off")}
-                />
-              )}
-              {!is3d && !reaction && rigMode !== "off" && (
-                <RockyRig
-                  src={src}
-                  rig={ROCKY_RIG[stage][mood]}
-                  size={size}
-                  mood={mood}
-                  action={rigAction}
-                  animate={animate}
-                  facing={facing}
-                  lookAt={gazeRef}
-                  hatRef={hatRef}
-                  headRefs={headRefs}
-                  bodyRefs={bodyRefs}
-                  onReady={() => setRigMode("ready")}
-                  onFail={() => setRigMode("off")}
-                />
-              )}
-              {!is3d && (reaction || rigMode !== "ready") && (
-                <RetryImg
-                  src={src}
-                  alt=""
-                  className={styles.art}
-                  draggable={false}
-                />
-              )}
-              {!is3d && shirtItem && (
+              {/* The official art, whole: it moves with the pose classes, never deformed.
+                  Reaction and emote poses aren't square, so they stand on the same floor line. */}
+              <RetryImg
+                key={src}
+                src={src}
+                alt=""
+                className={`${styles.art} ${reaction || emote ? styles.artPose : ""}`}
+                draggable={false}
+              />
+              {shirtItem && (
                 <svg
                   ref={shirtRef}
                   className={`${styles.wear} rocky-live`}
                   viewBox={WEAR_VIEWBOX.body}
                   preserveAspectRatio="none"
-                  style={bodyPlacement(rigPoints, anchor, size)}
+                  style={bodyPlacement(rigPoints!, anchor, size)}
                   aria-hidden="true"
                 >
                   {shirtItem}
                 </svg>
               )}
-              {!is3d && neckItem && (
+              {neckItem && (
                 <svg
                   ref={neckRef}
                   className={`${styles.wear} rocky-live`}
                   viewBox={WEAR_VIEWBOX.neck}
-                  style={neckPlacement(rigPoints, anchor, size)}
+                  style={neckPlacement(rigPoints!, anchor, size)}
                   aria-hidden="true"
                 >
                   {neckItem}
                 </svg>
               )}
-              {!is3d && glasses && (
+              {glasses && (
                 <svg
                   ref={glassesRef}
                   className={`${styles.wear} rocky-live`}
                   viewBox={WEAR_VIEWBOX.glasses}
-                  style={glassesPlacement(rigPoints, anchor, size)}
+                  style={glassesPlacement(rigPoints!, anchor, size)}
                   aria-hidden="true"
                 >
                   {glasses}
                 </svg>
               )}
-              {!is3d && hat && hatBox && (
+              {hat && hatBox && (
                 <svg
                   ref={hatRef}
                   className={`${styles.hat} rocky-live`}

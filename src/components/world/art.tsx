@@ -6,7 +6,7 @@ import { EXTRA_DECOR, EXTRA_HATS, STAFF_HATS } from "./extraArt";
 import { THIRD_DECOR, THIRD_HATS, THIRD_SCENES } from "./thirdArt";
 import { FOURTH_DECOR, FOURTH_HATS, FOURTH_SCENES, SPOOKY_SCENES } from "./fourthArt";
 import { COLOMBIA_DECOR, COLOMBIA_HATS, COLOMBIA_SCENES } from "./colombiaArt";
-import type { HeadAnchor } from "../rockyAnchors";
+import type { HeadAnchor } from "../rockyWorldRig";
 
 const NAVY = "#0f2341";
 const NAVY2 = "#1b3358";

@@ -6,8 +6,8 @@
 // every item sits right on every stage and mood. Rocky himself is never
 // redrawn — these are overlays.
 import type { ReactElement } from "react";
-import type { HeadAnchor } from "../rockyAnchors";
-import type { RockyRigPoints } from "../rockyRig";
+import type { HeadAnchor } from "../rockyWorldRig";
+import type { RockyRigPoints } from "../rockyWorldRig";
 import type { HatBox } from "./art";
 import {
   EXTRA_BACK,

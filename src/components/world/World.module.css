@@ -233,6 +233,14 @@
   pointer-events: none;
 }
 
+/* Reaction/emote poses aren't square: same figure height as the mood pose
+   (≈86% of the box) and the same floor line (94%). */
+.artPose {
+  top: 6%;
+  height: 88%;
+  object-position: 50% 100%;
+}
+
 .hat {
   position: absolute;
   overflow: visible;
@@ -336,13 +344,16 @@
   }
 }
 
+/* Rocky's official art only ever moves as a whole image — rises, sways,
+   hops or grows evenly — never squashed or stretched (Marketing: his look
+   must not change). */
 @keyframes breathe {
   0%,
   100% {
-    transform: scale(1, 1);
+    transform: translateY(0);
   }
   50% {
-    transform: scale(1.012, 0.988);
+    transform: translateY(-1.2%);
   }
 }
 
@@ -365,17 +376,15 @@
 }
 
 @keyframes squish {
-  0% {
-    transform: scale(1, 1);
-  }
-  25% {
-    transform: scale(1.1, 0.88);
-  }
-  55% {
-    transform: scale(0.94, 1.08);
-  }
+  0%,
   100% {
-    transform: scale(1, 1);
+    transform: translateY(0) rotate(0) scale(1);
+  }
+  30% {
+    transform: translateY(-6%) rotate(-3deg) scale(1.04);
+  }
+  60% {
+    transform: translateY(0) rotate(2deg) scale(1);
   }
 }
 
@@ -386,10 +395,10 @@
 @keyframes chomp {
   0%,
   100% {
-    transform: scale(1, 1);
+    transform: translateY(0) rotate(0);
   }
   50% {
-    transform: scale(1.04, 0.95);
+    transform: translateY(-2.5%) rotate(1.5deg);
   }
 }
 
@@ -400,13 +409,10 @@
 @keyframes hop {
   0%,
   100% {
-    transform: translateY(0) scale(1, 1);
-  }
-  15% {
-    transform: translateY(0) scale(1.08, 0.9);
+    transform: translateY(0);
   }
   50% {
-    transform: translateY(-18%) scale(0.96, 1.05);
+    transform: translateY(-18%) rotate(-2deg);
   }
 }
 
@@ -827,43 +833,6 @@
     font-size: 1.2rem;
     max-width: 58vw;
   }
-}
-
-/* 3D Rocky — the model animates itself, so the 2.5D CSS poses are off. */
-.body3d {
-  animation: none;
-}
-
-.rocky3d {
-  position: absolute;
-  inset: 0;
-  display: block;
-}
-
-.canvas3d {
-  display: block;
-}
-
-/* Until the model is ready the canvas sits invisibly behind the 2.5D art. */
-.body:not(.body3d) .rocky3d {
-  opacity: 0;
-}
-
-.hat3d {
-  transform-origin: 50% 100%;
-  will-change: left, top, transform;
-}
-
-/* 2.5D animated rig: the canvas is a little larger than Rocky's box so a
-   tilted head never clips; it breathes on its own, so the CSS breathe is off
-   (pose animations — squish, chomp, hop, waddle — still apply). */
-.rigCanvas {
-  position: absolute;
-  pointer-events: none;
-}
-
-.bodyRig {
-  animation: none;
 }
 
 /* ---------------------------------------------------------------------------
@@ -2803,10 +2772,10 @@
 
 @keyframes guestHop {
   30% {
-    transform: translateY(-16%) scale(1.03, 0.97);
+    transform: translateY(-16%);
   }
   60% {
-    transform: translateY(0) scale(0.97, 1.03);
+    transform: translateY(0);
   }
 }
 
