@@ -1017,9 +1017,9 @@ describe("Shop unlocks", () => {
     expect((await buy("glasses-diamond")).body.reason).toBe("locked");
     await request(app).post("/api/admin/bulk").set(as(ADMIN)).send({ agentIds: [AGENT], op: { kind: "item", itemId: "slot:glasses", mode: "unlock" } }).expect(200);
     expect((await buy("glasses-diamond")).body.ok).toBe(true);
-    expect((await buy("scene-space")).body.reason).toBe("locked");
+    expect((await buy("scene-air-cargo")).body.reason).toBe("locked");
     await request(app).post(`/api/admin/agents/${AGENT}/items`).set(as(ADMIN)).send({ itemId: "*", action: "unlock" }).expect(200);
-    expect((await buy("scene-space")).body.ok).toBe(true);
+    expect((await buy("scene-air-cargo")).body.ok).toBe(true);
     // Gift-only and admin-only items can't be unlocked for purchase.
     expect((await request(app).post(`/api/admin/agents/${AGENT}/items`).set(as(ADMIN)).send({ itemId: "back-tester-wings", action: "unlock" })).status).toBe(422);
     // Gifting a whole section.

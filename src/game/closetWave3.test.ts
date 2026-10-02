@@ -5,7 +5,7 @@ describe("third-wave closet", () => {
   it("adds about fifty new shop items with unique ids", () => {
     const ids = CLOSET.map((i) => i.id);
     expect(new Set(ids).size).toBe(ids.length);
-    const wave = ["glasses-visor", "hat-knight", "neck-gem", "decor-piano", "scene-space"];
+    const wave = ["glasses-visor", "hat-knight", "neck-gem", "decor-piano", "scene-forest"];
     for (const id of wave) expect(findItem(id)?.price).toBeGreaterThan(0);
   });
 

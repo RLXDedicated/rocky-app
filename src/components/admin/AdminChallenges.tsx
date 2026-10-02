@@ -35,7 +35,7 @@ export function ChallengesTab({ onChanged, onError }: { onChanged: (m: string) =
     target: 90,
     startDay: mon,
     endDay: fri,
-    rewardItem: 'scene-space',
+    rewardItem: 'scene-port',
     rewardCoins: 50,
   })
   const [busy, setBusy] = useState(false)

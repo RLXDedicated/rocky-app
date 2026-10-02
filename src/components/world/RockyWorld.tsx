@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -1282,7 +1283,11 @@ export function RockyWorld({
       {!arranging && <div className={styles.hud}>{hud}</div>}
 
       <div className={styles.stage} ref={worldRef} onClick={handleStageClick} data-rocky-stage>
-        <div className={styles.scene}>
+        <div
+          className={styles.scene}
+          // The camera follows Rocky: far layers of the scene shift a little with him (scenes/kit.tsx, Depth).
+          style={animate ? ({ "--cam": ((x - 50) * 0.6).toFixed(1), "--cam-ms": `${Math.max(600, walkMs)}ms` } as CSSProperties) : undefined}
+        >
           <SceneArt id={outfit.scene} live={animate} />
         </div>
         <div className={styles.spotlight} aria-hidden="true" />

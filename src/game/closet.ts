@@ -419,6 +419,17 @@ export const CLOSET: ClosetItem[] = [
     isUnlocked: (p) => p.bestStreak >= 14,
     price: 380,
   },
+  // Logistics scenes — the world RLX moves parcels through.
+  ...(
+    [
+      ["scene-last-mile", "Last-mile street", 180, "badges", 2],
+      ["scene-sort-hub", "Sorting hub", 200, "level", 3],
+      ["scene-docks", "Loading docks", 220, "checkIns", 5],
+      ["scene-rail-yard", "Rail yard", 240, "qa", 2],
+      ["scene-port", "Container port", 260, "streak", 7],
+      ["scene-air-cargo", "Air cargo hub", 320, "level", 6],
+    ] as const
+  ).map(([id, name, price, rule, n]): ClosetItem => ({ id, slot: "scene", name, price, ...unlockRule(rule, n) })),
 
   // Decor — props placed around Rocky.
   {
@@ -978,13 +989,7 @@ export const CLOSET: ClosetItem[] = [
       ["decor-doghouse", "decor", "Rocky's doghouse", 120, "streak", 3],
       ["decor-disco-ball", "decor", "Disco ball", 160, "streak", 5],
       ["scene-forest", "scene", "Enchanted forest", 180, "checkIns", 3],
-      ["scene-city", "scene", "Neon city", 220, "level", 4],
-      ["scene-underwater", "scene", "Under the sea", 240, "streak", 7],
-      ["scene-desert", "scene", "Desert dunes", 160, "checkIns", 5],
       ["scene-mountains", "scene", "Mountain valley", 180, "level", 3],
-      ["scene-sakura", "scene", "Cherry blossoms", 230, "badges", 3],
-      ["scene-candy", "scene", "Candy land", 200, "qa", 2],
-      ["scene-space", "scene", "Outer space", 320, "level", 8],
     ] as const
   ).map(([id, slot, name, price, rule, n]): ClosetItem => ({ id, slot, name, price, ...unlockRule(rule, n) })),
 
@@ -1303,7 +1308,16 @@ export const COLOMBIA_ITEMS: readonly string[] = [
   "fx-mariposas", "fx-condor", "fx-orquideas", "fx-jaguar", "bubble-tricolor", "bubble-wayuu", "bubble-coffee",
 ];
 
-export const RETIRED_ITEMS: Record<string, number> = { "body-jr-jersey": 180 };
+export const RETIRED_ITEMS: Record<string, number> = {
+  "body-jr-jersey": 180,
+  // Backgrounds replaced by the logistics scenes (refunded at their price).
+  "scene-city": 220,
+  "scene-underwater": 240,
+  "scene-desert": 160,
+  "scene-sakura": 230,
+  "scene-candy": 200,
+  "scene-space": 320,
+};
 
 /** Keeps only sizes of placed items, snapped to the allowed steps (the default size is not stored). */
 export function sanitizeSizes(

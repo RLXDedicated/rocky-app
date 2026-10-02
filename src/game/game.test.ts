@@ -636,4 +636,21 @@ describe("arcade and retired items", () => {
     expect(old.owned).toEqual(["hat-crown"]);
     expect(old.coinsSpent).toBe(220);
   });
+
+  it("refunds the retired backgrounds and sends a Rocky wearing one back to the route", () => {
+    const old = normalizePetState(
+      {
+        ...initialPetState(NOW),
+        outfit: { ...DEFAULT_OUTFIT, scene: "scene-space" },
+        owned: ["scene-space", "scene-candy", "scene-forest"],
+        coinsSpent: 1000,
+      },
+      NOW,
+    );
+    expect(old.owned).toEqual(["scene-forest"]);
+    expect(old.coinsSpent).toBe(1000 - 320 - 200);
+    expect(sanitizeOutfit(old.outfit, { level: 9, stage: "Elite" as never, bestStreak: 30, checkIns: 30, qaPasses: 9, badgeIds: [] }, old.owned).scene).toBe("scene-route");
+    // Normalizing again doesn't refund twice.
+    expect(normalizePetState(old, NOW).coinsSpent).toBe(old.coinsSpent);
+  });
 });

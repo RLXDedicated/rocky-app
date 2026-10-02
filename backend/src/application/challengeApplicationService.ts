@@ -125,7 +125,8 @@ export function createChallengeApplicationService({ persistence, pet, clock = sy
         if (!won) continue
         for (const id of members(c)) {
           try {
-            if (c.rewardItem) pet.grantItem(id, c.rewardItem, SYSTEM)
+            // A reward item retired since the challenge was set is skipped; the coins still arrive.
+            if (c.rewardItem && findItem(c.rewardItem)) pet.grantItem(id, c.rewardItem, SYSTEM)
             if (c.rewardCoins > 0) pet.adjustCoins(id, c.rewardCoins, `Challenge won: ${c.title}`, SYSTEM)
             pet.sendGiftNote(id, `Challenge won — “${c.title}” (${final}%)! 🏆 Your reward is in Rocky’s closet.`, SYSTEM)
           } catch {

@@ -4,6 +4,7 @@ import { FOODS, SOAPS } from "../../game/pantry";
 import { DECOR_ART, FX_ART, HAT_ART } from "./art";
 import { fxPreview } from "./FxLayer";
 import { FOOD_ART, SOAP_ART } from "./items";
+import { SCENES } from "./scenes";
 import { WEAR_ART } from "./wearables";
 
 // Every item sold in the shop must have its drawing; a missing one shows as
@@ -23,11 +24,18 @@ describe("shop art coverage", () => {
         case "back":
         case "body":
           return !WEAR_ART[item.slot][item.id];
+        case "scene":
+          return !SCENES[item.id];
         default:
           return false;
       }
     }).map((item) => item.id);
     expect(missing).toEqual([]);
+  });
+
+  it("has no leftover drawings for backgrounds no longer sold", () => {
+    const sold = new Set(CLOSET.filter((i) => i.slot === "scene").map((i) => i.id));
+    expect(Object.keys(SCENES).filter((id) => !sold.has(id))).toEqual([]);
   });
 
   it("draws every food and soap", () => {

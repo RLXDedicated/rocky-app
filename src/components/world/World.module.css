@@ -959,6 +959,7 @@
 :global(.rocky-live) :global(.rocky-sway) {
   transform-origin: 50% 100%;
   animation: sceneSway 4.5s ease-in-out infinite alternate;
+  animation-delay: var(--dl, 0s);
 }
 
 :global(.rocky-live) :global(.rocky-bob) {
@@ -1004,6 +1005,8 @@
 }
 
 :global(.rocky-live) :global(.rocky-smoke) {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
   animation: sceneSmoke 4s ease-out infinite;
 }
 
@@ -1017,6 +1020,293 @@
 
 :global(.rocky-live) :global(.rocky-snowfall) {
   animation: sceneSnow 9s linear infinite;
+}
+
+/* Scene kit (scenes/kit.tsx): camera depth, drifting clouds, particles,
+   twinkles, water shimmer, flickering windows and moving machinery. */
+:global(.rocky-depth) {
+  transform: translateX(calc(var(--cam, 0) * var(--d, 0) * 1px));
+  transition: transform var(--cam-ms, 1200ms) linear;
+}
+
+:global(.rocky-drift) {
+  transform: translateX(var(--x, 0px));
+}
+
+:global(.rocky-live) :global(.rocky-drift) {
+  /* Stepped: slow drifters only need a few updates a second, and each update repaints what's under them. */
+  animation: sceneDrift var(--t, 60s) steps(900) infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+:global(.rocky-live) :global(.rocky-mote) {
+  animation: sceneMote var(--t, 9s) ease-in-out infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+:global(.rocky-live) :global(.rocky-twinkle) {
+  animation: sceneTwinkle 3.8s ease-in-out infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+:global(.rocky-live) :global(.rocky-shimmer) {
+  animation: sceneShimmer 4.6s ease-in-out infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+:global(.rocky-live) :global(.rocky-flicker) {
+  animation: sceneFlicker 7s steps(1, end) infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+/* One-way travel along X for vehicles, cranes, trains: --from → --to over --t. */
+:global(.rocky-live) :global(.rocky-travel) {
+  animation: sceneTravel var(--t, 20s) ease-in-out infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+/* Things riding a belt or a track at a constant speed: static at --x, live from --from to --to. */
+:global(.rocky-run) {
+  transform: translateX(var(--x, 0px));
+}
+
+:global(.rocky-live) :global(.rocky-run) {
+  animation: sceneTravel var(--t, 20s) linear infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+:global(.rocky-live) :global(.rocky-takeoff) {
+  animation: sceneTakeoff var(--t, 26s) ease-in infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+@keyframes sceneTakeoff {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  45% {
+    transform: translate(260px, 0);
+  }
+  85% {
+    transform: translate(620px, -150px);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(720px, -190px);
+    opacity: 0;
+  }
+}
+
+/* A stadium wave: each fan pops up in turn (their delay follows their seat). */
+:global(.rocky-live) :global(.rocky-fan) {
+  animation: sceneFan 6s ease-in-out infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+@keyframes sceneFan {
+  0%,
+  78%,
+  100% {
+    transform: translateY(0);
+  }
+  86% {
+    transform: translateY(-3px);
+  }
+}
+
+/* A shooting star now and then. */
+:global(.rocky-shoot) {
+  opacity: 0;
+}
+
+:global(.rocky-live) :global(.rocky-shoot) {
+  animation: sceneShoot var(--t, 11s) ease-in infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+@keyframes sceneShoot {
+  0%,
+  86% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  88% {
+    opacity: 1;
+  }
+  96% {
+    transform: translate(-260px, 120px);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-260px, 120px);
+    opacity: 0;
+  }
+}
+
+/* Surf: foam lines running up the sand and fading. */
+:global(.rocky-live) :global(.rocky-surf) {
+  animation: sceneSurf var(--t, 5s) ease-out infinite;
+  animation-delay: var(--dl, 0s);
+}
+
+@keyframes sceneSurf {
+  0% {
+    transform: translateY(-10px) scaleX(0.96);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.95;
+  }
+  60% {
+    transform: translateY(8px) scaleX(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(12px) scaleX(1.01);
+    opacity: 0;
+  }
+}
+
+/* Fire: flames flicker in place. */
+:global(.rocky-live) :global(.rocky-flame) {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: sceneFlame 0.9s ease-in-out infinite alternate;
+  animation-delay: var(--dl, 0s);
+}
+
+@keyframes sceneFlame {
+  from {
+    transform: scale(1, 1) skewX(-3deg);
+  }
+  to {
+    transform: scale(0.92, 1.12) skewX(4deg);
+  }
+}
+
+:global(.rocky-live) :global(.rocky-shuttle) {
+  animation: sceneShuttle var(--t, 12s) ease-in-out infinite alternate;
+  animation-delay: var(--dl, 0s);
+}
+
+:global(.rocky-live) :global(.rocky-lift) {
+  animation: sceneLift var(--t, 8s) ease-in-out infinite alternate;
+  animation-delay: var(--dl, 0s);
+}
+
+:global(.rocky-live) :global(.rocky-belt) {
+  animation: sceneBelt var(--t, 1s) linear infinite;
+}
+
+:global(.rocky-live) :global(.rocky-rotor) {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: sceneSpin var(--t, 3s) linear infinite;
+}
+
+@keyframes sceneDrift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(1440px);
+  }
+}
+
+@keyframes sceneMote {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  20%,
+  80% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(var(--mx, 0px), var(--my, -30px));
+  }
+}
+
+@keyframes sceneTwinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes sceneShimmer {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(14px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes sceneFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  47% {
+    opacity: 0.25;
+  }
+  49% {
+    opacity: 1;
+  }
+  51% {
+    opacity: 0.35;
+  }
+  53% {
+    opacity: 1;
+  }
+}
+
+@keyframes sceneTravel {
+  0% {
+    transform: translateX(var(--from, 0px));
+  }
+  100% {
+    transform: translateX(var(--to, 0px));
+  }
+}
+
+@keyframes sceneShuttle {
+  from {
+    transform: translateX(var(--from, 0px));
+  }
+  to {
+    transform: translateX(var(--to, 0px));
+  }
+}
+
+@keyframes sceneLift {
+  from {
+    transform: translateY(var(--from, 0px));
+  }
+  to {
+    transform: translateY(var(--to, 0px));
+  }
+}
+
+@keyframes sceneBelt {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -16;
+  }
 }
 
 @keyframes sceneSway {
