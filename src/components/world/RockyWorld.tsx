@@ -34,6 +34,7 @@ import {
   SIZE_LABELS,
   SIZE_STEPS,
   SPOT_MAX,
+  RISE_MAX,
   SPOT_MIN,
 } from "../../game/closet";
 import { Ball, type BallHandle } from "./Ball";
@@ -161,9 +162,12 @@ interface Props {
 
 /** Placed items: which, where (centre, % of the stage) and how big (a SIZE_STEPS multiple). */
 export interface Layout {
+  /** Drawing order too: later items stand in front of earlier ones. */
   decor: string[];
   spots: Record<string, number>;
   sizes: Record<string, number>;
+  /** Height above the floor, % of the stage height (small things can sit on others). */
+  rises: Record<string, number>;
 }
 
 /**
@@ -215,6 +219,9 @@ const VISIT_POSE: Record<DecorPlay, Pose> = {
 };
 
 const FLOOR = 15; // default floor, % from the bottom of the stage
+/** The litter bin: by default at the far right edge, out of Rocky's way. */
+const BIN_KEY = "rocky.bin";
+const BIN_DEFAULT = { x: 96, rise: 0 };
 /** Space kept between the top of the care panel and the floor Rocky walks on. */
 const FLOOR_GAP = 20;
 const PET_LINES = [
@@ -355,6 +362,18 @@ export function RockyWorld({
   const actorRef = useRef<HTMLDivElement>(null);
   const binRef = useRef<HTMLDivElement>(null);
   const [binOpen, setBinOpen] = useState(false);
+  // Where the bin stands (each agent places it in arrange mode; kept in this browser).
+  const [binSpot, setBinSpot] = useState<{ x: number; rise: number }>(() => {
+    try {
+      const v = JSON.parse(window.localStorage.getItem(BIN_KEY) ?? "null") as { x?: unknown; rise?: unknown } | null;
+      if (v && typeof v.x === "number" && typeof v.rise === "number")
+        return { x: Math.max(3, Math.min(97, v.x)), rise: Math.max(0, Math.min(RISE_MAX, v.rise)) };
+    } catch {
+      /* storage blocked: default spot */
+    }
+    return BIN_DEFAULT;
+  });
+  const binDrag = useRef<{ pointer: number; dx: number; dy: number } | null>(null);
   // Scrubbing: foam builds up where the soap goes; at 100% Rocky gets rinsed.
   const [foam, setFoam] = useState<FoamSpot[]>([]);
   const [scrub, setScrub] = useState(0);
@@ -381,7 +400,9 @@ export function RockyWorld({
     id: string;
     pointer: number;
     dx: number;
+    dy: number;
     startX: number;
+    startY: number;
   } | null>(null);
   // The item whose edit panel (size, put away) is open in arrange mode.
   const [editing, setEditing] = useState<string | null>(null);
@@ -389,7 +410,7 @@ export function RockyWorld({
     if (arranging) {
       const spots: Record<string, number> = {};
       for (const id of outfit.decor) spots[id] = decorSpot(id, outfit.spots);
-      setDraft({ decor: [...outfit.decor], spots, sizes: { ...outfit.sizes } });
+      setDraft({ decor: [...outfit.decor], spots, sizes: { ...outfit.sizes }, rises: { ...(outfit.rises ?? {}) } });
     } else setDraft(null);
     setEditing(null);
     // Only when arrange mode toggles: the draft must not reset mid-drag.
@@ -809,10 +830,17 @@ export function RockyWorld({
   const visitRef = useRef(visitDecor);
   visitRef.current = visitDecor;
 
-  // Arrange mode: drag an item left/right along the floor.
+  // Arrange mode: drag an item anywhere — along the floor and up (to stand
+  // on a shelf or on top of another item).
   function stagePercent(clientX: number) {
     const rect = worldRef.current?.getBoundingClientRect();
     return rect ? ((clientX - rect.left) / rect.width) * 100 : 50;
+  }
+  /** Height above the floor, % of the stage height, at this pointer row. */
+  function risePercent(clientY: number) {
+    const rect = worldRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    return ((rect.bottom - floorPxRef.current - clientY) / rect.height) * 100;
   }
   function startDrag(id: string, e: React.PointerEvent<HTMLButtonElement>) {
     if (!draft) return;
@@ -822,35 +850,44 @@ export function RockyWorld({
       id,
       pointer: e.pointerId,
       dx: (draft.spots[id] ?? 50) - stagePercent(e.clientX),
+      dy: (draft.rises[id] ?? 0) - risePercent(e.clientY),
       startX: e.clientX,
+      startY: e.clientY,
     };
   }
   function moveDrag(e: React.PointerEvent<HTMLButtonElement>) {
     const drag = dragRef.current;
     if (!drag || drag.pointer !== e.pointerId) return;
-    const next = Math.max(
-      SPOT_MIN,
-      Math.min(SPOT_MAX, stagePercent(e.clientX) + drag.dx),
-    );
-    setDraft((cur) =>
-      cur
-        ? {
-            ...cur,
-            spots: { ...cur.spots, [drag.id]: Math.round(next * 10) / 10 },
-          }
-        : cur,
-    );
+    const nextX = Math.max(SPOT_MIN, Math.min(SPOT_MAX, stagePercent(e.clientX) + drag.dx));
+    const nextY = Math.max(0, Math.min(RISE_MAX, risePercent(e.clientY) + drag.dy));
+    setDraft((cur) => {
+      if (!cur) return cur;
+      const rises = { ...cur.rises };
+      // Within a hair of the floor it snaps back down.
+      if (nextY < 1.5) delete rises[drag.id];
+      else rises[drag.id] = Math.round(nextY * 10) / 10;
+      return { ...cur, spots: { ...cur.spots, [drag.id]: Math.round(nextX * 10) / 10 }, rises };
+    });
   }
   function endDrag(e: React.PointerEvent<HTMLButtonElement>) {
     const drag = dragRef.current;
     if (drag?.pointer === e.pointerId) {
       dragRef.current = null;
       // A tap (no real drag) opens the item's edit panel.
-      if (Math.abs(e.clientX - drag.startX) < 5)
+      if (Math.abs(e.clientX - drag.startX) < 5 && Math.abs(e.clientY - drag.startY) < 5)
         setEditing((cur) => (cur === drag.id ? null : drag.id));
       else setEditing(drag.id);
       playSfx("tap");
     }
+  }
+  /** Layers: the item moves to the front (drawn last) or to the back (drawn first). */
+  function layer(id: string, to: "front" | "back") {
+    setDraft((cur) => {
+      if (!cur) return cur;
+      const rest = cur.decor.filter((d) => d !== id);
+      return { ...cur, decor: to === "front" ? [...rest, id] : [id, ...rest] };
+    });
+    playSfx("pop");
   }
   function resize(id: string, step: number) {
     setDraft((cur) => {
@@ -862,21 +899,17 @@ export function RockyWorld({
     });
     playSfx("pop");
   }
-  function nudge(id: string, delta: number) {
-    setDraft((cur) =>
-      cur
-        ? {
-            ...cur,
-            spots: {
-              ...cur.spots,
-              [id]: Math.max(
-                SPOT_MIN,
-                Math.min(SPOT_MAX, (cur.spots[id] ?? 50) + delta),
-              ),
-            },
-          }
-        : cur,
-    );
+  function nudge(id: string, delta: number, axis: "x" | "y" = "x") {
+    setDraft((cur) => {
+      if (!cur) return cur;
+      if (axis === "x")
+        return { ...cur, spots: { ...cur.spots, [id]: Math.max(SPOT_MIN, Math.min(SPOT_MAX, (cur.spots[id] ?? 50) + delta)) } };
+      const r = Math.max(0, Math.min(RISE_MAX, (cur.rises[id] ?? 0) + delta));
+      const rises = { ...cur.rises };
+      if (r === 0) delete rises[id];
+      else rises[id] = r;
+      return { ...cur, rises };
+    });
   }
   function putAway(id: string) {
     const without = (r: Record<string, number>) =>
@@ -887,6 +920,7 @@ export function RockyWorld({
             decor: cur.decor.filter((d) => d !== id),
             spots: without(cur.spots),
             sizes: without(cur.sizes),
+            rises: without(cur.rises),
           }
         : cur,
     );
@@ -1202,6 +1236,7 @@ export function RockyWorld({
     decor: outfit.decor,
     spots: outfit.spots,
     sizes: outfit.sizes ?? {},
+    rises: outfit.rises ?? {},
   };
   // The cut-out puppet (preview, ?puppet=1) stands in for the calm moods;
   // a worried or tired Rocky keeps his official thinking / yawning pose.
@@ -1257,8 +1292,9 @@ export function RockyWorld({
           if (!d) return null;
           const cx = decorSpot(id, layout.spots);
           const name = findItem(id)?.name ?? "item";
+          const rise = layout.rises[id] ?? 0;
           const bottom =
-            floorPx + ((d.lift ?? 0) / 100) * worldSize.h - 0.02 * worldSize.h;
+            floorPx + (((d.lift ?? 0) + rise) / 100) * worldSize.h - 0.02 * worldSize.h;
           const w = decorWidthPx(id, size, layout.sizes);
           const [vbW, vbH] = d.viewBox.split(" ").slice(2).map(Number) as [
             number,
@@ -1271,7 +1307,7 @@ export function RockyWorld({
               <button
                 type="button"
                 className={`${styles.decor} ${arranging ? styles.decorArrange : ""} ${editing === id ? styles.decorEditing : ""}`}
-                style={{ left: `calc(${cx}% - ${w / 2}px)`, width: w, bottom }}
+                style={{ left: `calc(${cx}% - ${w / 2}px)`, width: w, bottom, zIndex: (arranging ? 4 : 1) + layout.decor.indexOf(id) / 100 }}
                 aria-label={
                   arranging
                     ? `Move the ${name} (drag, or use the arrow keys)`
@@ -1288,6 +1324,9 @@ export function RockyWorld({
                         if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
                           e.preventDefault();
                           nudge(id, e.key === "ArrowLeft" ? -2 : 2);
+                        } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                          e.preventDefault();
+                          nudge(id, e.key === "ArrowDown" ? -2 : 2, "y");
                         }
                       }
                     : undefined
@@ -1324,6 +1363,17 @@ export function RockyWorld({
                       {SIZE_LABELS[i]}
                     </button>
                   ))}
+                  <button type="button" onClick={() => layer(id, "front")} title="Bring to front" aria-label={`Bring the ${name} to the front`}>
+                    ⬆︎ Front
+                  </button>
+                  <button type="button" onClick={() => layer(id, "back")} title="Send to back" aria-label={`Send the ${name} to the back`}>
+                    ⬇︎ Back
+                  </button>
+                  {rise > 0 && (
+                    <button type="button" onClick={() => nudge(id, -RISE_MAX, "y")} title="Back on the floor" aria-label={`Put the ${name} back on the floor`}>
+                      ⤓ Floor
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={styles.editRemove}
@@ -1346,7 +1396,7 @@ export function RockyWorld({
             aria-label="Arrange your world"
           >
             <span>
-              Drag to move · tap to resize · {draft.decor.length}/{MAX_DECOR}{" "}
+              Drag anywhere (on top of things too) · tap for size and layers · {draft.decor.length}/{MAX_DECOR}{" "}
               placed
             </span>
             <button
@@ -1451,9 +1501,50 @@ export function RockyWorld({
         {!visitor && (
           <div
             ref={binRef}
-            className={`${styles.bin} ${binOpen ? styles.binOpen : ""}`}
-            style={{ bottom: floorPx - 8 }}
-            aria-hidden="true"
+            className={`${styles.bin} ${binOpen ? styles.binOpen : ""} ${arranging ? styles.binArrange : ""}`}
+            style={{ left: `${binSpot.x}%`, bottom: floorPx - 8 + (binSpot.rise / 100) * worldSize.h }}
+            aria-hidden={!arranging}
+            role={arranging ? "button" : undefined}
+            aria-label={arranging ? "Move the litter bin" : undefined}
+            onPointerDown={
+              arranging
+                ? (e) => {
+                    e.preventDefault();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    binDrag.current = {
+                      pointer: e.pointerId,
+                      dx: binSpot.x - stagePercent(e.clientX),
+                      dy: binSpot.rise - risePercent(e.clientY),
+                    };
+                  }
+                : undefined
+            }
+            onPointerMove={
+              arranging
+                ? (e) => {
+                    const d = binDrag.current;
+                    if (!d || d.pointer !== e.pointerId) return;
+                    const rise = Math.max(0, Math.min(RISE_MAX, risePercent(e.clientY) + d.dy));
+                    setBinSpot({
+                      x: Math.round(Math.max(3, Math.min(97, stagePercent(e.clientX) + d.dx)) * 10) / 10,
+                      rise: rise < 1.5 ? 0 : Math.round(rise * 10) / 10,
+                    });
+                  }
+                : undefined
+            }
+            onPointerUp={
+              arranging
+                ? () => {
+                    binDrag.current = null;
+                    try {
+                      window.localStorage.setItem(BIN_KEY, JSON.stringify(binSpot));
+                    } catch {
+                      /* not saved: fine */
+                    }
+                    playSfx("tap");
+                  }
+                : undefined
+            }
           >
             <BinArt open={binOpen || held?.what === "litter"} />
           </div>

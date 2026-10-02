@@ -32,6 +32,20 @@
   transition: filter 0.15s ease;
 }
 
+/* A soft contact shadow so things stand on the floor (or on each other). */
+.decor::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -4px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(15, 35, 65, 0.28), transparent);
+  z-index: -1;
+  pointer-events: none;
+}
+
 .decor > svg {
   display: block;
   width: 100%;
@@ -1906,11 +1920,21 @@
 .bin {
   position: absolute;
   z-index: 2;
-  right: 2.5%;
   width: 48px;
   height: 64px;
+  margin-left: -24px;
   pointer-events: none;
   transition: transform 0.15s ease;
+}
+
+/* Arrange mode: the bin can be dragged anywhere like the other things. */
+.binArrange {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  outline: 2px dashed rgba(255, 255, 255, 0.9);
+  outline-offset: 4px;
+  border-radius: 10px;
 }
 
 .bin > svg {

@@ -332,6 +332,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
     decor: outfit.decor.filter(usable),
     spots: outfit.spots ?? {},
     sizes: outfit.sizes ?? {},
+    rises: outfit.rises ?? {},
     fx: usable(outfit.fx) ? outfit.fx : null,
     aura: usable(outfit.aura ?? null) ? (outfit.aura ?? null) : null,
     bubble: usable(outfit.bubble ?? null) ? (outfit.bubble ?? null) : null,
@@ -385,7 +386,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
           onStartArrange={startArrange}
           onArrangeDone={(layout) => {
             setArranging(false)
-            if (layout) changeOutfit({ ...outfit, decor: layout.decor, spots: { ...outfit.spots, ...layout.spots }, sizes: layout.sizes })
+            if (layout) changeOutfit({ ...outfit, decor: layout.decor, spots: { ...outfit.spots, ...layout.spots }, sizes: layout.sizes, rises: layout.rises })
           }}
           hud={
             <>

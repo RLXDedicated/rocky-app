@@ -1,3 +1,4 @@
+import { sanitizeRises } from "./closet";
 import { ARCADE_DAILY_DEFAULT, ARCADE_LIMIT_KEY, FOCUS_ME } from "./focus";
 import { describe, expect, it } from "vitest";
 import {
@@ -111,6 +112,9 @@ describe("shop catalogue", () => {
 });
 
 describe("placed items (Pet Society style)", () => {
+  it("keeps heights only for placed items, clamped, and drops the floor (0)", () => {
+    expect(sanitizeRises({ "decor-boxes": 999, "decor-bowl": 0, "decor-barn": 10, x: "high" }, ["decor-boxes", "decor-bowl"])).toEqual({ "decor-boxes": 45 })
+  });
   it("keeps positions only for placed items, clamped to the stage", () => {
     const outfit = sanitizeOutfit(
       {

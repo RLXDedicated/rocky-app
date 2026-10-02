@@ -15,6 +15,7 @@ import {
   CLOSET,
   collectionOpen,
   RETIRED_ITEMS,
+  sanitizeRises,
   sanitizeSizes,
   DEFAULT_OUTFIT,
   findItem,
@@ -429,6 +430,10 @@ export function normalizePetState(
       ),
       sizes: sanitizeSizes(
         o.sizes,
+        Array.isArray(o.decor) ? ids(o.decor) : base.outfit.decor,
+      ),
+      rises: sanitizeRises(
+        o.rises,
         Array.isArray(o.decor) ? ids(o.decor) : base.outfit.decor,
       ),
       fx: typeof o.fx === "string" ? o.fx : null,

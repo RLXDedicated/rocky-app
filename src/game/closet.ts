@@ -1208,6 +1208,8 @@ export interface Outfit {
   spots: Record<string, number>;
   /** Size of each placed item (one of SIZE_STEPS; missing = normal size). */
   sizes: Record<string, number>;
+  /** How high each placed item stands above the floor, % of the stage height (missing = on the floor). Lets small things sit on others. */
+  rises?: Record<string, number>;
   fx: string | null;
   /** A glow around Rocky himself (admin-only for now). */
   aura?: string | null;
@@ -1225,6 +1227,7 @@ export const DEFAULT_OUTFIT: Outfit = {
   body: null,
   spots: {},
   sizes: {},
+  rises: {},
   fx: null,
   aura: null,
   bubble: null,
@@ -1323,6 +1326,26 @@ export function sanitizeSizes(
 /** Placed items stay inside the stage. */
 export const SPOT_MIN = 3;
 export const SPOT_MAX = 95;
+
+/** Highest a placed item can be lifted, % of the stage height above the floor. */
+export const RISE_MAX = 45;
+
+/** Keeps only heights of placed items, rounded and clamped (on the floor is not stored). */
+export function sanitizeRises(
+  rises: unknown,
+  decor: readonly string[],
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!rises || typeof rises !== "object") return out;
+  for (const id of decor) {
+    const v = (rises as Record<string, unknown>)[id];
+    if (typeof v === "number" && Number.isFinite(v)) {
+      const r = Math.round(Math.min(RISE_MAX, Math.max(0, v)) * 10) / 10;
+      if (r > 0) out[id] = r;
+    }
+  }
+  return out;
+}
 
 /** Keeps only positions of placed items, as rounded, clamped percentages. */
 export function sanitizeSpots(
@@ -1437,6 +1460,7 @@ export function sanitizeOutfit(
     decor,
     spots: sanitizeSpots(o.spots, decor),
     sizes: sanitizeSizes(o.sizes, decor),
+    rises: sanitizeRises(o.rises, decor),
     fx: ok(o.fx, "fx") ? (o.fx as string) : null,
     aura: ok(o.aura, "aura") ? (o.aura as string) : null,
     bubble: ok(o.bubble, "bubble") ? (o.bubble as string) : null,
