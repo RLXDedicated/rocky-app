@@ -358,7 +358,7 @@
 }
 
 .pose-walk {
-  animation: waddle 0.42s ease-in-out infinite;
+  animation: waddle 0.7s ease-in-out infinite;
 }
 
 @keyframes waddle {

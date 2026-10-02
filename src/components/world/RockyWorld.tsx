@@ -504,7 +504,7 @@ export function RockyWorld({
     const clamped = Math.max(WALK_MIN, Math.min(WALK_MAX, target));
     const ms = prefersReducedMotion()
       ? 0
-      : Math.min(run ? 1400 : 2600, Math.abs(clamped - from) * (run ? 16 : 45));
+      : Math.min(run ? 1400 : 5200, Math.abs(clamped - from) * (run ? 16 : 80));
     xRef.current = clamped;
     if (Math.abs(clamped - from) > 0.5) setFacingLeft(clamped < from);
     setWalkMs(ms);

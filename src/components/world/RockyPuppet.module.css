@@ -69,30 +69,30 @@
   }
 }
 
-/* ---- Walk / run: steps seen from the front (each foot lifts in turn) ---- */
+/* ---- Walk / run: unhurried steps seen from the front (each foot lifts in turn) ---- */
 .walk .leg-left,
 .run .leg-left {
-  animation: stepL 0.42s ease-in-out infinite;
+  animation: stepL 0.7s ease-in-out infinite;
 }
 .walk .leg-right,
 .run .leg-right {
-  animation: stepR 0.42s ease-in-out infinite;
+  animation: stepR 0.7s ease-in-out infinite;
 }
 .walk .arm-left,
 .run .arm-left {
-  animation: swingL 0.42s ease-in-out infinite;
+  animation: swingL 0.7s ease-in-out infinite;
 }
 .walk .arm-right,
 .run .arm-right {
-  animation: swingR 0.42s ease-in-out infinite;
+  animation: swingR 0.7s ease-in-out infinite;
 }
 .walk .tail,
 .run .tail {
-  animation: tailWag 0.42s ease-in-out infinite alternate;
+  animation: tailWag 0.7s ease-in-out infinite alternate;
 }
 .walk .head,
 .run .head {
-  animation: headSway 0.84s ease-in-out infinite;
+  animation: headSway 1.4s ease-in-out infinite;
 }
 .run .leg-left,
 .run .leg-right,
