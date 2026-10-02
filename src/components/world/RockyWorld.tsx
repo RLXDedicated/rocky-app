@@ -13,6 +13,7 @@ import type { Outfit } from "../../game/closet";
 import { needsSummary, type Needs } from "../../game/pet";
 import { isMuted, play as playSfx, setMuted } from "../../game/sfx";
 import { EMOTE_POSE, worldAnchor, worldRig, type RockyEmote } from "../rockyWorldRig";
+import { PUPPET_ANCHOR, PUPPET_RIG, puppetEnabled, RockyPuppet } from "./RockyPuppet";
 import {
   getPoseAsset,
   getReactionAsset,
@@ -412,6 +413,7 @@ export function RockyWorld({
   worldSizeRef.current = worldSize;
   // A short official pose (a cheer, a bite, a celebration) shown over his mood pose.
   const [emote, setEmote] = useState<RockyEmote | null>(null);
+  const [usePuppet] = useState(puppetEnabled);
   const emoteTimer = useRef<number | undefined>(undefined);
   const hatRef = useRef<SVGSVGElement>(null);
   const glassesRef = useRef<SVGSVGElement>(null);
@@ -1201,7 +1203,11 @@ export function RockyWorld({
     spots: outfit.spots,
     sizes: outfit.sizes ?? {},
   };
-  const anchor = worldAnchor(mood);
+  // The cut-out puppet (preview, ?puppet=1) stands in for the calm moods;
+  // a worried or tired Rocky keeps his official thinking / yawning pose.
+  const puppet =
+    usePuppet && !reaction && !emote && (mood === "Happy" || mood === "Motivated");
+  const anchor = puppet ? PUPPET_ANCHOR : worldAnchor(mood);
   const src = reaction
     ? getReactionAsset(reaction)
     : emote
@@ -1210,7 +1216,7 @@ export function RockyWorld({
   // Worn items sit on poses whose head, eyes and hips are measured; they come
   // off for a reaction or a short emote (different poses) and for poses like
   // sitting, where they wouldn't fit.
-  const rigPoints = !reaction && !emote ? worldRig(mood) : null;
+  const rigPoints = puppet ? PUPPET_RIG : !reaction && !emote ? worldRig(mood) : null;
   const equippedHat = outfit.hat ? HAT_ART[outfit.hat] : undefined;
   const hat = rigPoints ? equippedHat : undefined;
   const hatBox = hat ? hatPlacement(anchor, hat, size) : null;
@@ -1518,13 +1524,17 @@ export function RockyWorld({
               )}
               {/* The official art, whole: it moves with the pose classes, never deformed.
                   Reaction and emote poses aren't square, so they stand on the same floor line. */}
-              <RetryImg
-                key={src}
-                src={src}
-                alt=""
-                className={`${styles.art} ${reaction || emote ? styles.artPose : ""}`}
-                draggable={false}
-              />
+              {puppet ? (
+                <RockyPuppet action={pose} animate={animate} />
+              ) : (
+                <RetryImg
+                  key={src}
+                  src={src}
+                  alt=""
+                  className={`${styles.art} ${reaction || emote ? styles.artPose : ""}`}
+                  draggable={false}
+                />
+              )}
               {shirtItem && (
                 <svg
                   ref={shirtRef}
