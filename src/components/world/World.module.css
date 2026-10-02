@@ -830,7 +830,8 @@
     /* Relative so the bag and the scrub meter can float over the stage above it. */
     position: relative;
     padding: 10px;
-    flex-direction: column-reverse;
+    /* Care first (used many times a day, right under Rocky), then the once-a-day check-in. */
+    flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }

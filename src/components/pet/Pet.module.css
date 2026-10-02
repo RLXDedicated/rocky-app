@@ -48,13 +48,19 @@
   color: var(--text-muted);
 }
 
+/* Renaming is rare: a quiet pencil that wakes up on hover/focus instead of a permanent link. */
 .tagEdit {
   align-self: center;
-  font-size: 0.75rem;
-  font-weight: 700;
+  display: inline-grid;
+  place-items: center;
   color: var(--rlx-green);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  opacity: 0.35;
+  transition: opacity 0.15s ease;
+}
+
+.tag:hover .tagEdit,
+.tag:focus-visible .tagEdit {
+  opacity: 1;
 }
 
 .tagEditing {

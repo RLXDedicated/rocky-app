@@ -6,7 +6,6 @@ import type { CheckInResult } from '../engine/gameEngine'
 import { gameService } from '../services/gameService'
 import { CHECKED_IN_EVENT, performCheckIn } from '../services/checkInAction'
 import { refreshFromServer } from '../services/remoteSync'
-import { EVOLUTION_LEVELS } from '../engine/petProgress'
 import type { Agent, GameState } from '../types/domain'
 import styles from './Home.module.css'
 import { ChallengeChip } from './extras/ChallengeChip'
@@ -441,58 +440,43 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
                 )}
               </div>
               <div className={styles.hudRight}>
-                <div className={styles.levelCard}>
-                  <div className={styles.levelTop}>
-                    <span className={styles.levelNum}>
-                      <small>Level</small> {gameState.level}
+                {/* Level at a glance (rank is on the name tag; energy shows here only when it's low). Details live in Progress. */}
+                <button
+                  type="button"
+                  className={styles.levelChip}
+                  onClick={onOpenProgress}
+                  aria-label={`Level ${gameState.level}, ${progress.isMax ? 'max level' : `${progress.toNext} XP to go`}, ${gameState.currentStreak}-day streak. Open Progress`}
+                >
+                  <span className={styles.levelRing} style={{ ['--p' as string]: progress.isMax ? 1 : progress.fraction }} aria-hidden="true">
+                    <b>{gameState.level}</b>
+                  </span>
+                  <span className={styles.levelInfo}>
+                    <span className={styles.levelLine}>
+                      Level {gameState.level}
+                      <small>{progress.isMax ? 'Max' : `${progress.toNext} XP to go`}</small>
                     </span>
-                    <span className={styles.xpText}>{progress.isMax ? 'Max level' : `${progress.toNext} XP to go`}</span>
-                  </div>
-                  <div
-                    className={styles.xpTrack}
-                    role="meter"
-                    aria-valuemin={0}
-                    aria-valuemax={progress.levelSpan || 1}
-                    aria-valuenow={progress.intoLevel}
-                    aria-label="XP to next level"
-                  >
-                    <span style={{ width: `${progress.fraction * 100}%` }} />
-                  </div>
-                  <ol className={styles.stages} aria-label={`Rank: ${rankName(gameState.evolutionStage)}`}>
-                    {(['Baby', 'Young', 'Advanced', 'Elite'] as const).map((st) => {
-                      const order = ['Baby', 'Young', 'Advanced', 'Elite']
-                      const reached = order.indexOf(st) <= order.indexOf(gameState.evolutionStage)
-                      return (
-                        <li
-                          key={st}
-                          className={`${styles.stage} ${reached ? styles.stageOn : ''} ${st === gameState.evolutionStage ? styles.stageNow : ''}`}
-                          title={`${rankName(st)} · level ${EVOLUTION_LEVELS[st]}`}
-                        >
-                          <span>{rankName(st)}</span>
-                        </li>
-                      )
-                    })}
-                  </ol>
-                  <button type="button" className={styles.stats} onClick={onOpenProgress} aria-label="Energy and streak — open Progress">
-                    <span className={gameState.energy < 40 ? styles.statLow : undefined}>
-                      <span aria-hidden="true">⚡</span> {gameState.energy}
-                    </span>
-                    <span>
-                      <span aria-hidden="true">🔥</span> {gameState.currentStreak} {gameState.currentStreak === 1 ? 'day' : 'days'}
-                    </span>
-                    {(gameState.streakShields ?? 0) > 0 && (
-                      <span title="Streak shields: each one saves your streak for one missed day. Earn them with QA Passes (max 2).">
-                        <span aria-hidden="true">🛡️</span> {gameState.streakShields}
+                    <span className={styles.levelStats}>
+                      <span>
+                        <span aria-hidden="true">🔥</span> {gameState.currentStreak} {gameState.currentStreak === 1 ? 'day' : 'days'}
                       </span>
-                    )}
-                    <span className={styles.statMore}>Progress ›</span>
-                  </button>
+                      {(gameState.streakShields ?? 0) > 0 && (
+                        <span title="Streak shields: each one saves your streak for one missed day. Earn them with QA Passes (max 2).">
+                          <span aria-hidden="true">🛡️</span> {gameState.streakShields}
+                        </span>
+                      )}
+                      {gameState.energy < 40 && (
+                        <span className={styles.statLow} title="Energy is low — QA Passes and check-ins bring it back">
+                          <span aria-hidden="true">⚡</span> {gameState.energy}
+                        </span>
+                      )}
+                    </span>
+                  </span>
                   {xpBurst !== null && (
                     <span className={styles.xpBurst} aria-live="polite">
                       +{xpBurst} XP
                     </span>
                   )}
-                </div>
+                </button>
                 <button
                   type="button"
                   className={styles.shopButton}
@@ -501,9 +485,17 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
                     setShopOpen(true)
                   }}
                 >
-                  <Coin size={20} />
-                  <b>{coins.toLocaleString()}</b>
-                  <span>Shop</span>
+                  <span className={styles.shopCoins}>
+                    <Coin size={20} />
+                    <b>{coins.toLocaleString()}</b>
+                  </span>
+                  <span className={styles.shopLabel}>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 8Z" />
+                      <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+                    </svg>
+                    Shop
+                  </span>
                   {coinBurst !== null && (
                     <span className={styles.coinBurst} aria-live="polite">
                       +{coinBurst}
