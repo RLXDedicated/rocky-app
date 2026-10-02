@@ -504,7 +504,9 @@ export function RockyWorld({
     const clamped = Math.max(WALK_MIN, Math.min(WALK_MAX, target));
     const ms = prefersReducedMotion()
       ? 0
-      : Math.min(run ? 1400 : 5200, Math.abs(clamped - from) * (run ? 16 : 80));
+      : run
+        ? Math.min(1400, Math.abs(clamped - from) * 16)
+        : Math.abs(clamped - from) * 80; // constant walking speed
     xRef.current = clamped;
     if (Math.abs(clamped - from) > 0.5) setFacingLeft(clamped < from);
     setWalkMs(ms);
@@ -553,7 +555,7 @@ export function RockyWorld({
   // The host steering their Rocky live: walk where they put him.
   useEffect(() => {
     if (controlledX === null || Math.abs(controlledX - xRef.current) < 1) return;
-    void walkTo(controlledX, Math.abs(controlledX - xRef.current) > 30);
+    void walkTo(controlledX);
   }, [controlledX, walkTo]);
 
   // Every so often Rocky acts out his mood (3D only).
@@ -723,7 +725,8 @@ export function RockyWorld({
       onFloorClick(Math.max(5, Math.min(95, px)));
       return;
     }
-    if (!playing) void walkTo(px, Math.abs(px - xRef.current) > 30);
+    // Always the same calm pace, however far the tap (running is for the ball).
+    if (!playing) void walkTo(px);
   }
 
   /**
@@ -749,10 +752,7 @@ export function RockyWorld({
     const onTop = d.play === "nap" || Boolean(d.lift);
     const halfPct =
       (decorWidthPx(id, sizeRef.current, sizesRef.current) / w.w) * 50;
-    await walkTo(
-      onTop ? cx : cx + side * (halfPct + rockyHalf * 0.55),
-      Math.abs(cx - xRef.current) > 35,
-    );
+    await walkTo(onTop ? cx : cx + side * (halfPct + rockyHalf * 0.55));
     // An earned treat first, else a snack from the bag.
     const snack = treats > 0 ? undefined : FOODS.find((f) => (inventory[f.id] ?? 0) > 0)?.id;
     const fed = d.play === "eat" && !visitor && (treats > 0 || Boolean(snack)) && onFeed(snack);
