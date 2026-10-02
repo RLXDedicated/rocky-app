@@ -1,3 +1,4 @@
+import { useFocus } from '../extras/Focus'
 import { useEffect, useState } from 'react'
 import { apiClient, chatApi, isRemoteModeEnabled, type ChatChannel, type ChatRules, type FriendSummary } from '../../services/apiClient'
 import { useLiveEvent, usePresence } from '../../services/liveClient'
@@ -30,6 +31,7 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
   const [rules, setRules] = useState<ChatRules | null>(null)
   const [channels, setChannels] = useState<ChatChannel[] | null>(null)
   const [mutedUntil, setMutedUntil] = useState<string | null>(null)
+  const focus = useFocus()
   const [active, setActive] = useState<string | null>(null)
   const [picking, setPicking] = useState(false)
   // The "+ New" menu: a 1-to-1, a new group, or browse open rooms.
@@ -308,6 +310,7 @@ export function Chat({ openWith, onOpened }: { openWith?: string | null; onOpene
               <ChatThread
                 channelId={current.id}
                 mutedUntil={mutedUntil}
+                focusUntil={focus.mine}
                 onNeedRules={() => setRules((r) => (r ? { ...r, accepted: false } : r))}
                 placeholder={current.kind === 'general' ? 'Message everyone…' : `Message ${current.title}…`}
               />

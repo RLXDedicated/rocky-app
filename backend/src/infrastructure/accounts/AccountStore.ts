@@ -83,6 +83,16 @@ export interface ChallengeRecord {
   finalScore: number | null
 }
 
+/** One agent's time in Rocky on one day. */
+export interface UsageRecord {
+  agentId: string
+  day: string
+  minutes: number
+  /** Of those, minutes inside their shift. */
+  shiftMinutes: number
+  sessions: number
+}
+
 export interface ScheduleRecord {
   agentId: string
   name: string | null
@@ -204,6 +214,9 @@ export interface AccountStore {
   /** Newest first. */
   listQaAudits(q: { agentId?: string; auditor?: string; since?: string; limit?: number }): QaAuditRecord[]
   getSchedules(): Record<string, ScheduleRecord>
+  /** Adds one minute of use (and a session when it starts one). */
+  addUsageMinute(agentId: string, day: string, inShift: boolean, newSession: boolean, at: string): void
+  listUsage(sinceDay: string): UsageRecord[]
   setSchedule(agentId: string, s: Omit<ScheduleRecord, 'agentId'> | null): void
 
   addDelivery(d: DeliveryRecord): void

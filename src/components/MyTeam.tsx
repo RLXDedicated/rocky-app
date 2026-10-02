@@ -4,6 +4,7 @@ import { useLiveEvent } from '../services/liveClient'
 import { getRockyAsset } from './rockyVisuals'
 import { RetryImg } from './assetRecovery'
 import styles from './MyTeam.module.css'
+import { FocusControl, useFocus } from './extras/Focus'
 
 /** The backend's risk reasons are written for the (Spanish) admin console. */
 function reasonEn(r: string): string {
@@ -36,6 +37,7 @@ const SPIRIT: Record<TeamSpirit['mood'], { label: string; tone: string }> = {
 export function MyTeam({ onVisit }: { onVisit?: (friendId: string) => void }) {
   const [data, setData] = useState<{ spirit: TeamSpirit | null; members: TeamMember[] } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const focus = useFocus()
 
   const load = () =>
     peopleApi
@@ -67,6 +69,12 @@ export function MyTeam({ onVisit }: { onVisit?: (friendId: string) => void }) {
             <p className={styles.lede}>How your team is doing today. Your Rocky’s mood follows your team’s spirit — cheer them on!</p>
           </div>
         </header>
+        {focus.leads && (
+          <FocusControl
+            focus={focus}
+            label="Busy moment? Pause the Arcade and the chat for your team for a while. Check-ins, Note Check and Rocky stay on."
+          />
+        )}
         {error && <p className={styles.error}>{error}</p>}
         {!data && !error && <p className={styles.lede}>Loading your team…</p>}
         {data && data.members.length === 0 && (

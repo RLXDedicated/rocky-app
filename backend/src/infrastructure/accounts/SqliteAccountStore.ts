@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord, KudosRecord, DuelRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord, KudosRecord, DuelRecord, UsageRecord } from './AccountStore'
 
 interface LedgerDbRow {
   entry_id: number
@@ -319,6 +319,27 @@ export class SqliteAccountStore implements AccountStore {
       .prepare(`SELECT * FROM qa_audits ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY created_at DESC, audit_id DESC LIMIT ?`)
       .all(...args, q.limit ?? 200) as Record<string, unknown>[]
     return rows.map(toQaAudit)
+  }
+
+  addUsageMinute(agentId: string, day: string, inShift: boolean, newSession: boolean, at: string): void {
+    this.db
+      .prepare(
+        `INSERT INTO usage_daily (agent_id, day, minutes, shift_minutes, sessions, updated_at) VALUES (?, ?, 1, ?, ?, ?)
+         ON CONFLICT(agent_id, day) DO UPDATE SET minutes = minutes + 1, shift_minutes = shift_minutes + excluded.shift_minutes,
+           sessions = sessions + excluded.sessions, updated_at = excluded.updated_at`,
+      )
+      .run(agentId, day, inShift ? 1 : 0, newSession ? 1 : 0, at)
+  }
+
+  listUsage(sinceDay: string): UsageRecord[] {
+    const rows = this.db.prepare('SELECT * FROM usage_daily WHERE day >= ? ORDER BY day').all(sinceDay) as Record<string, string | number>[]
+    return rows.map((r) => ({
+      agentId: String(r.agent_id),
+      day: String(r.day),
+      minutes: Number(r.minutes),
+      shiftMinutes: Number(r.shift_minutes),
+      sessions: Number(r.sessions),
+    }))
   }
 
   getSchedules(): Record<string, ScheduleRecord> {

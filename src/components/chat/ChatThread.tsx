@@ -50,12 +50,15 @@ export function ChatThread({
   placeholder = 'Write a message…',
   onNeedRules,
   mutedUntil,
+  focusUntil,
 }: {
   channelId: string
   compact?: boolean
   placeholder?: string
   onNeedRules?: () => void
   mutedUntil?: string | null
+  /** Focus mode (the leader paused the chat for a busy moment): read-only until then. */
+  focusUntil?: string | null
 }) {
   const [messages, setMessages] = useState<ChatMessage[] | null>(null)
   const [more, setMore] = useState(false)
@@ -372,6 +375,7 @@ export function ChatThread({
   }
 
   const muted = mutedUntil && Date.parse(mutedUntil) > Date.now()
+  const focused = focusUntil && Date.parse(focusUntil) > Date.now()
   return (
     <div
       className={`${styles.thread} ${compact ? styles.threadCompact : ''} ${dragOver ? styles.dropping : ''}`}
@@ -550,6 +554,10 @@ export function ChatThread({
       {error && <p className={styles.error}>{error}</p>}
       {muted ? (
         <p className={styles.muted}>Your chat is paused until {new Date(mutedUntil!).toLocaleString()}. Contact the QA team if you think this is a mistake.</p>
+      ) : focused ? (
+        <p className={styles.muted}>
+          🎧 Focus mode until {new Date(focusUntil!).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} — your leader paused the chat for a busy moment. You can still read; writing is back right after.
+        </p>
       ) : (
         <div className={styles.composer}>
           {picker === 'emoji' && (

@@ -9,6 +9,7 @@ import { BulkTab } from './AdminBulk'
 import { ChatsTab } from './AdminChats'
 import { PeopleTab } from './AdminPeople'
 import { GamesTab } from './AdminGames'
+import { UsageTab } from './AdminUsage'
 import { ChallengesTab } from './AdminChallenges'
 import { QaLogTab } from './AdminQa'
 import { TeamsTab } from './AdminTeams'
@@ -32,13 +33,14 @@ import {
 // XP/Energy edit). See backend/src/application/adminApplicationService.ts.
 
 type Tab = 'overview' | 'agents' | 'rewards' | 'shop' | 'people' | 'teams' | 'chats' | 'records'
-type Sub = 'overview' | 'activity' | 'gifts' | 'challenges' | 'catalog' | 'economy' | 'games' | 'qa' | 'audit' | 'system'
+type Sub = 'overview' | 'activity' | 'usage' | 'gifts' | 'challenges' | 'catalog' | 'economy' | 'games' | 'qa' | 'audit' | 'system'
 
 /** Sub-sections inside a tab (things that belong together live in one place). */
 const SUBS: Partial<Record<Tab, [Sub, string][]>> = {
   overview: [
     ['overview', 'Resumen'],
     ['activity', 'Actividad'],
+    ['usage', 'Uso de Rocky'],
   ],
   rewards: [
     ['gifts', 'Regalar y desbloquear'],
@@ -188,6 +190,8 @@ export function AdminConsole() {
             <p className={styles.muted}>Cargando…</p>
           ) : subOf('overview') === 'activity' ? (
             <ActivityTab overview={overview} onOpen={setSelected} />
+          ) : subOf('overview') === 'usage' ? (
+            <UsageTab onOpen={setSelected} onError={onError} />
           ) : (
             <OverviewTab overview={overview} onOpen={setSelected} />
           ))}

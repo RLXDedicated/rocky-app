@@ -772,6 +772,28 @@ export function createApiRouter(services: ApiServices): Router {
     res.json(services.pet.getGames());
   });
 
+  // Arcade rounds per agent per day (0 = no limit).
+  router.put("/admin/games-limit", adminOnly, (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body);
+    res.json(services.pet.setArcadeLimit(Number(body.limit), actorOf(req)));
+  });
+
+  // Focus mode: a leader pauses the Arcade and chat for their team during a
+  // peak; admins can do it for any team or for everyone ("all").
+  router.get("/focus", (req: Request, res: Response) => {
+    res.json(services.pet.focusStatus(req.identity!.agentId));
+  });
+
+  router.put("/focus", (req: Request, res: Response) => {
+    const body = parseJsonBody(req.body);
+    const me = req.identity!.agentId;
+    const admin = req.identity!.role === "ADMIN";
+    const target = typeof body.team === "string" && body.team ? body.team.trim().toLowerCase() : me;
+    if (!admin && (target !== me || !services.pet.focusStatus(me).leads))
+      throw ApiError.forbidden("Only team leaders (for their own team) and admins can turn on focus mode.");
+    res.json(services.pet.setFocus(target, Number(body.minutes), actorOf(req)));
+  });
+
   router.put("/admin/games/:id", adminOnly, (req: Request, res: Response) => {
     const body = parseJsonBody(req.body);
     if (typeof body.enabled !== "boolean")

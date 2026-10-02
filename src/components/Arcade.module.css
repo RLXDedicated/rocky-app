@@ -402,3 +402,26 @@
   align-content: start;
   min-width: 0;
 }
+
+.rounds {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.limit {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: #fff6de;
+  color: var(--gold-ink, #7a5200);
+  font-weight: 600;
+}
+
+.play:disabled,
+.again:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

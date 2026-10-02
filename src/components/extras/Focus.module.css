@@ -1,0 +1,121 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: #eef4ff;
+  border: 1px solid #c9dafc;
+  color: var(--navy);
+}
+
+.banner > span {
+  font-size: 1.6rem;
+}
+
+.banner p {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 6px 16px rgba(15, 35, 65, 0.06);
+}
+
+.control p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.on {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e6f6ee;
+  color: #006231;
+  font-size: 0.8rem;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.buttons button {
+  padding: 8px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--navy);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.buttons button:hover:not(:disabled) {
+  border-color: var(--rlx-green);
+}
+
+.buttons .end {
+  background: #fdecea;
+  border-color: #f5c2bc;
+  color: #a3261b;
+}
+
+.error {
+  flex-basis: 100%;
+  margin: 0;
+  color: #a3261b;
+  font-size: 0.85rem;
+}
+
+.nudge {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(560px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--navy);
+  color: #ffffff;
+  box-shadow: 0 16px 40px rgba(15, 35, 65, 0.35);
+}
+
+.nudge > span {
+  font-size: 1.8rem;
+}
+
+.nudge p {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.nudge button {
+  flex: none;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--rlx-green);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}

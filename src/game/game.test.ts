@@ -1,3 +1,4 @@
+import { ARCADE_DAILY_DEFAULT, ARCADE_LIMIT_KEY, FOCUS_ME } from "./focus";
 import { describe, expect, it } from "vitest";
 import {
   CLOSET,
@@ -215,8 +216,8 @@ describe("needs and care", () => {
   it("happiness fades, dirt builds up and a long absence is capped", () => {
     const base = initialPetState(NOW).needs;
     const later = tickNeeds(base, new Date(NOW.getTime() + 10 * 3_600_000));
-    expect(later.happiness).toBe(65);
-    expect(later.dirt).toBe(30);
+    expect(later.happiness).toBe(72.5);
+    expect(later.dirt).toBe(20);
     expect(later.health).toBe(100);
     const week = tickNeeds(base, new Date(NOW.getTime() + 7 * 86_400_000));
     const cap = tickNeeds(base, new Date(NOW.getTime() + 72 * 3_600_000));
@@ -590,15 +591,33 @@ describe("arcade and retired items", () => {
     expect(
       run(s, { type: "arcade", game: "chess" as never, score: 3 }),
     ).toMatchObject({ ok: false, reason: "invalid" });
+    // With the daily round limit off (admin: 0), coins still stop at the cap.
+    const noLimit = { [ARCADE_LIMIT_KEY]: { price: 0 } };
     let total = 0;
     for (let i = 0; i < 8; i++) {
-      const r = run(s, { type: "arcade", game: "catch", score: 80 });
+      const r = applyPetAction(s, { type: "arcade", game: "catch", score: 80 }, { facts: worker, now: NOW, overrides: noLimit });
       if (!r.ok) throw new Error("arcade failed");
       total += r.reward?.coins ?? 0;
       s = r.state;
     }
     expect(total).toBe(50);
     expect(s.games.arcadeRounds).toBe(8);
+  });
+
+  it("limits Arcade rounds per day (default 5) and pauses them in focus mode", () => {
+    let s = initialPetState(NOW);
+    for (let i = 0; i < ARCADE_DAILY_DEFAULT; i++) {
+      const r = run(s, { type: "arcade", game: "catch", score: 10 });
+      if (!r.ok) throw new Error("arcade failed");
+      s = r.state;
+    }
+    expect(run(s, { type: "arcade", game: "catch", score: 10 })).toMatchObject({ ok: false, reason: "arcade-limit" });
+    // The next day the rounds are back.
+    expect(run(s, { type: "arcade", game: "catch", score: 10 }, worker, new Date(NOW.getTime() + 86_400_000)).ok).toBe(true);
+    const focus = { [FOCUS_ME]: { enabled: true, until: new Date(NOW.getTime() + 30 * 60_000).toISOString() } };
+    expect(applyPetAction(initialPetState(NOW), { type: "arcade", game: "catch", score: 10 }, { facts: worker, now: NOW, overrides: focus })).toMatchObject({ ok: false, reason: "focus" });
+    const later = new Date(NOW.getTime() + 31 * 60_000);
+    expect(applyPetAction(initialPetState(NOW), { type: "arcade", game: "catch", score: 10 }, { facts: worker, now: later, overrides: focus }).ok).toBe(true);
   });
 
   it("refunds and removes a retired item", () => {

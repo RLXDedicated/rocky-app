@@ -132,9 +132,17 @@ export interface ChatDeps {
   /** GIPHY key for the GIF search (ROCKY_GIPHY_API_KEY); without it only Rocky's own stickers and uploads are offered. */
   giphyKey?: string | null
   fetchFn?: typeof fetch
+  /** Until when the agent's team is in focus mode (leaders pause the chat during peaks). */
+  focusUntil?: (agentId: string) => string | null
 }
 
-export function createChatApplicationService({ persistence, bus, clock = systemClock, isStaff = () => false, titleOf = () => null, testerOf = () => false, honorsOf = () => undefined, bubbleOf = () => null, giphyKey = null, fetchFn = fetch }: ChatDeps) {
+export function createChatApplicationService({ persistence, bus, clock = systemClock, isStaff = () => false, titleOf = () => null, testerOf = () => false, honorsOf = () => undefined, bubbleOf = () => null, giphyKey = null, fetchFn = fetch, focusUntil = () => null }: ChatDeps) {
+  /** Focus mode: the team reads the chat but can't post until it ends (staff always can). */
+  function checkFocus(agentId: string) {
+    const until = focusUntil(agentId)
+    if (until && !isStaff(agentId))
+      throw new ApiError(423, 'FOCUS_MODE', `Focus mode is on for your team until ${new Date(until).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Bogota' })} — the chat will be back right after.`)
+  }
   const store = persistence.chat
   const repo = persistence.repoStore
   const sent = new Map<string, number[]>()
@@ -612,6 +620,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
       if (/\[\[poll:/.test(body)) throw ApiError.validation('Create polls with the 📊 button.')
       const gif = /^\[\[gif:([^\]]*)\]\]$/.exec(body)
       if (gif && !GIF_ID.test(gif[1]!)) throw ApiError.validation('That GIF could not be sent.')
+      checkFocus(agentId)
       const { channel, now, recent } = gate(agentId, channelId)
       if (channel.kind === 'general' && MENTION_ALL.test(body) && !isStaff(agentId)) {
         const last = lastMentionAll.get(agentId) ?? 0
@@ -635,6 +644,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
 
     /** A picture or GIF from the agent's device: checked, stored, then posted as a message. */
     postImage(agentId: string, channelId: string, bytes: Uint8Array, actor: ChatActor) {
+      checkFocus(agentId)
       const mime = sniffImage(bytes)
       if (!mime) throw ApiError.validation('Only PNG, JPEG, WebP and GIF pictures can be shared.')
       if (bytes.length > (mime === 'image/gif' ? MAX_GIF_BYTES : MAX_IMAGE_BYTES))
@@ -659,6 +669,7 @@ export function createChatApplicationService({ persistence, bus, clock = systemC
 
     /** A quick poll: a question and 2–6 options; everyone in the conversation can vote (one choice, changeable). */
     createPoll(agentId: string, channelId: string, input: { question: unknown; options: unknown }, actor: ChatActor) {
+      checkFocus(agentId)
       const q = typeof input.question === 'string' ? input.question.trim().replace(/\s+/g, ' ') : ''
       if (!q || q.length > 140) throw ApiError.validation('Write a question (up to 140 characters).')
       const o = (Array.isArray(input.options) ? input.options : [])

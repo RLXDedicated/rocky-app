@@ -5,6 +5,7 @@
 // isolated) or a real SQLite file (to exercise durability/restart
 // behavior). See server.ts for the actual `listen()` call, kept separate
 // so tests can exercise the app via supertest without binding a port.
+import { createUsageApplicationService } from './application/usageApplicationService'
 import cors from 'cors'
 import express, { type Express } from 'express'
 import { installBrowserGlobalsShim } from './infrastructure/browserGlobalsShim'
@@ -150,7 +151,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   // Late-bound: people needs pet (profiles) and pet needs people (a leader's team mood).
   let people: PeopleApplicationService | null = null
   const pet = createPetApplicationService({ persistence, clock: options.clock, isStaff, titleOf, testerOf, honorsOf, teamMood: (id) => people?.teamMood(id) ?? null })
-  const chat = createChatApplicationService({ persistence, bus, clock: options.clock, isStaff, titleOf, testerOf, honorsOf, bubbleOf: (id) => pet.bubbleOf(id), giphyKey: process.env.ROCKY_GIPHY_API_KEY?.trim() || null })
+  const chat = createChatApplicationService({ persistence, bus, clock: options.clock, isStaff, titleOf, testerOf, honorsOf, bubbleOf: (id) => pet.bubbleOf(id), focusUntil: (id) => pet.focusStatus(id).mine, giphyKey: process.env.ROCKY_GIPHY_API_KEY?.trim() || null })
   people = createPeopleApplicationService({ persistence, pet, isStaff, isOnline: (id) => bus.isOnline(id), honorsOf, clock: options.clock })
   engagement = createEngagementApplicationService({ persistence, pet, bus, clock: options.clock })
   const backupTarget = options.backupTarget ?? backupTargetFromEnv(process.env, config.persistenceDriver === 'sqlite' ? config.dbPath : null)
@@ -161,6 +162,14 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const kudos = createKudosApplicationService({ persistence, pet, bus, clock: options.clock })
   teams = createTeamsApplicationService({ persistence, pet, challenges, config: { ...teamsConfigFromEnv(process.env), ...teamsOverrides }, clock: options.clock, fetchFn })
   const scheduleOf = teams.scheduleOf
+  // Time in Rocky per agent (Admin → Uso): one ping a minute while Rocky is open and in front.
+  const usage = createUsageApplicationService({ persistence, scheduleOf, clock: options.clock })
+  api.post('/usage/ping', (req, res) => {
+    res.json(usage.ping(req.identity!.agentId))
+  })
+  api.get('/admin/usage', requireRole('QA', 'ADMIN'), (req, res) => {
+    res.json(usage.report(Number(req.query.days) || 7))
+  })
   const live: LiveContext = { auth, pet, chat, bus, jobs, persistence, challenges, teams, backups, engagement }
   app.locals.live = live
   api.use(createChatRouter(chat, jobs))

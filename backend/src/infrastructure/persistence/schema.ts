@@ -468,3 +468,17 @@ export const MIGRATION_007_DEV_QA = `
   INSERT OR IGNORE INTO agent_titles (agent_id, title, updated_at, updated_by) VALUES
     ('apereira@rlx.us', 'qa', '2026-09-29T18:00:00.000Z', 'seed');
 `
+
+/** Time agents spend in Rocky per day (for Operations: in shift vs. outside it). */
+export const MIGRATION_020_USAGE = `
+  CREATE TABLE usage_daily (
+    agent_id      TEXT NOT NULL,
+    day           TEXT NOT NULL,
+    minutes       INTEGER NOT NULL DEFAULT 0,
+    shift_minutes INTEGER NOT NULL DEFAULT 0,
+    sessions      INTEGER NOT NULL DEFAULT 0,
+    updated_at    TEXT NOT NULL,
+    PRIMARY KEY (agent_id, day)
+  );
+  CREATE INDEX idx_usage_daily_day ON usage_daily(day);
+`

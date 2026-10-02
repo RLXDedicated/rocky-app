@@ -1,5 +1,5 @@
 import type { CatalogOverrides } from '../../../../src/game/closet'
-import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord, KudosRecord, DuelRecord } from './AccountStore'
+import type { AccountStore, AuditRow, CredentialRecord, LedgerRow, PetProfileRecord, SessionRecord, CatalogOverrideInput, AgentTitle, ChallengeRecord, PhotoRecord, ScheduleRecord, DeliveryRecord, QaAuditRecord, KudosRecord, DuelRecord, UsageRecord } from './AccountStore'
 
 const clone = <T>(v: T): T => (v === undefined || v === null ? v : (JSON.parse(JSON.stringify(v)) as T))
 const newest = <T extends { id: number }>(rows: T[], limit: number) => [...rows].sort((a, b) => b.id - a.id).slice(0, limit)
@@ -152,6 +152,16 @@ export class InMemoryAccountStore implements AccountStore {
 
   private schedules = new Map<string, ScheduleRecord>()
   private deliveries: DeliveryRecord[] = []
+  private usage = new Map<string, UsageRecord>()
+  addUsageMinute(agentId: string, day: string, inShift: boolean, newSession: boolean) {
+    const key = `${agentId}|${day}`
+    const u = this.usage.get(key) ?? { agentId, day, minutes: 0, shiftMinutes: 0, sessions: 0 }
+    this.usage.set(key, { ...u, minutes: u.minutes + 1, shiftMinutes: u.shiftMinutes + (inShift ? 1 : 0), sessions: u.sessions + (newSession ? 1 : 0) })
+  }
+  listUsage(sinceDay: string): UsageRecord[] {
+    return [...this.usage.values()].filter((u) => u.day >= sinceDay).sort((a, b) => a.day.localeCompare(b.day))
+  }
+
   getSchedules() {
     return Object.fromEntries([...this.schedules].map(([k, v]) => [k, { ...v, days: [...v.days] }]))
   }

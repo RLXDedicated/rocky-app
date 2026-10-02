@@ -8,6 +8,7 @@
 // Care never changes XP, Energy, Level, Streak, Mood or Evolution. The two
 // mini-games (keep-it-up, picking up litter) may award a little XP, capped
 // per day (see pantry.ts); the backend records it as an XP_GRANT event.
+import { arcadeDailyLimit, myFocusUntil } from "./focus";
 import { todayKey } from "../engine/dateUtils";
 import type { Achievement, GameState } from "../types/domain";
 import {
@@ -68,11 +69,14 @@ const ARCADE_NAMES: Record<ArcadeGame, string> = {
 export const NEEDS_MAX = 100;
 
 /** How the needs drift over real time (per hour). Gentle on purpose: a weekend away never "kills" Rocky. */
+// Slow on purpose (Operations): Rocky still gets dirty and a bit sad when
+// nobody visits, but over days, not hours — no one should feel they must
+// tend him during a shift.
 export const NEEDS_RATES = {
-  happinessDecay: 1.5,
-  dirtGain: 2,
+  happinessDecay: 0.75,
+  dirtGain: 1,
   /** Health drops only while Rocky is very dirty or very unhappy, and recovers otherwise. */
-  healthDecay: 1,
+  healthDecay: 0.5,
   healthRecover: 1.5,
   dirtyThreshold: 70,
   sadThreshold: 20,
@@ -256,7 +260,11 @@ export type PetFailure =
   | "gone"
   | "already-claimed"
   | "missions-not-done"
-  | "set-incomplete";
+  | "set-incomplete"
+  /** Today's Arcade rounds are used up (see focus.ts). */
+  | "arcade-limit"
+  /** The agent's team (or the whole pilot) is in focus mode. */
+  | "focus";
 
 /** A coin movement to record in the ledger. */
 export interface LedgerEntry {
@@ -943,6 +951,9 @@ export function applyPetAction(
       if (!(ARCADE_GAMES as readonly string[]).includes(action.game))
         return fail("invalid");
       if (!gameEnabled(ctx.overrides, action.game)) return fail("unavailable");
+      if (myFocusUntil(ctx.overrides, ctx.now)) return fail("focus");
+      const limit = arcadeDailyLimit(ctx.overrides);
+      if (limit > 0 && state.games.arcadeRounds >= limit) return fail("arcade-limit");
       const score = Math.floor(Number(action.score));
       if (!Number.isFinite(score) || score < 0) return fail("invalid");
       const clamped = Math.min(ARCADE_MAX_SCORE[action.game], score);

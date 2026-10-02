@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiClient, type AdminGame } from '../../services/apiClient'
+import { FocusControl, useFocus } from '../extras/Focus'
 import styles from './AdminConsole.module.css'
 
 const ICON: Record<string, string> = {
@@ -22,11 +23,18 @@ const ICON: Record<string, string> = {
 export function GamesTab({ onChanged, onError }: { onChanged: (m: string) => void; onError: (m: string) => void }) {
   const [games, setGames] = useState<AdminGame[] | null>(null)
   const [busy, setBusy] = useState(false)
+  const [limit, setLimit] = useState<number | null>(null)
+  const [limitDraft, setLimitDraft] = useState('')
+  const focus = useFocus()
 
   useEffect(() => {
     apiClient
       .getGames()
-      .then((r) => setGames(r.games))
+      .then((r) => {
+        setGames(r.games)
+        setLimit(r.dailyLimit)
+        setLimitDraft(String(r.dailyLimit))
+      })
       .catch((e) => onError(e instanceof Error ? e.message : String(e)))
   }, [onError])
 
@@ -43,9 +51,51 @@ export function GamesTab({ onChanged, onError }: { onChanged: (m: string) => voi
     }
   }
 
+  async function saveLimit() {
+    const n = Number(limitDraft)
+    if (!Number.isInteger(n) || n < 0 || n > 100) return onError('El límite debe ser un número entero de 0 a 100 (0 = sin límite).')
+    setBusy(true)
+    try {
+      const r = await apiClient.setArcadeLimit(n)
+      setLimit(r.dailyLimit)
+      onChanged(n === 0 ? 'Arcade sin límite diario.' : `Arcade: máximo ${n} partidas por agente al día.`)
+    } catch (e) {
+      onError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (!games) return <p className={styles.muted}>Cargando…</p>
   const on = games.filter((g) => g.enabled).length
   return (
+    <>
+    <section className={styles.card}>
+      <h3>Rocky como pausa, no distracción</h3>
+      <p className={styles.muted}>
+        Partidas de Arcade por agente al día (0 = sin límite). Al llegar al límite, los juegos se bloquean hasta mañana; check-in y Note Check siguen disponibles.
+      </p>
+      <p>
+        <input
+          type="number"
+          min={0}
+          max={100}
+          value={limitDraft}
+          onChange={(e) => setLimitDraft(e.target.value)}
+          aria-label="Partidas de Arcade por día"
+          style={{ width: 90 }}
+        />{' '}
+        <button className={styles.btnPrimary} disabled={busy || String(limit) === limitDraft} onClick={() => void saveLimit()}>
+          Guardar
+        </button>{' '}
+        <small className={styles.muted}>Actual: {limit === 0 ? 'sin límite' : `${limit} por día`}</small>
+      </p>
+      <FocusControl
+        focus={focus}
+        team="all"
+        label="Modo enfoque para TODO el piloto: pausa Arcade y chat (picos, días críticos). Cada líder también puede activarlo para su equipo desde “My team”."
+      />
+    </section>
     <section className={styles.card}>
       <h3>Minijuegos ({on} de {games.length} activos)</h3>
       <p className={styles.muted}>Un juego apagado desaparece del Arcade para todos y deja de pagar coins.</p>
@@ -81,5 +131,6 @@ export function GamesTab({ onChanged, onError }: { onChanged: (m: string) => voi
         </table>
       </div>
     </section>
+    </>
   )
 }

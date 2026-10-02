@@ -41,7 +41,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               Meet Rocky<span className={styles.dot}>.</span>
             </h1>
             <p className={styles.tagline}>
-              Your documentation buddy. Check in every day and Rocky gains XP, grows a streak and evolves from Baby all the way to Elite.
+              Your documentation buddy. Check in every day and Rocky gains XP, levels up and keeps a streak of great notes.
             </p>
             <ul className={styles.howList}>
               <li>
@@ -52,6 +52,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               </li>
               <li>
                 <b>Collect badges</b> and climb the team ranking
+              </li>
+              <li>
+                <b>3–5 minutes a day</b> is all Rocky needs — a quick break, then back to great notes
               </li>
             </ul>
             <button className={styles.primaryButton} onClick={() => setStep('name')}>

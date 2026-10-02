@@ -1,3 +1,5 @@
+import { arcadeDailyLimit } from "../game/focus";
+import { FocusBanner, useFocus } from "./extras/Focus";
 import { RetryImg } from "./assetRecovery";
 import {
   useCallback,
@@ -142,6 +144,12 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
   const rocky = getRockyAsset(snapshot.gameState.evolutionStage, mood);
   const games = refreshPetState(pet.state, new Date()).games;
   const left = Math.max(0, ARCADE_CAP.coins - games.arcadeCoins);
+  // Rocky is a break, not a distraction: a few rounds a day, and none while
+  // the team's leader has focus mode on.
+  const focus = useFocus();
+  const limit = arcadeDailyLimit(pet.overrides);
+  const roundsLeft = limit > 0 ? Math.max(0, limit - games.arcadeRounds) : Infinity;
+  const blocked = focus.mine ? "focus" : roundsLeft === 0 ? "limit" : null;
 
   const finish = useCallback(
     (game: ArcadeGame, score: number) => {
@@ -180,8 +188,8 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
           <div>
             <h1 className={styles.title}>Rocky’s Arcade</h1>
             <p className={styles.lede}>
-              Quick games for a break. They pay coins for Rocky’s shop — the XP
-              still comes from great notes.
+              Quick games for a break — a few rounds a day. They pay coins for
+              Rocky’s shop; the XP still comes from great notes.
             </p>
           </div>
           <div
@@ -189,8 +197,19 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
             aria-label={`${games.arcadeCoins} of ${ARCADE_CAP.coins} arcade coins today`}
           >
             <Coin /> {games.arcadeCoins}/{ARCADE_CAP.coins} today
+            {limit > 0 && (
+              <small className={styles.rounds}>
+                🎮 {Math.min(games.arcadeRounds, limit)}/{limit} rounds
+              </small>
+            )}
           </div>
         </header>
+        {focus.mine && <FocusBanner until={focus.mine} what="the Arcade" />}
+        {!focus.mine && blocked === "limit" && (
+          <p className={styles.limit} role="status">
+            🐂 That’s today’s {limit} Arcade rounds — great break! Back to great notes; Rocky’s games are here again tomorrow.
+          </p>
+        )}
 
         {result && !playing && (
           <div className={styles.result} role="status">
@@ -224,6 +243,7 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
             <button
               type="button"
               className={styles.again}
+              disabled={blocked !== null}
               onClick={() => setPlaying(result.game)}
             >
               Play again
@@ -291,6 +311,7 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
           <DuelsPanel
             duels={duels}
             onPlay={(d) => {
+              if (blocked) return;
               setResult(null);
               setDuel(d);
               setPlaying(d.game as ArcadeGame);
@@ -317,6 +338,7 @@ export function Arcade({ onOpenNotes }: { onOpenNotes?: () => void }) {
                 <button
                   type="button"
                   className={styles.play}
+                  disabled={blocked !== null}
                   onClick={() => (setResult(null), setPlaying(g.id))}
                 >
                   Play

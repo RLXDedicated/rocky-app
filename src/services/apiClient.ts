@@ -743,6 +743,46 @@ export const engagementApi = {
     }),
 }
 
+/** Focus mode (leaders pause the Arcade and chat for their team during a peak). */
+export interface FocusStatus {
+  /** Until when I am in focus mode (my team or everyone). */
+  mine: string | null
+  /** A leader: my team's focus. */
+  team: string | null
+  all: string | null
+  leads: boolean
+  minutes: number[]
+}
+export const focusApi = {
+  status: () => request<FocusStatus>('/api/focus'),
+  set: (minutes: number, team?: string) => request<FocusStatus>('/api/focus', { method: 'PUT', body: JSON.stringify({ minutes, ...(team ? { team } : {}) }) }),
+}
+
+/** Admin → Uso de Rocky (backend usageApplicationService.report). */
+export interface UsageReport {
+  since: string
+  days: number
+  goal: { min: number; max: number }
+  summary: { agents: number; avgPerDay: number; shiftShare: number; overGoal: number }
+  byDay: { day: string; minutes: number; shiftMinutes: number; agents: number }[]
+  agents: {
+    agentId: string
+    name: string
+    leader: string | null
+    minutes: number
+    shiftMinutes: number
+    sessions: number
+    daysActive: number
+    perDay: number
+    audits: number
+    qaPassRate: number | null
+  }[]
+}
+export const usageApi = {
+  ping: () => request<{ counted: boolean }>('/api/usage/ping', { method: 'POST' }),
+  report: (days: number) => request<UsageReport>(`/api/admin/usage?days=${days}`),
+}
+
 export interface Honors {
   arcade: string[]
   rotw: boolean
@@ -915,7 +955,8 @@ export const apiClient = {
   resetPet: (agentId: string) => request<PetView>(agentPath(agentId, '/pet/reset'), post()),
   resetPin: (agentId: string) => request<{ ok: boolean; sessionsRevoked: number }>(agentPath(agentId, '/pin-reset'), post()),
   revokeSessions: (agentId: string) => request<{ ok: boolean; sessionsRevoked: number }>(agentPath(agentId, '/sessions/revoke'), post()),
-  getGames: () => request<{ games: AdminGame[] }>('/api/admin/games'),
+  getGames: () => request<{ games: AdminGame[]; dailyLimit: number }>('/api/admin/games'),
+  setArcadeLimit: (limit: number) => request<{ games: AdminGame[]; dailyLimit: number }>('/api/admin/games-limit', { method: 'PUT', body: JSON.stringify({ limit }) }),
   setGame: (id: string, enabled: boolean) => request<{ games: AdminGame[] }>(`/api/admin/games/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
   getCatalog: () => request<{ items: AdminCatalogItem[]; overrides: CatalogOverrides; collections: AdminCollection[] }>('/api/admin/catalog'),
   setCollection: (id: string, value: { enabled: boolean; from?: string | null; until?: string | null }) =>

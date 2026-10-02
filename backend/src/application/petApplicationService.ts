@@ -3,6 +3,7 @@
 // with the browser — so this file only loads, applies, stores and records:
 // every change is saved together with its coin-ledger entry and audit-trail
 // entry in one transaction.
+import { ARCADE_LIMIT_KEY, arcadeDailyLimit, FOCUS_ALL, FOCUS_ME, FOCUS_MINUTES, focusFor, focusKey } from "../../../src/game/focus";
 import { ApiError } from "../api/errors";
 import { SHOP_UNLOCK, withStaffPerks } from "../../../src/game/closet";
 import type { PersistenceContext } from "../infrastructure/persistenceContext";
@@ -204,13 +205,26 @@ export function createPetApplicationService({
     };
   }
 
+  /**
+   * The admin overrides as one agent sees them: plus "focus:me" while their
+   * team (or the whole pilot) is in focus mode, so the shared pet rules and
+   * the browser know without looking up teams.
+   */
+  function agentOverrides(agentId: string | null, now: Date, base = accounts.getCatalogOverrides()): CatalogOverrides {
+    if (!agentId) return base;
+    const until = focusFor(base, accounts.getTeams()[agentId] ?? null, now);
+    return until ? { ...base, [FOCUS_ME]: { enabled: true, until } } : base;
+  }
+
   function view(
     state: PetState,
     f: ProgressFacts,
     revision: number,
     now: Date,
-    overrides = accounts.getCatalogOverrides(),
+    overrides: CatalogOverrides | undefined,
+    agentId: string | null,
   ): PetView {
+    overrides = agentOverrides(agentId, now, overrides ?? accounts.getCatalogOverrides());
     return {
       state,
       coins: coinBalance(state, f),
@@ -296,7 +310,7 @@ export function createPetApplicationService({
         },
         now,
       );
-      return view(result.state, f, revision, now);
+      return view(result.state, f, revision, now, undefined, agentId);
     });
   }
 
@@ -307,15 +321,15 @@ export function createPetApplicationService({
       const { state, revision } = load(agentId, now);
       // The first look creates Rocky's record, so his world's clock (litter) starts now.
       if (revision === 0 && !accounts.getPetProfile(agentId))
-        return view(state, f, save(agentId, state, now), now);
-      return view(state, f, revision, now);
+        return view(state, f, save(agentId, state, now), now, undefined, agentId);
+      return view(state, f, revision, now, undefined, agentId);
     },
 
     act(agentId: string, action: PetAction, actor: Actor): PetActionResponse {
       return persistence.withTransaction(() => {
         const now = clock.now();
         const f = facts(agentId);
-        const overrides = accounts.getCatalogOverrides();
+        const overrides = agentOverrides(agentId, now);
         const { state, revision } = load(agentId, now);
         const result = applyPetAction(state, action, {
           facts: f,
@@ -335,7 +349,7 @@ export function createPetApplicationService({
             now,
           );
           return {
-            ...view(state, f, revision, now, overrides),
+            ...view(state, f, revision, now, overrides, agentId),
             ok: false,
             reason: result.reason,
           };
@@ -382,7 +396,7 @@ export function createPetApplicationService({
         if (result.reward) detail.reward = result.reward;
         audit(agentId, actor, `pet.${action.type}`, detail, now);
         return {
-          ...view(result.state, after, nextRevision, now, overrides),
+          ...view(result.state, after, nextRevision, now, overrides, agentId),
           ok: true,
           reason: null,
           reward: result.reward ?? null,
@@ -402,7 +416,7 @@ export function createPetApplicationService({
         const revision = save(agentId, next, now);
         if (!state.onboardedAt)
           audit(agentId, actor, "agent.onboarded", null, now);
-        return view(next, f, revision, now);
+        return view(next, f, revision, now, undefined, agentId);
       });
     },
 
@@ -639,7 +653,59 @@ export function createPetApplicationService({
       const overrides = accounts.getCatalogOverrides();
       return {
         games: MINI_GAMES.map((g) => ({ ...g, enabled: gameEnabled(overrides, g.id) })),
+        /** Arcade rounds per agent per day (0 = no limit). */
+        dailyLimit: arcadeDailyLimit(overrides),
       };
+    },
+
+    setArcadeLimit(limit: number, actor: Actor) {
+      if (!Number.isInteger(limit) || limit < 0 || limit > 100)
+        throw ApiError.validation('"limit" must be a whole number from 0 (no limit) to 100.');
+      return persistence.withTransaction(() => {
+        const now = clock.now();
+        accounts.setCatalogOverride(ARCADE_LIMIT_KEY, { price: limit, enabled: null }, actor.id, now.toISOString());
+        audit(null, actor, "admin.arcade-limit", { limit }, now);
+        return this.getGames();
+      });
+    },
+
+    /** Focus mode for a leader's team, or "all": pauses the Arcade and chat until it ends. */
+    focusStatus(agentId: string) {
+      const now = clock.now();
+      const overrides = accounts.getCatalogOverrides();
+      const leaderId = accounts.getTeams()[agentId] ?? null;
+      const leads = accounts.getTitles()[agentId] === "leader";
+      const active = (key: string) => {
+        const o = overrides[key];
+        return o?.enabled && o.until && Date.parse(o.until) > now.getTime() ? o.until : null;
+      };
+      return {
+        /** Until when this agent is in focus mode (their team or everyone). */
+        mine: focusFor(overrides, leaderId, now),
+        /** A leader: their own team's focus. */
+        team: leads ? active(focusKey(agentId)) : null,
+        all: active(FOCUS_ALL),
+        leads,
+        minutes: [...FOCUS_MINUTES],
+      };
+    },
+
+    setFocus(target: string, minutes: number, actor: Actor) {
+      if (!Number.isInteger(minutes) || minutes < 0 || minutes > 480)
+        throw ApiError.validation('"minutes" must be from 0 (end it) to 480.');
+      return persistence.withTransaction(() => {
+        const now = clock.now();
+        const key = target === "all" ? FOCUS_ALL : focusKey(target);
+        const until = minutes > 0 ? new Date(now.getTime() + minutes * 60_000).toISOString() : null;
+        accounts.setCatalogOverride(
+          key,
+          until ? { price: null, enabled: true, until } : { price: null, enabled: null },
+          actor.id,
+          now.toISOString(),
+        );
+        audit(null, actor, "focus.set", { target, minutes, until }, now);
+        return this.focusStatus(actor.id);
+      });
     },
 
     setGame(id: string, enabled: boolean, actor: Actor) {
@@ -920,7 +986,7 @@ export function createPetApplicationService({
             now,
           );
           return {
-            ...view(mine.state, fv, mine.revision, now),
+            ...view(mine.state, fv, mine.revision, now, undefined, viewerId),
             ok: false,
             reason: result.reason,
             reward: null,
@@ -950,7 +1016,7 @@ export function createPetApplicationService({
           now,
         );
         return {
-          ...view(result.state, fv, revision, now),
+          ...view(result.state, fv, revision, now, undefined, viewerId),
           ok: true,
           reason: null,
           reward: result.reward ?? null,

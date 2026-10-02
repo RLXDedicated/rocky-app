@@ -37,6 +37,8 @@ import {
 } from "./services/identityService";
 import { isLoginRequired } from "./services/remoteSync";
 import { repository } from "./repository/localStorageRepository";
+import { usageApi } from "./services/apiClient";
+import { BreakNudge } from "./components/extras/BreakNudge";
 import { isQaStaff } from "./services/identityService";
 import { hasCompletedOnboarding } from "./services/onboardingService";
 
@@ -119,6 +121,16 @@ function App() {
   const [visitId, setVisitId] = useState<string | null>(null);
 
   // My title (QA / leader) and, for leaders, the team's spirit.
+  // Time in Rocky (Admin → Uso): one ping a minute while Rocky is open and in front.
+  useEffect(() => {
+    if (!isRemoteModeEnabled() || needsLogin) return;
+    const t = window.setInterval(() => {
+      if (document.visibilityState === "visible" && document.hasFocus())
+        void usageApi.ping().catch(() => {});
+    }, 60_000);
+    return () => window.clearInterval(t);
+  }, [needsLogin]);
+
   useEffect(() => {
     if (!isRemoteModeEnabled() || needsLogin) return;
     void refreshMyRole();
@@ -358,6 +370,7 @@ function App() {
       {view === "dev-controls" && import.meta.env.DEV && <DevControls />}
 
       <ReminderHost />
+      <BreakNudge />
       {isRemoteModeEnabled() && <NotificationHost onOpenChat={openChat} onOpenHome={openHome} onOpenKudos={openKudos} />}
 
       {teamsNote && (
