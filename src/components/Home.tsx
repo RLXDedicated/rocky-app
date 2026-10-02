@@ -32,6 +32,7 @@ import { buildProgressFacts } from '../game/progressFacts'
 import { saveRockyName } from '../services/agentProfile'
 import { NOTE_TIPS, QUIZ_REWARD, QUIZ_ROUND_SIZE } from '../game/notesQuiz'
 import { todayKey } from '../engine/dateUtils'
+import { rankName } from '../engine/ranks'
 
 function isToday(dateKey: string | null): boolean {
   if (!dateKey) return false
@@ -120,7 +121,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
 
   function celebrateGrowth(before: GameState, next: GameState) {
     if (next.evolutionStage !== before.evolutionStage) {
-      setCelebration({ kind: 'evolution', title: `Rocky evolved`, body: `${before.evolutionStage} Rocky is now ${next.evolutionStage} Rocky.` })
+      setCelebration({ kind: 'evolution', title: `New rank: ${rankName(next.evolutionStage)}`, body: `You went from ${rankName(before.evolutionStage)} to ${rankName(next.evolutionStage)}.` })
     } else if (next.level > before.level) {
       setCelebration({ kind: 'level-up', title: `Level ${next.level}`, body: `Rocky grew from level ${before.level} to ${next.level}.` })
     }
@@ -165,7 +166,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
       refreshFacts(next)
       setPet(loadPetCache())
       if (next.evolutionStage !== before.evolutionStage) {
-        setCelebration({ kind: 'evolution', title: `Rocky evolved`, body: `${before.evolutionStage} Rocky is now ${next.evolutionStage} Rocky.` })
+        setCelebration({ kind: 'evolution', title: `New rank: ${rankName(next.evolutionStage)}`, body: `You went from ${rankName(before.evolutionStage)} to ${rankName(next.evolutionStage)}.` })
       } else if (next.level > before.level) {
         setCelebration({ kind: 'level-up', title: `Level ${next.level}`, body: `Rocky grew from level ${before.level} to ${next.level}.` })
       }
@@ -279,8 +280,8 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
       if (result.evolved) {
         setCelebration({
           kind: 'evolution',
-          title: `${agent!.rockyName} evolved`,
-          body: `${previousStage} Rocky is now ${result.state.evolutionStage} Rocky. A new look, earned one check-in at a time.`,
+          title: `New rank: ${rankName(result.state.evolutionStage)}`,
+          body: `From ${rankName(previousStage)} to ${rankName(result.state.evolutionStage)} — earned one check-in at a time.`,
         })
       } else if (result.leveledUp) {
         setCelebration({
@@ -389,7 +390,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
           hud={
             <>
               <div className={styles.hudLeft}>
-                <NameTag name={agent.rockyName} subtitle={`${gameState.evolutionStage} Rocky`} onRename={handleRename} vip={vip} title={myRole?.title} tester={myRole?.tester} honors={myRole?.honors} />
+                <NameTag name={agent.rockyName} subtitle={`${rankName(gameState.evolutionStage)} rank`} onRename={handleRename} vip={vip} title={myRole?.title} tester={myRole?.tester} honors={myRole?.honors} />
                 {team && (
                   <button type="button" className={styles.notesChip} onClick={onOpenTeam} title="Your Rocky's mood follows your team">
                     <span aria-hidden="true">🤝</span> Team spirit
@@ -456,7 +457,7 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
                   >
                     <span style={{ width: `${progress.fraction * 100}%` }} />
                   </div>
-                  <ol className={styles.stages} aria-label={`Evolution: ${gameState.evolutionStage} Rocky`}>
+                  <ol className={styles.stages} aria-label={`Rank: ${rankName(gameState.evolutionStage)}`}>
                     {(['Baby', 'Young', 'Advanced', 'Elite'] as const).map((st) => {
                       const order = ['Baby', 'Young', 'Advanced', 'Elite']
                       const reached = order.indexOf(st) <= order.indexOf(gameState.evolutionStage)
@@ -464,9 +465,9 @@ export function Home({ onOpenProgress, onOpenNotes, onOpenTeam }: Props) {
                         <li
                           key={st}
                           className={`${styles.stage} ${reached ? styles.stageOn : ''} ${st === gameState.evolutionStage ? styles.stageNow : ''}`}
-                          title={`${st} · level ${EVOLUTION_LEVELS[st]}`}
+                          title={`${rankName(st)} · level ${EVOLUTION_LEVELS[st]}`}
                         >
-                          <span>{st}</span>
+                          <span>{rankName(st)}</span>
                         </li>
                       )
                     })}

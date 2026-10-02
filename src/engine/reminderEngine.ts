@@ -4,6 +4,7 @@ import { todayKey } from './dateUtils'
 import { GAME_CONFIG } from './gameConfig'
 import { calculateMood } from './gameEngine'
 import { pickReminderMessage } from './reminderMessages'
+import { rankName } from './ranks'
 
 // ---------------------------------------------------------------------------
 // Tunables — sourced from GAME_CONFIG (Phase 9 §Rule 4), documented there.
@@ -104,8 +105,8 @@ export function findPendingCelebration(
 function celebrationMessageFor(event: GameEvent, random: () => number): string {
   switch (event.type) {
     case 'EVOLUTION': {
-      const stage = event.payload?.newStage ?? event.payload?.stage ?? 'a new stage'
-      return `✨ Rocky evolved into ${stage} Rocky!`
+      const stage = event.payload?.newStage ?? event.payload?.stage
+      return `🏅 New rank: ${stage ? rankName(stage) : 'up'}! Great notes, day after day.`
     }
     case 'LEVEL_UP': {
       const level = event.payload?.newLevel ?? event.payload?.level

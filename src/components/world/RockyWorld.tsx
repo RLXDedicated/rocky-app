@@ -558,7 +558,7 @@ export function RockyWorld({
     void walkTo(controlledX);
   }, [controlledX, walkTo]);
 
-  // Every so often Rocky acts out his mood (3D only).
+  // Every so often Rocky acts out his mood with a short official pose.
   useEffect(() => {
     if (!animate) return;
     const timer = window.setInterval(() => {

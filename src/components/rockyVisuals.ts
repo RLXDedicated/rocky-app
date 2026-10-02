@@ -126,10 +126,11 @@ export interface RockyVisualConfig {
 }
 
 export const ROCKY_VISUALS: Record<EvolutionStage, RockyVisualConfig> = {
-  Baby: { label: 'Baby Rocky' },
-  Young: { label: 'Young Rocky' },
-  Advanced: { label: 'Advanced Rocky' },
-  Elite: { label: 'Elite Rocky' },
+  // One official Rocky at every rank: the label is the same everywhere.
+  Baby: { label: 'Rocky' },
+  Young: { label: 'Rocky' },
+  Advanced: { label: 'Rocky' },
+  Elite: { label: 'Rocky' },
 }
 
 export const EVOLUTION_STAGE_ORDER: EvolutionStage[] = ['Baby', 'Young', 'Advanced', 'Elite']

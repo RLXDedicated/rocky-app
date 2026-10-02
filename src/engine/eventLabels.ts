@@ -1,4 +1,5 @@
 import type { GameEvent } from '../types/domain'
+import { rankName } from './ranks'
 
 export function labelForEvent(event: GameEvent): string {
   switch (event.type) {
@@ -21,7 +22,7 @@ export function labelForEvent(event: GameEvent): string {
     case 'EVOLUTION': {
       const prev = event.payload?.previousStage
       const next = event.payload?.newStage ?? event.payload?.stage
-      return prev != null ? `✨ Rocky evolved! ${prev} Rocky → ${next} Rocky` : `✨ Rocky evolved into ${next ?? 'a new form'}!`
+      return prev != null ? `🏅 New rank! ${rankName(prev)} → ${rankName(next)}` : `🏅 New rank: ${next ? rankName(next) : 'up'}!`
     }
     case 'ACHIEVEMENT':
       return `Achievement unlocked: ${event.payload?.name ?? ''}`

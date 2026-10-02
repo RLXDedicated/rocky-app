@@ -8,7 +8,7 @@ type Kind = BulkOp['kind']
 
 const KINDS: { id: Kind; label: string; hint: string }[] = [
   { id: 'coins', label: 'Coins', hint: 'Otorga (o descuenta) coins. Queda en el ledger de cada agente.' },
-  { id: 'xp', label: 'Experiencia (XP)', hint: 'XP extra como evento XP_GRANT: sube niveles y evoluciones.' },
+  { id: 'xp', label: 'Experiencia (XP)', hint: 'XP extra como evento XP_GRANT: sube niveles y rangos.' },
   {
     id: 'item',
     label: '🛍️ Tienda: regalar o desbloquear',

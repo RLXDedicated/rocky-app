@@ -25,6 +25,7 @@ import {
   fmtDayKey,
   relativeDays,
   todayIso,
+  STAGE_ES,
 } from './adminFormat'
 
 // Rocky's QA/ADMIN console. Everything shown here comes from the backend's
@@ -376,7 +377,7 @@ function OverviewTab({ overview, onOpen }: { overview: AdminOverview; onOpen: (i
           <BarList items={overview.moodDistribution} render={(k) => MOOD_ES[k] ?? k} />
         </section>
         <section className={styles.card}>
-          <h3>Etapa de evolución</h3>
+          <h3>Rango</h3>
           <BarList items={overview.evolutionDistribution} />
         </section>
         <section className={styles.card}>
@@ -571,11 +572,11 @@ function AgentsTab({
           <option value="checkedIn">Con check-in hoy</option>
           <option value="notCheckedIn">Sin check-in hoy</option>
         </select>
-        <select className={styles.select} value={stage} onChange={(e) => setStage(e.target.value)} aria-label="Filtro de etapa">
-          <option value="all">Todas las etapas</option>
+        <select className={styles.select} value={stage} onChange={(e) => setStage(e.target.value)} aria-label="Filtro de rango">
+          <option value="all">Todos los rangos</option>
           {['Baby', 'Young', 'Advanced', 'Elite'].map((s) => (
             <option key={s} value={s}>
-              {s}
+              {STAGE_ES[s]}
             </option>
           ))}
         </select>

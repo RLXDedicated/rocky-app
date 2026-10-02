@@ -1,4 +1,5 @@
 import type { Mood } from '../types/domain'
+import { rankName } from './ranks'
 
 // No punitive language anywhere in these pools — no "failure", "penalty",
 // "punishment", "bad agent", "you failed". Worried is concerned, never sad,
@@ -52,11 +53,11 @@ export function levelUpReaction(previousLevel: number, newLevel: number): string
   return `🎉 Level Up! ${previousLevel} → ${newLevel}. Rocky's cheering you on!`
 }
 
-// Evolution is a bigger moment than a normal Level Up — a milestone in a
-// professional tool, not a kids'-game power-up. No childish exclamations,
-// just a clear, earned "Rocky evolved."
+// A new rank is a bigger moment than a normal Level Up — a milestone in a
+// professional tool, not a kids'-game power-up. Rocky himself never changes
+// (one official look); the agent's rank does.
 export function evolutionReaction(previousStage: string, newStage: string): string {
-  return `✨ Rocky evolved! ${previousStage} Rocky → ${newStage} Rocky.`
+  return `🏅 New rank! ${rankName(previousStage)} → ${rankName(newStage)}.`
 }
 
 // Documentation Alert: framed as "let's recover together", never "you failed".

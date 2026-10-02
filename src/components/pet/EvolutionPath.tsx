@@ -1,17 +1,20 @@
 import { EVOLUTION_LEVELS } from '../../engine/petProgress'
 import { evolutionRank } from '../../engine/levels'
+import { rankName } from '../../engine/ranks'
 import type { EvolutionStage, Mood } from '../../types/domain'
-import { RockyAvatar } from '../RockyAvatar'
 import { EVOLUTION_STAGE_ORDER } from '../rockyVisuals'
 import styles from './Pet.module.css'
 
 interface EvolutionPathProps {
   current: EvolutionStage
-  mood: Mood
+  /** Kept for callers; ranks don't change how Rocky looks. */
+  mood?: Mood
 }
 
-/** Rocky's four forms. Forms not reached yet show as a silhouette, pet-game style. */
-export function EvolutionPath({ current, mood }: EvolutionPathProps) {
+const MEDAL: Record<EvolutionStage, string> = { Baby: '🥉', Young: '🥈', Advanced: '🥇', Elite: '🏆' }
+
+/** The agent's four ranks (Rocky's look never changes — one official Rocky). */
+export function EvolutionPath({ current }: EvolutionPathProps) {
   const rank = evolutionRank(current)
   return (
     <ol className={styles.path}>
@@ -20,10 +23,10 @@ export function EvolutionPath({ current, mood }: EvolutionPathProps) {
         const isCurrent = i === rank
         return (
           <li key={stage} className={`${styles.pathStep} ${reached ? styles.pathReached : ''} ${isCurrent ? styles.pathCurrent : ''}`}>
-            <div className={`${styles.pathArt} ${reached ? '' : styles.silhouette}`}>
-              <RockyAvatar mood={isCurrent ? mood : 'Happy'} evolutionStage={stage} size={72} bare />
+            <div className={`${styles.pathArt} ${reached ? '' : styles.silhouette}`} aria-hidden="true" style={{ display: 'grid', placeItems: 'center', fontSize: 40, height: 72 }}>
+              {MEDAL[stage]}
             </div>
-            <span className={styles.pathName}>{reached ? stage : '???'}</span>
+            <span className={styles.pathName}>{rankName(stage)}</span>
             <span className={styles.pathLevel}>{isCurrent ? 'Now' : reached ? 'Unlocked' : `Level ${EVOLUTION_LEVELS[stage]}`}</span>
           </li>
         )

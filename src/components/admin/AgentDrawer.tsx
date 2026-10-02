@@ -4,7 +4,7 @@ import type { EvolutionStage, Mood } from '../../types/domain'
 import { RockyAvatar } from '../RockyAvatar'
 import { AgentPetPanel } from './AgentPetPanel'
 import styles from './AdminConsole.module.css'
-import { EVENT_TYPE_ES, MOOD_ES, displayName, eventDetail, fmtDateTime, relativeDays, todayIso } from './adminFormat'
+import { EVENT_TYPE_ES, MOOD_ES, STAGE_ES, displayName, eventDetail, fmtDateTime, relativeDays, todayIso } from './adminFormat'
 
 type Tab = 'timeline' | 'achievements' | 'reminders' | 'pet' | 'audit' | 'access'
 
@@ -180,8 +180,8 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
         <section className={styles.drawerSection}>
           <h3>Progreso</h3>
           <p className={styles.muted}>
-            El XP solo sube (nunca se quita) y queda en el historial del agente. La evolución sigue al nivel: Young en el 5, Advanced en el 10, Elite
-            en el 20. El agente lo ve en su pantalla al volver a abrir Rocky.
+            El XP solo sube (nunca se quita) y queda en el historial del agente. El rango sigue al nivel: Pro en el 5, Expert en el 10, Legend
+            en el 20 (Rocky se ve igual en todos los rangos). El agente lo ve en su pantalla al volver a abrir Rocky.
           </p>
           <form
             className={styles.inlineForm}
@@ -247,11 +247,11 @@ export function AgentDrawer({ agentId, selfEmail, onClose, onChanged, onError }:
                   disabled={busy || reached}
                   title={reached ? 'Ya alcanzada' : `Sube al nivel ${{ Young: 5, Advanced: 10, Elite: 20 }[stage]}`}
                   onClick={() => {
-                    if (!window.confirm(`¿Activar ${stage} Rocky para ${agent.id}? Se otorga el XP que falta para ese nivel.`)) return
-                    void run(() => apiClient.unlockEvolution(agent.id, stage), `${agent.id} evolucionó a ${stage} Rocky.`)
+                    if (!window.confirm(`¿Subir a ${agent.id} al rango ${STAGE_ES[stage]}? Se otorga el XP que falta para ese nivel.`)) return
+                    void run(() => apiClient.unlockEvolution(agent.id, stage), `${agent.id} subió al rango ${STAGE_ES[stage]}.`)
                   }}
                 >
-                  {reached ? `✓ ${stage}` : `Activar ${stage}`}
+                  {reached ? `✓ ${STAGE_ES[stage]}` : `Rango ${STAGE_ES[stage]}`}
                 </button>
               )
             })}

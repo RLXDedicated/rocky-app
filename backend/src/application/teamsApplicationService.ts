@@ -50,6 +50,7 @@ import type { PetApplicationService } from './petApplicationService'
 import type { ChallengeApplicationService } from './challengeApplicationService'
 import { KUDOS_TAGS } from './kudosApplicationService'
 import type { ReminderRecord } from '../../../src/types/reminder'
+import { rankName } from '../../../src/engine/ranks'
 
 /** A card left unanswered this long counts as ignored. */
 const IGNORED_AFTER_MS = 3 * 60 * 60_000
@@ -301,7 +302,7 @@ export function createTeamsApplicationService({
     const voice = fixed ?? voiceOf(agentId, reminder, name)
     const les = lesson ?? lessonOf(agentId)
     const img = stickerUrl(agentId, voice.sticker)
-    const milestone = reminder.category === 'Celebration' && /evolved|streak milestone/i.test(reminder.message)
+    const milestone = reminder.category === 'Celebration' && /new rank|streak milestone/i.test(reminder.message)
     const title =
       reminder.category === 'Celebration'
         ? '🎉 Rocky is celebrating!'
@@ -314,7 +315,7 @@ export function createTeamsApplicationService({
     const top = milestone
       ? [
           { type: 'Image', url: img, width: '180px', horizontalAlignment: 'Center', altText: 'Rocky sticker' },
-          { type: 'TextBlock', text: /evolved/i.test(reminder.message) ? '✨ Milestone: Rocky evolved!' : '🔥 Milestone: streak record!', weight: 'Bolder', size: 'Large', horizontalAlignment: 'Center', wrap: true },
+          { type: 'TextBlock', text: /new rank/i.test(reminder.message) ? '🏅 Milestone: a new rank!' : '🔥 Milestone: streak record!', weight: 'Bolder', size: 'Large', horizontalAlignment: 'Center', wrap: true },
           { type: 'TextBlock', text: voice.text, wrap: true, horizontalAlignment: 'Center', spacing: 'Small' },
           { type: 'TextBlock', text: 'Built one clear note at a time. Keep them coming. 🐂', isSubtle: true, horizontalAlignment: 'Center', wrap: true, spacing: 'Small' },
         ]
@@ -828,7 +829,7 @@ export function createTeamsApplicationService({
         case 'streakrisk':
           return streakRiskCard(agentId, 'preview', name, lessonOf(agentId), fill(STREAK_RISK_LINES[0]!, first, Math.max(2, game.currentStreak)), Math.max(2, game.currentStreak))
         case 'milestone':
-          return card(agentId, 'preview', { category: 'Celebration', message: `✨ Rocky evolved into ${game.evolutionStage} Rocky!`, actionable: false }, name)
+          return card(agentId, 'preview', { category: 'Celebration', message: `🏅 New rank: ${rankName(game.evolutionStage)}! Great notes, day after day.`, actionable: false }, name)
         case 'kudos':
           return kudosCard(agentId, 'preview', name, [
             { from: 'Ana', tag: 'great-note', message: 'Your note on that claim saved me 10 minutes!' },

@@ -94,7 +94,7 @@ export const CALM_STICKER: Record<ReminderCategory, string> = {
 
 /** Celebration messages come from the engine; this matches their sticker. */
 export function celebrationSticker(message: string): string {
-  if (/evolved/i.test(message)) return 'fire'
+  if (/new rank/i.test(message)) return 'fire'
   if (/level/i.test(message)) return 'levelup'
   if (/streak/i.test(message)) return 'fire'
   if (/achievement/i.test(message)) return 'congrats'

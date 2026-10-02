@@ -9,6 +9,7 @@ import type { Mood } from '../types/domain'
 import { ActivityFeed } from './ActivityFeed'
 import { EvolutionPath } from './pet/EvolutionPath'
 import styles from './Progress.module.css'
+import { rankName } from '../engine/ranks'
 
 function isToday(dateKey: string | null): boolean {
   if (!dateKey) return false
@@ -47,8 +48,8 @@ export function Progress() {
       ? { done: false, text: `Reach a ${milestone.days}-day streak`, reward: `${milestone.daysToGo} to go · +${milestone.xp} XP` }
       : { done: true, text: 'Every streak milestone reached', reward: 'Legend' },
     evolution
-      ? { done: false, text: `Evolve into ${evolution.stage} Rocky`, reward: `${evolution.xpToGo.toLocaleString()} XP to go` }
-      : { done: true, text: 'Elite Rocky unlocked', reward: 'Max form' },
+      ? { done: false, text: `Reach the ${rankName(evolution.stage)} rank`, reward: `${evolution.xpToGo.toLocaleString()} XP to go` }
+      : { done: true, text: 'Legend rank reached', reward: 'Top rank' },
   ]
 
   const coinWays = [
@@ -135,12 +136,12 @@ export function Progress() {
           </section>
 
           <section className={styles.panel}>
-            <h2 className={styles.panelTitle}>Evolution</h2>
+            <h2 className={styles.panelTitle}>Ranks</h2>
             <EvolutionPath current={state.evolutionStage} mood={mood} />
             <p className={styles.panelNote}>
               {evolution
-                ? `${agent.rockyName} evolves into ${evolution.stage} Rocky at level ${evolution.atLevel}.`
-                : `${agent.rockyName} has reached the final form.`}
+                ? `You reach the ${rankName(evolution.stage)} rank at level ${evolution.atLevel}.`
+                : `You’ve reached the top rank: Legend.`}
             </p>
           </section>
         </div>

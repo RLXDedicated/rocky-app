@@ -664,8 +664,9 @@ export function bodyPlacement(
   anchor: HeadAnchor,
   size: number,
 ): HatBox {
-  const width = anchor.w * 1.12 * size;
-  const top = (rig.neck - 0.012) * size;
+  // The official Rocky's shoulders are wide: a ruana drapes from them.
+  const width = anchor.w * 1.45 * size;
+  const top = (rig.neck - 0.035) * size;
   const height = (rig.hip + 0.035) * size - top;
   const cx = (rig.pivot.x + rig.splitX) / 2;
   return { left: cx * size - width / 2, top, width, height };
@@ -710,7 +711,7 @@ export function neckPlacement(
   anchor: HeadAnchor,
   size: number,
 ): HatBox {
-  const width = anchor.w * 0.62 * size;
+  const width = anchor.w * 0.78 * size;
   const height = width * 0.7;
   return {
     left: rig.pivot.x * size - width / 2,
@@ -727,7 +728,7 @@ export function backPlacement(
   size: number,
   id: string,
 ): HatBox {
-  const width = anchor.w * (BACK_WIDTH[id] ?? 1.2) * size;
+  const width = anchor.w * (BACK_WIDTH[id] ?? 1.2) * 1.25 * size;
   const top = (rig.neck - 0.035) * size;
   const height = (rig.hip + 0.05) * size - top;
   const cx = (rig.pivot.x + rig.splitX) / 2;

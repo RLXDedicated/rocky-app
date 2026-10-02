@@ -40,8 +40,8 @@ export const WORLD_POSE: Record<Mood, WorldPose> = {
 }
 
 const ANCHORS: Record<WorldPose, HeadAnchor> = {
-  'thumbs-up': { x: 0.475, y: 0.1, w: 0.36, figureTop: 0.085, figureBottom: 0.94 },
-  proud: { x: 0.525, y: 0.11, w: 0.36, figureTop: 0.1, figureBottom: 0.94 },
+  'thumbs-up': { x: 0.475, y: 0.1, w: 0.42, figureTop: 0.085, figureBottom: 0.94 },
+  proud: { x: 0.525, y: 0.11, w: 0.42, figureTop: 0.1, figureBottom: 0.94 },
   thinking: { x: 0.5, y: 0.1, w: 0.36, figureTop: 0.08, figureBottom: 0.94 },
   yawning: { x: 0.5, y: 0.1, w: 0.36, figureTop: 0.08, figureBottom: 0.94 },
 }

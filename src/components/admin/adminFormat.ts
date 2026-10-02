@@ -15,10 +15,11 @@ export const MOOD_ES: Record<string, string> = {
 };
 
 export const STAGE_ES: Record<string, string> = {
-  Baby: "Baby",
-  Young: "Young",
-  Advanced: "Advanced",
-  Elite: "Elite",
+  // Rangos (Rocky se ve igual en todos: un solo Rocky oficial).
+  Baby: "Rookie",
+  Young: "Pro",
+  Advanced: "Expert",
+  Elite: "Legend",
 };
 
 export const WEEKDAY_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -29,7 +30,7 @@ export const EVENT_TYPE_ES: Record<string, string> = {
   DOCUMENTATION_ALERT: "Alerta de documentación",
   STREAK_MILESTONE: "Hito de racha",
   LEVEL_UP: "Subió de nivel",
-  EVOLUTION: "Evolución",
+  EVOLUTION: "Nuevo rango",
   ACHIEVEMENT: "Logro",
   CORRECTION: "Corrección",
   XP_GRANT: "XP otorgado",
@@ -207,7 +208,7 @@ export const AUDIT_ACTION_ES: Record<string, string> = {
   "admin.coins": "Ajuste de coins",
   "admin.xp": "Otorgó XP",
   "admin.level": "Subió de nivel",
-  "admin.evolution": "Activó una evolución",
+  "admin.evolution": "Subió de rango",
   "admin.treats": "Ajuste de premios",
   "admin.item.grant": "Regaló un accesorio",
   "admin.item.revoke": "Quitó un accesorio",
