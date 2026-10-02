@@ -10,12 +10,11 @@ Original sheets: `docs/rocky-assets-source/official/sheets/`.
 To add a new sheet: `python3 tools/slice-rocky-sheet.py SHEET COLS ROWS src/assets/rocky/official/poses name1 name2 …`,
 then register the names in `src/components/rockyVisuals.ts` (`ROCKY_POSES`).
 
-## puppet/ (preview, `?puppet=1`)
+## puppet/ (live for everyone; `?puppet=0` turns it off in one browser)
 The A-pose (`docs/rocky-assets-source/official/sheets/a-pose.webp`) cut into
 7 pieces by `tools/build-rocky-puppet.py` — tail, legs, arms, body, head —
 for cut-out animation: pieces only turn at their joints (small angles) and
-lift; at rest they rebuild the A-pose exactly. Off for everyone until
-Marketing approves it.
+lift; at rest they rebuild the A-pose exactly.
 
 ## welcome/
 | File | Used for |

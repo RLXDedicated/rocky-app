@@ -1238,7 +1238,7 @@ export function RockyWorld({
     sizes: outfit.sizes ?? {},
     rises: outfit.rises ?? {},
   };
-  // The cut-out puppet (preview, ?puppet=1) stands in for the calm moods;
+  // The cut-out puppet stands in for the calm moods;
   // a worried or tired Rocky keeps his official thinking / yawning pose.
   const puppet =
     usePuppet && !reaction && !emote && (mood === "Happy" || mood === "Motivated");

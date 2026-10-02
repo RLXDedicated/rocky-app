@@ -70,18 +70,18 @@ export const puppetPoint = (x: number, y: number) => ({
 const PREF_KEY = 'rocky.puppet'
 
 /**
- * The puppet is a preview until Marketing approves it: `?puppet=1` turns it on
- * for this browser, `?puppet=0` back off.
+ * The cut-out puppet is on for everyone (the calm moods). `?puppet=0` turns it
+ * off in this browser (back to the still official pose), `?puppet=1` back on.
  */
 export function puppetEnabled(): boolean {
   if (import.meta.env.MODE === 'test') return false
   try {
     const q = new URLSearchParams(window.location.search).get('puppet')
-    if (q === '1') window.localStorage.setItem(PREF_KEY, 'on')
-    if (q === '0') window.localStorage.removeItem(PREF_KEY)
-    return window.localStorage.getItem(PREF_KEY) === 'on'
+    if (q === '0') window.localStorage.setItem(PREF_KEY, 'off')
+    if (q === '1') window.localStorage.removeItem(PREF_KEY)
+    return window.localStorage.getItem(PREF_KEY) !== 'off'
   } catch {
-    return false
+    return true
   }
 }
 
