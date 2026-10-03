@@ -101,7 +101,7 @@
 }
 
 /* ---- Walk / run: seen from the front, each leg lifts in turn (the thigh
-   slides up under the vest) while the arms swing and the elbows follow. ---- */
+   slides up under the hips) while the arms swing and the elbows follow. ---- */
 .walk .legL,
 .run .legL {
   animation: hipL 0.7s ease-in-out infinite;
@@ -150,7 +150,7 @@
     transform: translateY(0) rotate(0);
   }
   25% {
-    transform: translateY(-2.6%) rotate(1.5deg);
+    transform: translateY(-2.2%) rotate(1deg);
   }
 }
 @keyframes hipR {
@@ -160,7 +160,7 @@
     transform: translateY(0) rotate(0);
   }
   75% {
-    transform: translateY(-2.6%) rotate(-1.5deg);
+    transform: translateY(-2.2%) rotate(-1deg);
   }
 }
 @keyframes swingL {

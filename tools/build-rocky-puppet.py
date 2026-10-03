@@ -162,6 +162,9 @@ def dilate(mask: np.ndarray, r: int) -> np.ndarray:
     return out
 
 
+# The V-shaped bottom edge of the pelvis: lowest (canvas y) at the crotch x.
+PELVIS_X, PELVIS_Y, PELVIS_SLOPE = 565, 995, 0.35
+
 # Every edge a piece shares with a piece above it gets a strip of art under
 # the neighbour (canvas px), so when the art is scaled down and the pieces
 # move a little, the soft edge shows art behind it, never the background.
@@ -221,10 +224,18 @@ def main() -> None:
         best = min(dots, key=lambda d: (d[0] - gx) ** 2 + (d[1] - gy) ** 2)
         joints[name] = {"x": int(best[0]), "y": int(best[1])}
 
+    yy, xx = np.mgrid[0:h, 0:w]
+    # The pelvis is one piece with the body: the pants from the belt down to just
+    # past the crotch, cut in a shallow V (lower in the middle, like briefs). The
+    # thighs start below it, so a lifting leg slides up under whole hips instead
+    # of carrying half the pelvis with it.
+    pelvis = yy < PELVIS_Y - PELVIS_SLOPE * np.abs(xx - PELVIS_X)
+    for n in ("thigh-left", "thigh-right"):
+        owner[(owner == rank[n]) & pelvis] = rank["body"]
+
     # Past the elbow or the knee everything belongs to the lower piece, the rest
     # of the limb to the upper one, which ends in a round cap at the joint: when the joint bends, the end
     # that shows is the rounded cap, never the flat cut of the layer.
-    yy, xx = np.mgrid[0:h, 0:w]
     for upper, lower, top, mid in (
         ("upper-arm-left", "forearm-left", "shoulder-left", "elbow-left"),
         ("upper-arm-right", "forearm-right", "shoulder-right", "elbow-right"),
