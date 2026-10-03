@@ -69,7 +69,7 @@ import { GuestRocky, type Guest } from "./GuestRocky";
 import { VipAura } from "./VipAura";
 import { RetryImg } from "../assetRecovery";
 
-type Pose = "idle" | "walk" | "run" | "pet" | "eat" | "hop" | "bath" | "wave";
+type Pose = "idle" | "walk" | "run" | "pet" | "eat" | "hop" | "bath";
 
 interface Particle {
   id: number;
@@ -434,16 +434,6 @@ export function RockyWorld({
   // A short official pose (a cheer, a bite, a celebration) shown over his mood pose.
   const [emote, setEmote] = useState<RockyEmote | null>(null);
   const [usePuppet] = useState(puppetEnabled);
-  // The puppet waves hello when you arrive (unless he's already busy).
-  useEffect(() => {
-    if (!usePuppet || prefersReducedMotion()) return;
-    const start = window.setTimeout(() => setPose((p) => (p === "idle" ? "wave" : p)), 900);
-    const end = window.setTimeout(() => setPose((p) => (p === "wave" ? "idle" : p)), 900 + 2400);
-    return () => {
-      window.clearTimeout(start);
-      window.clearTimeout(end);
-    };
-  }, [usePuppet]);
   const emoteTimer = useRef<number | undefined>(undefined);
   const hatRef = useRef<SVGSVGElement>(null);
   const glassesRef = useRef<SVGSVGElement>(null);
@@ -458,6 +448,12 @@ export function RockyWorld({
     emoteTimer.current = window.setTimeout(() => setEmote(null), 1800);
   }, []);
   useEffect(() => () => window.clearTimeout(emoteTimer.current), []);
+  // Rocky waves hello when you arrive, in his official "hello" pose.
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    const t = window.setTimeout(() => playClip("Wave"), 900);
+    return () => window.clearTimeout(t);
+  }, [playClip]);
 
   // Check-in reactions show their official pose, with a little tune.
   useEffect(() => {

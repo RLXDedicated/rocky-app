@@ -2,7 +2,7 @@
    pivot (set inline from the design team's guide), so nested joints chain:
    the shoulder carries the elbow, the hip carries the knee. Pieces only turn
    and lift; whole-body motion (hops, waddle, breathing) comes from the
-   world's pose classes on the parent. Angles stay small except the wave, and
+   world's pose classes on the parent. Angles stay small, and
    every piece has art under its neighbour, so joints never open a gap. */
 .puppet {
   position: absolute;
@@ -100,8 +100,8 @@
   }
 }
 
-/* ---- Walk / run: seen from the front, each knee comes up in turn (the shin
-   lifts over the thigh) while the arms swing and the elbows follow. ---- */
+/* ---- Walk / run: seen from the front, each leg lifts in turn (the thigh
+   slides up under the vest) while the arms swing and the elbows follow. ---- */
 .walk .legL,
 .run .legL {
   animation: hipL 0.7s ease-in-out infinite;
@@ -109,14 +109,6 @@
 .walk .legR,
 .run .legR {
   animation: hipR 0.7s ease-in-out infinite;
-}
-.walk .shinL,
-.run .shinL {
-  animation: kneeL 0.7s ease-in-out infinite;
-}
-.walk .shinR,
-.run .shinR {
-  animation: kneeR 0.7s ease-in-out infinite;
 }
 .walk .armL,
 .run .armL {
@@ -144,8 +136,6 @@
 }
 .run .legL,
 .run .legR,
-.run .shinL,
-.run .shinR,
 .run .armL,
 .run .armR,
 .run .foreL,
@@ -160,7 +150,7 @@
     transform: translateY(0) rotate(0);
   }
   25% {
-    transform: translateY(-1.5%) rotate(2deg);
+    transform: translateY(-2.6%) rotate(1.5deg);
   }
 }
 @keyframes hipR {
@@ -170,27 +160,7 @@
     transform: translateY(0) rotate(0);
   }
   75% {
-    transform: translateY(-1.5%) rotate(-2deg);
-  }
-}
-@keyframes kneeL {
-  0%,
-  50%,
-  100% {
-    transform: translateY(0) rotate(0);
-  }
-  25% {
-    transform: translateY(-4.5%) rotate(-3deg);
-  }
-}
-@keyframes kneeR {
-  0%,
-  50%,
-  100% {
-    transform: translateY(0) rotate(0);
-  }
-  75% {
-    transform: translateY(-4.5%) rotate(3deg);
+    transform: translateY(-2.6%) rotate(-1.5deg);
   }
 }
 @keyframes swingL {
@@ -227,67 +197,6 @@
   }
   50% {
     transform: rotate(-2deg);
-  }
-}
-
-/* ---- Wave: the right arm comes up and the hand waves at the elbow ---- */
-.wave .armR {
-  animation: waveArm 2.4s ease-in-out both;
-}
-.wave .foreR {
-  animation: waveHand 2.4s ease-in-out both;
-}
-.wave .head {
-  animation: waveHead 2.4s ease-in-out both;
-}
-.wave .tail {
-  animation: tailWag 0.3s ease-in-out infinite alternate;
-}
-@keyframes waveArm {
-  0%,
-  100% {
-    transform: rotate(0);
-  }
-  16%,
-  84% {
-    transform: rotate(-48deg);
-  }
-}
-@keyframes waveHand {
-  0%,
-  100% {
-    transform: rotate(0);
-  }
-  16% {
-    transform: rotate(-58deg);
-  }
-  28% {
-    transform: rotate(-84deg);
-  }
-  40% {
-    transform: rotate(-58deg);
-  }
-  52% {
-    transform: rotate(-84deg);
-  }
-  64% {
-    transform: rotate(-58deg);
-  }
-  76% {
-    transform: rotate(-84deg);
-  }
-  84% {
-    transform: rotate(-58deg);
-  }
-}
-@keyframes waveHead {
-  0%,
-  100% {
-    transform: rotate(0);
-  }
-  20%,
-  80% {
-    transform: rotate(-1.6deg);
   }
 }
 
@@ -352,7 +261,7 @@
   }
 }
 
-/* ---- Hop: arms out for balance, knees tucked ---- */
+/* ---- Hop: arms out for balance, legs tucked ---- */
 .hop .armL {
   animation: armUpL 0.55s ease-in-out 2;
 }
@@ -365,8 +274,8 @@
 .hop .foreR {
   animation: elbowUpR 0.55s ease-in-out 2;
 }
-.hop .shinL,
-.hop .shinR {
+.hop .legL,
+.hop .legR {
   animation: tuck 0.55s ease-in-out 2;
 }
 .hop .tail {

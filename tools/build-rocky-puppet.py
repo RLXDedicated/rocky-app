@@ -149,6 +149,25 @@ def grow_owner(owner: np.ndarray, need: np.ndarray) -> np.ndarray:
     return own
 
 
+def dilate(mask: np.ndarray, r: int) -> np.ndarray:
+    """Grow a mask by r pixels (8-neighbour steps)."""
+    out = mask.copy()
+    for _ in range(r):
+        grown = out.copy()
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dy or dx:
+                    grown |= np.roll(np.roll(out, dy, 0), dx, 1)
+        out = grown
+    return out
+
+
+# Every edge a piece shares with a piece above it gets a strip of art under
+# the neighbour (canvas px), so when the art is scaled down and the pieces
+# move a little, the soft edge shows art behind it, never the background.
+SEAM = 16
+
+
 def main() -> None:
     pose = np.array(Image.open(POSE).convert("RGBA")).astype(int)
     h, w = pose.shape[:2]
@@ -177,6 +196,23 @@ def main() -> None:
         owner_matches |= (owner == rank[n]) & match[n]
     fix = visible & (top_matches >= 0) & ~owner_matches
     owner[fix] = top_matches[fix]
+    # The tail's own fur and outline belong to the tail even where the leg's layer
+    # repeats them (its pants and cuffs, which the tail's layer only echoes, don't).
+    r, g, b = (pose[..., i] for i in range(3))
+    pants = (b > r + 25) | ((r > 200) & (g > 200) & (b > 200))
+    owner[match["tail"] & visible & ~pants] = rank["tail"]
+    # Below the hip the tail hangs free of the leg (white between them): every
+    # pixel joined to the tail there is the tail's, even where its layer stops short.
+    band = np.zeros((h, w), bool)
+    band[985:1135, :430] = True
+    band &= (pose[..., 3] > 100) & ~pants
+    tail = band & (owner == rank["tail"])
+    while True:
+        grown = dilate(tail, 1) & band
+        if grown.sum() == tail.sum():
+            break
+        tail = grown
+    owner[tail] = rank["tail"]
     owner = grow_owner(owner, visible)
 
     dots = guide_dots(LAYERS / "30_Puntos_de_Giro_GUIA.png")
@@ -219,6 +255,7 @@ def main() -> None:
             if only:  # own art only
                 spot &= masks[n] & (layers[n][..., 3] >= 250)
             hidden |= spot
+        hidden |= dilate(owner == rank[n], SEAM) & (owner > rank[n])
         hidden &= pose[..., 3] >= 250
         piece[hidden] = pose[hidden]
         own_art = hidden & masks[n] & (layers[n][..., 3] >= 250)

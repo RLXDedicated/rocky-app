@@ -21,7 +21,7 @@ import type { HeadAnchor, RockyRigPoints } from '../rockyWorldRig'
  * each piece continues under its neighbour, so a turn shows art, not a gap.
  * Joints chain like a body: the shoulder carries the elbow, the hip the knee.
  */
-export type PuppetAction = 'idle' | 'walk' | 'run' | 'pet' | 'eat' | 'hop' | 'bath' | 'wave'
+export type PuppetAction = 'idle' | 'walk' | 'run' | 'pet' | 'eat' | 'hop' | 'bath'
 
 const SRC: Record<string, string> = {
   tail,
