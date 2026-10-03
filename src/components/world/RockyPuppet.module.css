@@ -1,7 +1,9 @@
-/* Rocky's cut-out puppet. Pieces only turn at their joints and lift a
-   little — small angles, so the joints always show the real art beneath.
-   Whole-body motion (hops, waddle, breathing) comes from the world's pose
-   classes on the parent. */
+/* Rocky's cut-out puppet. Each joint is a full-canvas layer turned at its
+   pivot (set inline from the design team's guide), so nested joints chain:
+   the shoulder carries the elbow, the hip carries the knee. Pieces only turn
+   and lift; whole-body motion (hops, waddle, breathing) comes from the
+   world's pose classes on the parent. Angles stay small except the wave, and
+   every piece has art under its neighbour, so joints never open a gap. */
 .puppet {
   position: absolute;
   left: 14.73%;
@@ -11,6 +13,11 @@
   pointer-events: none;
 }
 
+.joint {
+  position: absolute;
+  inset: 0;
+}
+
 .piece {
   position: absolute;
   display: block;
@@ -18,15 +25,21 @@
   user-select: none;
 }
 
-/* ---- Idle: a calm sway, a wagging tail ---- */
+/* ---- Idle: a calm sway, soft elbows, a wagging tail ---- */
 .idle .head {
   animation: headSway 3.6s ease-in-out infinite;
 }
-.idle .arm-left {
+.idle .armL {
   animation: armSwayL 3.6s ease-in-out infinite;
 }
-.idle .arm-right {
+.idle .armR {
   animation: armSwayR 3.6s ease-in-out infinite;
+}
+.idle .foreL {
+  animation: elbowSoftL 3.6s ease-in-out infinite;
+}
+.idle .foreR {
+  animation: elbowSoftR 3.6s ease-in-out infinite;
 }
 .idle .tail,
 .bath .tail {
@@ -60,6 +73,24 @@
     transform: rotate(-2.5deg);
   }
 }
+@keyframes elbowSoftL {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  55% {
+    transform: rotate(-4deg);
+  }
+}
+@keyframes elbowSoftR {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  55% {
+    transform: rotate(4deg);
+  }
+}
 @keyframes tailWag {
   from {
     transform: rotate(-9deg);
@@ -69,22 +100,39 @@
   }
 }
 
-/* ---- Walk / run: unhurried steps seen from the front (each foot lifts in turn) ---- */
-.walk .leg-left,
-.run .leg-left {
-  animation: stepL 0.7s ease-in-out infinite;
+/* ---- Walk / run: seen from the front, each knee comes up in turn (the shin
+   lifts over the thigh) while the arms swing and the elbows follow. ---- */
+.walk .legL,
+.run .legL {
+  animation: hipL 0.7s ease-in-out infinite;
 }
-.walk .leg-right,
-.run .leg-right {
-  animation: stepR 0.7s ease-in-out infinite;
+.walk .legR,
+.run .legR {
+  animation: hipR 0.7s ease-in-out infinite;
 }
-.walk .arm-left,
-.run .arm-left {
+.walk .shinL,
+.run .shinL {
+  animation: kneeL 0.7s ease-in-out infinite;
+}
+.walk .shinR,
+.run .shinR {
+  animation: kneeR 0.7s ease-in-out infinite;
+}
+.walk .armL,
+.run .armL {
   animation: swingL 0.7s ease-in-out infinite;
 }
-.walk .arm-right,
-.run .arm-right {
+.walk .armR,
+.run .armR {
   animation: swingR 0.7s ease-in-out infinite;
+}
+.walk .foreL,
+.run .foreL {
+  animation: elbowSwingL 0.7s ease-in-out infinite;
+}
+.walk .foreR,
+.run .foreR {
+  animation: elbowSwingR 0.7s ease-in-out infinite;
 }
 .walk .tail,
 .run .tail {
@@ -94,64 +142,173 @@
 .run .head {
   animation: headSway 1.4s ease-in-out infinite;
 }
-.run .leg-left,
-.run .leg-right,
-.run .arm-left,
-.run .arm-right {
-  animation-duration: 0.3s;
+.run .legL,
+.run .legR,
+.run .shinL,
+.run .shinR,
+.run .armL,
+.run .armR,
+.run .foreL,
+.run .foreR {
+  animation-duration: 0.34s;
 }
 
-@keyframes stepL {
+@keyframes hipL {
   0%,
   50%,
   100% {
     transform: translateY(0) rotate(0);
   }
   25% {
-    transform: translateY(-7%) rotate(1.5deg);
+    transform: translateY(-1.5%) rotate(2deg);
   }
 }
-@keyframes stepR {
+@keyframes hipR {
   0%,
   50%,
   100% {
     transform: translateY(0) rotate(0);
   }
   75% {
-    transform: translateY(-7%) rotate(-1.5deg);
+    transform: translateY(-1.5%) rotate(-2deg);
+  }
+}
+@keyframes kneeL {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  25% {
+    transform: translateY(-4.5%) rotate(-3deg);
+  }
+}
+@keyframes kneeR {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  75% {
+    transform: translateY(-4.5%) rotate(3deg);
   }
 }
 @keyframes swingL {
   0%,
   100% {
-    transform: rotate(-4deg);
+    transform: rotate(-5deg);
   }
   50% {
-    transform: rotate(4deg);
+    transform: rotate(5deg);
   }
 }
 @keyframes swingR {
   0%,
   100% {
-    transform: rotate(-4deg);
+    transform: rotate(-5deg);
   }
   50% {
+    transform: rotate(5deg);
+  }
+}
+@keyframes elbowSwingL {
+  0%,
+  100% {
+    transform: rotate(2deg);
+  }
+  50% {
+    transform: rotate(-4deg);
+  }
+}
+@keyframes elbowSwingR {
+  0%,
+  100% {
     transform: rotate(4deg);
+  }
+  50% {
+    transform: rotate(-2deg);
   }
 }
 
-/* ---- Petted: a happy wiggle ---- */
+/* ---- Wave: the right arm comes up and the hand waves at the elbow ---- */
+.wave .armR {
+  animation: waveArm 2.4s ease-in-out both;
+}
+.wave .foreR {
+  animation: waveHand 2.4s ease-in-out both;
+}
+.wave .head {
+  animation: waveHead 2.4s ease-in-out both;
+}
+.wave .tail {
+  animation: tailWag 0.3s ease-in-out infinite alternate;
+}
+@keyframes waveArm {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  16%,
+  84% {
+    transform: rotate(-48deg);
+  }
+}
+@keyframes waveHand {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  16% {
+    transform: rotate(-58deg);
+  }
+  28% {
+    transform: rotate(-84deg);
+  }
+  40% {
+    transform: rotate(-58deg);
+  }
+  52% {
+    transform: rotate(-84deg);
+  }
+  64% {
+    transform: rotate(-58deg);
+  }
+  76% {
+    transform: rotate(-84deg);
+  }
+  84% {
+    transform: rotate(-58deg);
+  }
+}
+@keyframes waveHead {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20%,
+  80% {
+    transform: rotate(-1.6deg);
+  }
+}
+
+/* ---- Petted: a happy wiggle, elbows up ---- */
 .pet .head {
   animation: headHappy 0.7s ease-in-out;
 }
 .pet .tail {
   animation: tailWag 0.18s ease-in-out infinite alternate;
 }
-.pet .arm-left {
+.pet .armL {
   animation: armUpL 0.7s ease-in-out;
 }
-.pet .arm-right {
+.pet .armR {
   animation: armUpR 0.7s ease-in-out;
+}
+.pet .foreL {
+  animation: elbowUpL 0.7s ease-in-out;
+}
+.pet .foreR {
+  animation: elbowUpR 0.7s ease-in-out;
 }
 @keyframes headHappy {
   30% {
@@ -163,12 +320,22 @@
 }
 @keyframes armUpL {
   40% {
-    transform: rotate(6deg);
+    transform: rotate(10deg);
   }
 }
 @keyframes armUpR {
   40% {
-    transform: rotate(-6deg);
+    transform: rotate(-10deg);
+  }
+}
+@keyframes elbowUpL {
+  40% {
+    transform: rotate(14deg);
+  }
+}
+@keyframes elbowUpR {
+  40% {
+    transform: rotate(-14deg);
   }
 }
 
@@ -185,21 +352,36 @@
   }
 }
 
-/* ---- Hop: arms out for balance ---- */
-.hop .arm-left {
+/* ---- Hop: arms out for balance, knees tucked ---- */
+.hop .armL {
   animation: armUpL 0.55s ease-in-out 2;
 }
-.hop .arm-right {
+.hop .armR {
   animation: armUpR 0.55s ease-in-out 2;
+}
+.hop .foreL {
+  animation: elbowUpL 0.55s ease-in-out 2;
+}
+.hop .foreR {
+  animation: elbowUpR 0.55s ease-in-out 2;
+}
+.hop .shinL,
+.hop .shinR {
+  animation: tuck 0.55s ease-in-out 2;
 }
 .hop .tail {
   animation: tailWag 0.2s ease-in-out infinite alternate;
 }
+@keyframes tuck {
+  45% {
+    transform: translateY(-3%);
+  }
+}
 
 /* ---- Bath: a shiver of the arms ---- */
-.bath .arm-left {
+.bath .armL {
   animation: armSwayL 0.28s ease-in-out 8;
 }
-.bath .arm-right {
+.bath .armR {
   animation: armSwayR 0.28s ease-in-out 8;
 }

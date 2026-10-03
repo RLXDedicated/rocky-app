@@ -1,54 +1,105 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import meta from '../../assets/rocky/official/puppet/puppet.json'
 import tail from '../../assets/rocky/official/puppet/tail.png'
-import legLeft from '../../assets/rocky/official/puppet/leg-left.png'
-import legRight from '../../assets/rocky/official/puppet/leg-right.png'
-import armLeft from '../../assets/rocky/official/puppet/arm-left.png'
-import armRight from '../../assets/rocky/official/puppet/arm-right.png'
+import thighLeft from '../../assets/rocky/official/puppet/thigh-left.png'
+import thighRight from '../../assets/rocky/official/puppet/thigh-right.png'
+import shinLeft from '../../assets/rocky/official/puppet/shin-left.png'
+import shinRight from '../../assets/rocky/official/puppet/shin-right.png'
+import upperArmLeft from '../../assets/rocky/official/puppet/upper-arm-left.png'
+import upperArmRight from '../../assets/rocky/official/puppet/upper-arm-right.png'
+import forearmLeft from '../../assets/rocky/official/puppet/forearm-left.png'
+import forearmRight from '../../assets/rocky/official/puppet/forearm-right.png'
 import body from '../../assets/rocky/official/puppet/body.png'
 import head from '../../assets/rocky/official/puppet/head.png'
 import styles from './RockyPuppet.module.css'
 import type { HeadAnchor, RockyRigPoints } from '../rockyWorldRig'
 
 /**
- * Rocky as a cut-out puppet: the official A-pose art in pieces
- * (tools/build-rocky-puppet.py), each moved and turned at its joint by CSS.
- * The pieces are the delivered pixels — nothing is redrawn or stretched —
- * and at rest they rebuild the A-pose exactly.
+ * Rocky as a cut-out puppet: the design team's layers of the official A-pose
+ * (tools/build-rocky-puppet.py), turned at their joints by CSS. The visible
+ * pixels are the approved art, so at rest the puppet is the A-pose exactly;
+ * each piece continues under its neighbour, so a turn shows art, not a gap.
+ * Joints chain like a body: the shoulder carries the elbow, the hip the knee.
  */
-export type PuppetAction = 'idle' | 'walk' | 'run' | 'pet' | 'eat' | 'hop' | 'bath'
+export type PuppetAction = 'idle' | 'walk' | 'run' | 'pet' | 'eat' | 'hop' | 'bath' | 'wave'
 
 const SRC: Record<string, string> = {
   tail,
-  'leg-left': legLeft,
-  'leg-right': legRight,
-  'arm-left': armLeft,
-  'arm-right': armRight,
+  'thigh-left': thighLeft,
+  'thigh-right': thighRight,
+  'shin-left': shinLeft,
+  'shin-right': shinRight,
+  'upper-arm-left': upperArmLeft,
+  'upper-arm-right': upperArmRight,
+  'forearm-left': forearmLeft,
+  'forearm-right': forearmRight,
   body,
   head,
 }
 
 type Box = { x: number; y: number; w: number; h: number }
 const BOXES = meta.boxes as Record<string, Box>
-const PIVOTS = meta.pivots as Record<string, { x: number; y: number }>
+const JOINTS = meta.joints as Record<string, { x: number; y: number }>
+const W = meta.width
+const H = meta.height
 
 const pct = (v: number, of: number) => `${(v / of) * 100}%`
 
+/** One piece of art, placed on the full canvas. */
+function Piece({ name }: { name: string }) {
+  const b = BOXES[name]!
+  const style: CSSProperties = { left: pct(b.x, W), top: pct(b.y, H), width: pct(b.w, W), height: pct(b.h, H) }
+  return <img src={SRC[name]} alt="" draggable={false} className={styles.piece} style={style} />
+}
+
+/** A limb segment that turns at `joint`; everything inside turns with it. */
+function Joint({ joint, part, children }: { joint: string; part: string; children: ReactNode }) {
+  const j = JOINTS[joint]!
+  return (
+    <span className={`${styles.joint} ${styles[part]}`} style={{ transformOrigin: `${pct(j.x, W)} ${pct(j.y, H)}` }}>
+      {children}
+    </span>
+  )
+}
+
 export function RockyPuppet({ action, animate }: { action: PuppetAction; animate: boolean }) {
+  // Back to front, as the art stacks: tail, legs (shin over thigh), arms
+  // (upper arm over forearm), head, then the body over the neck.
   return (
     <span className={`${styles.puppet} ${animate ? styles[action] : ''}`} aria-hidden="true">
-      {meta.order.map((name) => {
-        const b = BOXES[name]!
-        const p = PIVOTS[name]!
-        const style: CSSProperties = {
-          left: pct(b.x, meta.width),
-          top: pct(b.y, meta.height),
-          width: pct(b.w, meta.width),
-          height: pct(b.h, meta.height),
-          transformOrigin: `${pct(p.x - b.x, b.w)} ${pct(p.y - b.y, b.h)}`,
-        }
-        return <img key={name} src={SRC[name]} alt="" draggable={false} className={`${styles.piece} ${styles[name]}`} style={style} />
-      })}
+      <Joint joint="tail" part="tail">
+        <Piece name="tail" />
+      </Joint>
+      <Joint joint="hip-left" part="legL">
+        <Piece name="thigh-left" />
+        <Joint joint="knee-left" part="shinL">
+          <Piece name="shin-left" />
+        </Joint>
+      </Joint>
+      <Joint joint="hip-right" part="legR">
+        <Piece name="thigh-right" />
+        <Joint joint="knee-right" part="shinR">
+          <Piece name="shin-right" />
+        </Joint>
+      </Joint>
+      <Joint joint="shoulder-left" part="armL">
+        <Joint joint="elbow-left" part="foreL">
+          <Piece name="forearm-left" />
+        </Joint>
+        <Piece name="upper-arm-left" />
+      </Joint>
+      <Joint joint="shoulder-right" part="armR">
+        <Joint joint="elbow-right" part="foreR">
+          <Piece name="forearm-right" />
+        </Joint>
+        <Piece name="upper-arm-right" />
+      </Joint>
+      <Joint joint="neck" part="head">
+        <Piece name="head" />
+      </Joint>
+      <Joint joint="neck" part="body">
+        <Piece name="body" />
+      </Joint>
     </span>
   )
 }

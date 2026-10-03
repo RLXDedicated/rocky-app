@@ -69,7 +69,7 @@ import { GuestRocky, type Guest } from "./GuestRocky";
 import { VipAura } from "./VipAura";
 import { RetryImg } from "../assetRecovery";
 
-type Pose = "idle" | "walk" | "run" | "pet" | "eat" | "hop" | "bath";
+type Pose = "idle" | "walk" | "run" | "pet" | "eat" | "hop" | "bath" | "wave";
 
 interface Particle {
   id: number;
@@ -434,6 +434,16 @@ export function RockyWorld({
   // A short official pose (a cheer, a bite, a celebration) shown over his mood pose.
   const [emote, setEmote] = useState<RockyEmote | null>(null);
   const [usePuppet] = useState(puppetEnabled);
+  // The puppet waves hello when you arrive (unless he's already busy).
+  useEffect(() => {
+    if (!usePuppet || prefersReducedMotion()) return;
+    const start = window.setTimeout(() => setPose((p) => (p === "idle" ? "wave" : p)), 900);
+    const end = window.setTimeout(() => setPose((p) => (p === "wave" ? "idle" : p)), 900 + 2400);
+    return () => {
+      window.clearTimeout(start);
+      window.clearTimeout(end);
+    };
+  }, [usePuppet]);
   const emoteTimer = useRef<number | undefined>(undefined);
   const hatRef = useRef<SVGSVGElement>(null);
   const glassesRef = useRef<SVGSVGElement>(null);

@@ -3,85 +3,171 @@
   "height": 1385,
   "order": [
     "tail",
-    "leg-left",
-    "leg-right",
-    "arm-left",
-    "arm-right",
-    "body",
-    "head"
+    "thigh-left",
+    "thigh-right",
+    "shin-left",
+    "shin-right",
+    "forearm-left",
+    "upper-arm-left",
+    "forearm-right",
+    "upper-arm-right",
+    "head",
+    "body"
   ],
-  "pivots": {
-    "tail": {
-      "x": 386,
-      "y": 878
-    },
-    "leg-left": {
-      "x": 470,
-      "y": 925
-    },
-    "leg-right": {
-      "x": 665,
-      "y": 925
-    },
-    "arm-left": {
-      "x": 332,
-      "y": 560
-    },
-    "arm-right": {
-      "x": 800,
-      "y": 560
-    },
-    "body": {
-      "x": 565,
-      "y": 760
-    },
-    "head": {
-      "x": 565,
-      "y": 600
-    }
-  },
   "boxes": {
     "tail": {
       "x": 225,
-      "y": 851,
-      "w": 174,
-      "h": 274
+      "y": 785,
+      "w": 171,
+      "h": 334
     },
-    "leg-left": {
-      "x": 64,
-      "y": 897,
-      "w": 504,
-      "h": 468
+    "thigh-left": {
+      "x": 305,
+      "y": 685,
+      "w": 291,
+      "h": 521
     },
-    "leg-right": {
-      "x": 568,
-      "y": 897,
-      "w": 452,
-      "h": 468
+    "thigh-right": {
+      "x": 540,
+      "y": 720,
+      "w": 268,
+      "h": 486
     },
-    "arm-left": {
+    "shin-left": {
+      "x": 222,
+      "y": 1089,
+      "w": 308,
+      "h": 276
+    },
+    "shin-right": {
+      "x": 606,
+      "y": 1089,
+      "w": 308,
+      "h": 276
+    },
+    "forearm-left": {
       "x": 10,
-      "y": 490,
-      "w": 395,
-      "h": 494
+      "y": 646,
+      "w": 331,
+      "h": 335
     },
-    "arm-right": {
-      "x": 729,
-      "y": 490,
-      "w": 397,
-      "h": 494
+    "upper-arm-left": {
+      "x": 154,
+      "y": 500,
+      "w": 277,
+      "h": 262
     },
-    "body": {
-      "x": 335,
-      "y": 455,
-      "w": 476,
-      "h": 537
+    "forearm-right": {
+      "x": 809,
+      "y": 646,
+      "w": 317,
+      "h": 338
+    },
+    "upper-arm-right": {
+      "x": 705,
+      "y": 495,
+      "w": 264,
+      "h": 267
     },
     "head": {
-      "x": 169,
+      "x": 235,
       "y": 10,
-      "w": 833,
-      "h": 645
+      "w": 665,
+      "h": 685
+    },
+    "body": {
+      "x": 300,
+      "y": 476,
+      "w": 526,
+      "h": 415
+    }
+  },
+  "joints": {
+    "neck": {
+      "x": 570,
+      "y": 635
+    },
+    "shoulder-left": {
+      "x": 350,
+      "y": 535
+    },
+    "shoulder-right": {
+      "x": 760,
+      "y": 535
+    },
+    "elbow-left": {
+      "x": 285,
+      "y": 710
+    },
+    "elbow-right": {
+      "x": 855,
+      "y": 710
+    },
+    "tail": {
+      "x": 315,
+      "y": 835
+    },
+    "hip-left": {
+      "x": 430,
+      "y": 850
+    },
+    "hip-right": {
+      "x": 700,
+      "y": 850
+    },
+    "knee-left": {
+      "x": 425,
+      "y": 1090
+    },
+    "knee-right": {
+      "x": 680,
+      "y": 1090
+    }
+  },
+  "pivots": {
+    "tail": {
+      "x": 315,
+      "y": 835
+    },
+    "thigh-left": {
+      "x": 430,
+      "y": 850
+    },
+    "thigh-right": {
+      "x": 700,
+      "y": 850
+    },
+    "shin-left": {
+      "x": 425,
+      "y": 1090
+    },
+    "shin-right": {
+      "x": 680,
+      "y": 1090
+    },
+    "upper-arm-left": {
+      "x": 350,
+      "y": 535
+    },
+    "upper-arm-right": {
+      "x": 760,
+      "y": 535
+    },
+    "forearm-left": {
+      "x": 285,
+      "y": 710
+    },
+    "forearm-right": {
+      "x": 855,
+      "y": 710
+    },
+    "body": {
+      "x": 570,
+      "y": 635
+    },
+    "head": {
+      "x": 570,
+      "y": 635
     }
   }
 }
