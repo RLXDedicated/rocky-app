@@ -33,8 +33,8 @@ import {
 // same QA event endpoints an audit integration would use (never a direct
 // XP/Energy edit). See backend/src/application/adminApplicationService.ts.
 
-type Tab = 'overview' | 'agents' | 'rewards' | 'shop' | 'people' | 'teams' | 'chats' | 'records'
-type Sub = 'overview' | 'activity' | 'usage' | 'gifts' | 'challenges' | 'catalog' | 'economy' | 'games' | 'qa' | 'audit' | 'system'
+type Tab = 'overview' | 'agents' | 'teams' | 'games' | 'rewards' | 'people' | 'chats' | 'records'
+type Sub = 'overview' | 'activity' | 'usage' | 'gifts' | 'challenges' | 'catalog' | 'economy' | 'qa' | 'audit' | 'system'
 
 /** Sub-sections inside a tab (things that belong together live in one place). */
 const SUBS: Partial<Record<Tab, [Sub, string][]>> = {
@@ -46,11 +46,8 @@ const SUBS: Partial<Record<Tab, [Sub, string][]>> = {
   rewards: [
     ['gifts', 'Regalar y desbloquear'],
     ['challenges', 'Retos de equipo'],
-  ],
-  shop: [
     ['catalog', 'Catálogo y precios'],
     ['economy', 'Economía y coins'],
-    ['games', 'Minijuegos'],
   ],
   records: [
     ['qa', 'Auditorías QA'],
@@ -141,10 +138,10 @@ export function AdminConsole() {
             [
               ['overview', '📊 Resumen'],
               ['agents', `👤 Agentes${agents ? ` (${agents.length})` : ''}`],
-              ['rewards', '🎁 Recompensas y retos'],
-              ['shop', '🛍️ Tienda y juegos'],
+              ['teams', '🗓️ Teams y recordatorios'],
+              ['games', '🎮 Juegos y tiempo'],
+              ['rewards', '🎁 Tienda y premios'],
               ['people', '👥 Roles y equipos'],
-              ['teams', '🗓️ Teams y horarios'],
               ['chats', '💬 Chats'],
               ['records', '📜 Registros'],
             ] as const
@@ -216,17 +213,14 @@ export function AdminConsole() {
         {tab === 'rewards' &&
           (subOf('rewards') === 'challenges' ? (
             <ChallengesTab onChanged={onChanged} onError={onError} />
+          ) : subOf('rewards') === 'catalog' ? (
+            <ShopTab onChanged={onChanged} onError={onError} />
+          ) : subOf('rewards') === 'economy' ? (
+            <EconomyTab onOpen={setSelected} onError={onError} />
           ) : (
             <BulkTab key={rewardPick?.join(',') ?? ''} agents={agents} initial={rewardPick} onChanged={onChanged} onError={onError} />
           ))}
-        {tab === 'shop' &&
-          (subOf('shop') === 'economy' ? (
-            <EconomyTab onOpen={setSelected} onError={onError} />
-          ) : subOf('shop') === 'games' ? (
-            <GamesTab onChanged={onChanged} onError={onError} />
-          ) : (
-            <ShopTab onChanged={onChanged} onError={onError} />
-          ))}
+        {tab === 'games' && <GamesTab onChanged={onChanged} onError={onError} />}
         {tab === 'people' && <PeopleTab onChanged={onChanged} onError={onError} />}
         {tab === 'teams' && <TeamsTab onChanged={onChanged} onError={onError} />}
         {tab === 'chats' && <ChatsTab onChanged={onChanged} onError={onError} />}

@@ -59,6 +59,7 @@ const MAX_IGNORED_PER_DAY = 2
 /** Checking in from 30 minutes before to 60 minutes after the shift starts counts as on time. */
 const ON_TIME_WINDOW: [number, number] = [-30, 60]
 const LINK_TTL_MS = 7 * 86_400_000
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 /** The shift greeting goes out in the shift's first minutes. */
 const GREETING_WINDOW: [number, number] = [0, 45]
 /** "Your streak is about to break": this many minutes before the shift ends. */
@@ -934,6 +935,47 @@ export function createTeamsApplicationService({
       accounts.addAudit({ agentId: email, actor: actorId, action: 'admin.schedule', detail: { schedule: s }, source: null, createdAt: clock.now().toISOString() })
     },
 
+    /** Who can be picked as a team lead: people titled "leader" and anyone already leading someone. */
+    leaderOptions() {
+      const ids = new Set([...Object.entries(accounts.getTitles()).filter(([, t]) => t === 'leader').map(([id]) => id), ...Object.values(accounts.getTeams())])
+      return [...ids].map((email) => ({ email, name: nameOf(email, accounts.getSchedules()[email]) })).sort((a, b) => a.name.localeCompare(b.name))
+    },
+
+    /** Sets (or clears, with null) an agent's team lead; the lead gets the "leader" title if they have none. */
+    setLeaderOf(agentId: string, leader: string | null, actorId: string) {
+      const email = agentId.trim().toLowerCase()
+      const lead = leader ? leader.trim().toLowerCase() : null
+      if (lead && !EMAIL.test(lead)) throw ApiError.validation("The team lead's email doesn't look right.")
+      if (lead === email) throw ApiError.validation("An agent can't be their own team lead.")
+      const at = clock.now().toISOString()
+      if (lead) {
+        const title = accounts.getTitles()[lead]
+        if (title && title !== 'leader') throw ApiError.validation('That person is not a team lead.')
+        if (!title) accounts.setTitle(lead, 'leader', actorId, at)
+      }
+      accounts.setLeader(email, lead, actorId, at)
+    },
+
+    /**
+     * Adds one agent to the roster by hand (no CSV): name, email, shift, and
+     * optionally their team lead and whether they get Teams reminders.
+     */
+    addAgent(
+      input: { email: string; name: string; schedule: AgentSchedule & { timeZone?: string | null }; leader?: string | null; teams?: boolean },
+      actorId: string,
+    ) {
+      const email = input.email.trim().toLowerCase()
+      const name = input.name.trim()
+      if (!EMAIL.test(email)) throw ApiError.validation('Enter a valid email.')
+      if (!name) throw ApiError.validation('Enter the agent name.')
+      if (accounts.getSchedules()[email]) throw ApiError.validation(`${email} is already on the roster. Use Edit on their row.`)
+      persistence.withTransaction(() => {
+        this.setSchedule(email, { ...input.schedule, teams: input.teams ?? true }, actorId, name)
+        if (input.leader) this.setLeaderOf(email, input.leader, actorId)
+      })
+      return { ok: true, agentId: email }
+    },
+
     /** Teams cards on/off for several agents at once (or everyone on the roster). */
     setTeamsFor(ids: string[] | 'all', on: boolean, actorId: string) {
       const all = accounts.getSchedules()
@@ -993,7 +1035,7 @@ export function createTeamsApplicationService({
             matchedByName++
           }
           // Invalid email or unreadable shift: left out.
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || r.problem) continue
+          if (!EMAIL.test(email) || r.problem) continue
           seen.add(email)
           const before = accounts.getSchedules()[email]
           const schedule = r.schedule ?? opts.defaultSchedule ?? null

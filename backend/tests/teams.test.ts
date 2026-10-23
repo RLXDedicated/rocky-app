@@ -89,6 +89,34 @@ describe('Teams integration', () => {
     ])
   })
 
+  it('adds an agent by hand, with a lead, and toggles their reminders one by one', async () => {
+    const { app } = build(movableClock('2026-09-07T09:00:00').clock)
+    await request(app).post('/api/admin/roster/import').set(as(ADMIN)).send({ text: ROSTER }).expect(200)
+    const NEW = 'sofia.ruiz@rlx.us'
+    const add = (body: object) => request(app).post('/api/admin/roster/agents').set(as(ADMIN)).send(body)
+    const base = { email: 'Sofia.Ruiz@rlx.us ', name: 'Sofía Ruiz', days: [1, 2, 3, 4, 5], start: '09:00', end: '18:00', timeZone: 'America/New_York' }
+    expect((await add({ ...base, leader: LEADER, teams: false })).body).toMatchObject({ ok: true, agentId: NEW })
+    let status = await request(app).get('/api/admin/teams/status').set(as(ADMIN))
+    expect(status.body.roster).toBe(3)
+    expect(status.body.schedules.find((s: { agentId: string }) => s.agentId === NEW)).toMatchObject({ name: 'Sofía Ruiz', leader: LEADER, teams: false, source: 'admin' })
+    expect(status.body.leaderOptions).toEqual([expect.objectContaining({ email: LEADER })])
+    // No duplicates, no bad emails, no empty names, and only admins.
+    expect((await add(base)).status).toBe(422)
+    expect((await add({ ...base, email: 'nope' })).status).toBe(422)
+    expect((await add({ ...base, email: 'x@rlx.us', name: ' ' })).status).toBe(422)
+    expect((await request(app).post('/api/admin/roster/agents').set(as(ANA)).send({ ...base, email: 'y@rlx.us' })).status).toBe(403)
+    // Reminders on for just this agent; the others are untouched.
+    await request(app).put('/api/admin/teams/enabled').set(as(ADMIN)).send({ emails: [NEW], on: true }).expect(200)
+    await request(app).put('/api/admin/teams/enabled').set(as(ADMIN)).send({ emails: [ANA], on: false }).expect(200)
+    status = await request(app).get('/api/admin/teams/status').set(as(ADMIN))
+    const teamsOf = (id: string) => status.body.schedules.find((s: { agentId: string }) => s.agentId === id).teams
+    expect([teamsOf(NEW), teamsOf(ANA), teamsOf(LUIS)]).toEqual([true, false, true])
+    // The lead can be changed or cleared from the row editor.
+    await request(app).put(`/api/admin/schedules/${NEW}`).set(as(ADMIN)).send({ days: [1, 2, 3], start: '10:00', end: '19:00', leader: null }).expect(200)
+    status = await request(app).get('/api/admin/teams/status').set(as(ADMIN))
+    expect(status.body.schedules.find((s: { agentId: string }) => s.agentId === NEW)).toMatchObject({ leader: null, days: [1, 2, 3], teams: true })
+  })
+
   it('sends reminder cards only inside each agent’s shift, in one webhook call', async () => {
     const t = movableClock('2026-09-06T10:00:00') // Sunday
     const { app, live, posted } = build(t.clock)

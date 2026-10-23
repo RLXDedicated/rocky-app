@@ -622,6 +622,8 @@ export interface TeamsStatus {
   last24h: { sent: number; failed: number; opened: number; done: number; ignored: number; byKind?: Record<string, number> }
   recent: TeamsDelivery[]
   schedules: TeamsSchedule[]
+  /** People who can be picked as a team lead. */
+  leaderOptions?: { email: string; name: string }[]
 }
 const put = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) })
 export const teamsApi = {
@@ -635,8 +637,13 @@ export const teamsApi = {
   setNotesOnly: (on: boolean) => request<{ notesOnly: boolean }>('/api/admin/teams/notes-only', { method: 'PUT', body: JSON.stringify({ on }) }),
   setLeaderSummary: (on: boolean) => request<{ leaderSummary: boolean }>('/api/admin/teams/leader-summary', { method: 'PUT', body: JSON.stringify({ on }) }),
   sendLeaderSummaries: () => request<{ ok: boolean; sent: number; error: string | null }>('/api/admin/teams/leaders/send', post()),
-  setSchedule: (email: string, s: { days: number[]; start: string; end: string; name?: string | null; timeZone?: string | null; teams?: boolean }) =>
-    request<{ ok: boolean }>(`/api/admin/schedules/${encodeURIComponent(email)}`, put(s)),
+  setSchedule: (
+    email: string,
+    s: { days: number[]; start: string; end: string; name?: string | null; timeZone?: string | null; teams?: boolean; leader?: string | null },
+  ) => request<{ ok: boolean }>(`/api/admin/schedules/${encodeURIComponent(email)}`, put(s)),
+  /** One agent added by hand (no CSV). */
+  addAgent: (a: { email: string; name: string; days: number[]; start: string; end: string; timeZone: string | null; leader: string | null; teams: boolean }) =>
+    request<{ ok: boolean; agentId: string }>('/api/admin/roster/agents', post(a)),
   removeSchedule: (email: string) => request<{ ok: boolean }>(`/api/admin/schedules/${encodeURIComponent(email)}`, { method: 'DELETE' }),
   importRoster: (text: string, removeMissing: boolean, defaultSchedule: { days: number[]; start: string; end: string } | null, timeZone: string | null) =>
     request<{ schedules: number; leaders: number; matchedByName: number; unmatched: string[]; unmatchedLeaders: string[] }>(

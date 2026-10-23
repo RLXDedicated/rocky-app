@@ -861,3 +861,221 @@
   box-shadow: 0 12px 30px rgba(15, 35, 65, 0.35);
   transform: translateX(-50%);
 }
+
+/* ---- Sections that open on demand, forms, switches ---- */
+.sectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sectionHead h3 {
+  margin-bottom: 2px;
+}
+
+.summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text-strong);
+  list-style-position: inside;
+}
+
+details[open] > .summary {
+  margin-bottom: 10px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px 16px;
+  margin-top: 12px;
+}
+
+.formGrid input:not([type='checkbox']),
+.formGrid select {
+  padding: 8px 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-strong);
+  background: var(--card-bg);
+}
+
+.dayPicks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-weight: 500;
+  color: var(--text-strong);
+}
+
+.formActions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.switchRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-strong);
+  cursor: pointer;
+}
+
+.switch {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  margin: 0;
+  border-radius: 999px;
+  background: #c5cfc8;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s;
+}
+
+.switch:checked {
+  background: var(--admin-green);
+}
+
+.switch:checked::after {
+  transform: translateX(16px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--admin-green);
+  outline-offset: 2px;
+}
+
+.switch:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tableToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.tableToolbar .search {
+  flex: 0 1 280px;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  font: inherit;
+}
+
+/* ---- Juegos y tiempo ---- */
+.bigStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--admin-ok-bg);
+  color: var(--admin-ok-ink);
+}
+
+.bigStatus span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bigStatus b {
+  font-size: 1.15rem;
+}
+
+.presetRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+
+.preset {
+  padding: 8px 14px;
+  border: 1.5px solid var(--admin-border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-strong);
+  cursor: pointer;
+}
+
+.preset:hover:not(:disabled) {
+  border-color: var(--admin-green);
+}
+
+.presetActive,
+.preset.presetActive:disabled {
+  border-color: var(--admin-green);
+  background: var(--admin-green);
+  color: #fff;
+  cursor: default;
+  opacity: 1;
+}
+
+.customLimit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.customLimit input {
+  width: 78px;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  font: inherit;
+}
+
+.gameList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameList li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-subtle);
+}

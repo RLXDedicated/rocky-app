@@ -45,7 +45,7 @@ export function createTeamsAdminRouter(teams: TeamsApplicationService): Router {
   const me = (req: Request) => req.identity!.agentId
 
   router.get('/admin/teams/status', admin, (_req: Request, res: Response) => {
-    res.json({ ...teams.status(), schedules: teams.schedules() })
+    res.json({ ...teams.status(), schedules: teams.schedules(), leaderOptions: teams.leaderOptions() })
   })
   router.post('/admin/teams/test', admin, (req: Request, res: Response, next) => {
     const b = parseJsonBody(req.body)
@@ -86,11 +86,34 @@ export function createTeamsAdminRouter(teams: TeamsApplicationService): Router {
       ...(typeof b.teams === 'boolean' ? { teams: b.teams } : {}),
     }
     teams.setSchedule(String(req.params.email), s, me(req), typeof b.name === 'string' ? b.name.trim() || null : null)
+    if (b.leader === null || typeof b.leader === 'string') teams.setLeaderOf(String(req.params.email), (b.leader as string | null) || null, me(req))
     res.json({ ok: true })
   })
   router.delete('/admin/schedules/:email', admin, (req: Request, res: Response) => {
     teams.setSchedule(String(req.params.email), null, me(req))
     res.json({ ok: true })
+  })
+  /** One agent added by hand: { email, name, days, start, end, timeZone?, leader?, teams? }. */
+  router.post('/admin/roster/agents', admin, (req: Request, res: Response) => {
+    const b = parseJsonBody(req.body)
+    const str = (v: unknown) => (typeof v === 'string' ? v : '')
+    res.json(
+      teams.addAgent(
+        {
+          email: str(b.email),
+          name: str(b.name),
+          schedule: {
+            days: Array.isArray(b.days) ? b.days.map(Number) : [],
+            start: str(b.start),
+            end: str(b.end),
+            timeZone: str(b.timeZone) || null,
+          },
+          leader: str(b.leader) || null,
+          teams: typeof b.teams === 'boolean' ? b.teams : true,
+        },
+        me(req),
+      ),
+    )
   })
   /** Body: { text } (the pasted CSV) or { rows }, plus removeMissing. */
   router.post('/admin/roster/import', admin, (req: Request, res: Response) => {
